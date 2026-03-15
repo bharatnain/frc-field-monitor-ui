@@ -54,7 +54,7 @@ const barCountFromDetail = (detail) => {
 function SignalBars({ detail }) {
   const count = barCountFromDetail(detail);
   if (count === 0) {
-    return <span className="text-[28px] font-extrabold text-red-600">OUT</span>;
+    return <span className="text-[28px] font-extrabold">OUT</span>;
   }
   const heights = ['25%', '50%', '75%', '100%'];
   return (
@@ -77,14 +77,29 @@ function IssueBadge({ mode }) {
     <div
       className={`rounded-md px-3 py-1 text-[14px] font-extrabold uppercase tracking-wide ${
         isCritical
-          ? 'bg-red-100 text-red-900 ring-1 ring-red-400'
-          : 'bg-amber-100 text-amber-900 ring-1 ring-amber-400'
+          ? 'bg-amber-600 text-white ring-1 ring-amber-700'
+          : 'bg-amber-100 text-amber-950 ring-1 ring-amber-500'
       }`}
     >
       {issueLabel(mode)}
     </div>
   );
 }
+
+const issueBandClass = (mode) => {
+  if (mode === 'blocking') return 'bg-amber-700';
+  if (mode === 'critical') return 'bg-amber-600';
+  if (mode === 'degraded') return 'bg-amber-400';
+  return '';
+};
+
+const signalTileClass = (state) => {
+  if (state === 'bad') return 'bg-zinc-900 text-white ring-[3px] ring-amber-700';
+  if (state === 'warn') return 'bg-amber-50 text-zinc-900 ring-2 ring-amber-400';
+  return 'bg-zinc-100 text-zinc-900 ring-1 ring-zinc-200';
+};
+
+const signalLabelClass = (state) => (state === 'bad' ? 'text-white/80' : 'text-zinc-500');
 
 const distancePanels = [
   {
@@ -183,8 +198,19 @@ export default function DistanceFirstConcept() {
               return (
                 <div
                   key={`distance-${panel.alliance}-${row.team}-${row.station}`}
-                  className={`relative flex flex-1 flex-col rounded-2xl bg-white ${isCritical ? 'ring-[4px] ring-red-500 shadow-sm' : isDegraded ? 'ring-2 ring-amber-400' : isBlocking ? 'ring-[4px] ring-amber-500 shadow-sm' : 'ring-1 ring-zinc-200'}`}
+                  className={`relative flex flex-1 flex-col rounded-2xl bg-white ${
+                    isBlocking
+                      ? 'ring-[4px] ring-amber-700 shadow-sm'
+                      : isCritical
+                        ? 'ring-[4px] ring-amber-600 shadow-sm'
+                        : isDegraded
+                          ? 'ring-2 ring-amber-400'
+                          : 'ring-1 ring-zinc-200'
+                  }`}
                 >
+                  {row.mode !== 'normal' && (
+                    <div className={`absolute inset-x-0 top-0 h-2 rounded-t-2xl ${issueBandClass(row.mode)}`} />
+                  )}
                   <div className="flex flex-1 flex-col justify-center px-5 py-3">
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
@@ -202,8 +228,8 @@ export default function DistanceFirstConcept() {
                       </div>
 
                       {isBlocking ? (
-                        <div className="flex flex-1 items-center justify-center rounded-xl bg-amber-50 px-6 py-4 text-[28px] font-bold tracking-wide text-amber-900 ring-2 ring-amber-300">
-                          <FontAwesomeIcon icon={faTriangleExclamation} className="mr-3 h-7 w-7 text-amber-600" />
+                        <div className="flex flex-1 items-center justify-center rounded-xl border-[3px] border-dashed border-amber-700 bg-amber-50 px-6 py-4 text-[28px] font-bold tracking-wide text-amber-950">
+                          <FontAwesomeIcon icon={faTriangleExclamation} className="mr-3 h-7 w-7 text-amber-700" />
                           {row.blockingText}
                         </div>
                       ) : (
@@ -218,46 +244,46 @@ export default function DistanceFirstConcept() {
                     {!isBlocking && (
                       <div className="mt-2.5 grid grid-cols-3 gap-3">
                         <div
-                          className={`rounded-xl px-3 py-3 text-center ${row.ds?.state === 'good' ? 'bg-zinc-100 ring-1 ring-zinc-200' : row.ds?.state === 'warn' ? 'bg-amber-50 ring-2 ring-amber-300' : 'bg-red-50 ring-2 ring-red-300'}`}
+                          className={`rounded-xl px-3 py-3 text-center ${signalTileClass(row.ds?.state)}`}
                         >
-                          <div className="flex items-center justify-center gap-1.5 text-[15px] font-bold uppercase text-zinc-500">
+                          <div className={`flex items-center justify-center gap-1.5 text-[15px] font-bold uppercase ${signalLabelClass(row.ds?.state)}`}>
                             <FontAwesomeIcon icon={faGamepad} className="h-4 w-4" /> DS
                           </div>
                           <div className="mt-1.5 flex items-center justify-center">
                             {row.ds?.state === 'good' ? (
-                              <span className="text-[28px] font-extrabold text-emerald-600">OK</span>
+                              <span className="text-[28px] font-extrabold text-zinc-900">OK</span>
                             ) : row.ds?.state === 'warn' ? (
-                              <span className="text-[28px] font-extrabold text-amber-600">WARN</span>
+                              <span className="text-[28px] font-extrabold text-amber-800">WARN</span>
                             ) : (
-                              <span className="text-[28px] font-extrabold text-red-600">OUT</span>
+                              <span className="text-[28px] font-extrabold text-white">OUT</span>
                             )}
                           </div>
                         </div>
 
                         <div
-                          className={`rounded-xl px-3 py-3 text-center ${row.radio?.state === 'good' ? 'bg-zinc-100 ring-1 ring-zinc-200' : row.radio?.state === 'warn' ? 'bg-amber-50 ring-2 ring-amber-300' : 'bg-red-50 ring-2 ring-red-300'}`}
+                          className={`rounded-xl px-3 py-3 text-center ${signalTileClass(row.radio?.state)}`}
                         >
-                          <div className="flex items-center justify-center gap-1.5 text-[15px] font-bold uppercase text-zinc-500">
+                          <div className={`flex items-center justify-center gap-1.5 text-[15px] font-bold uppercase ${signalLabelClass(row.radio?.state)}`}>
                             <FontAwesomeIcon icon={faTowerBroadcast} className="h-4 w-4" /> RADIO
                           </div>
-                          <div className="mt-1.5 flex min-h-[40px] items-center justify-center text-zinc-900">
+                          <div className={`mt-1.5 flex min-h-[40px] items-center justify-center ${row.radio?.state === 'bad' ? 'text-white' : 'text-zinc-900'}`}>
                             <SignalBars detail={row.radio?.detail || ''} />
                           </div>
                         </div>
 
                         <div
-                          className={`rounded-xl px-3 py-3 text-center ${row.rio?.state === 'good' ? 'bg-zinc-100 ring-1 ring-zinc-200' : row.rio?.state === 'warn' ? 'bg-amber-50 ring-2 ring-amber-300' : 'bg-red-50 ring-2 ring-red-300'}`}
+                          className={`rounded-xl px-3 py-3 text-center ${signalTileClass(row.rio?.state)}`}
                         >
-                          <div className="flex items-center justify-center gap-1.5 text-[15px] font-bold uppercase text-zinc-500">
+                          <div className={`flex items-center justify-center gap-1.5 text-[15px] font-bold uppercase ${signalLabelClass(row.rio?.state)}`}>
                             <FontAwesomeIcon icon={faMicrochip} className="h-4 w-4" /> RIO
                           </div>
                           <div className="mt-1.5 flex items-center justify-center">
                             {row.rio?.state === 'good' ? (
-                              <span className="text-[28px] font-extrabold text-emerald-600">OK</span>
+                              <span className="text-[28px] font-extrabold text-zinc-900">OK</span>
                             ) : row.rio?.state === 'warn' ? (
-                              <span className="text-[28px] font-extrabold text-amber-600">WARN</span>
+                              <span className="text-[28px] font-extrabold text-amber-800">WARN</span>
                             ) : (
-                              <span className="text-[28px] font-extrabold text-red-600">OUT</span>
+                              <span className="text-[28px] font-extrabold text-white">OUT</span>
                             )}
                           </div>
                         </div>
@@ -267,7 +293,7 @@ export default function DistanceFirstConcept() {
                     {!isBlocking && (
                       <div className="mt-2.5 grid grid-cols-[1.4fr_1.3fr_0.7fr_0.85fr] gap-2.5 rounded-xl bg-zinc-50/70 px-2.5 py-2">
                         <div
-                          className={`rounded-xl px-3 py-2.5 ${isCritical ? 'bg-red-50 ring-1 ring-red-300' : 'bg-white/80'}`}
+                          className={`rounded-xl px-3 py-2.5 ${isCritical ? 'bg-amber-50 ring-2 ring-amber-400' : 'bg-white/80'}`}
                         >
                           <div className="flex items-center gap-1.5 text-[13px] font-bold uppercase text-zinc-500">
                             <FontAwesomeIcon icon={faBatteryHalf} className="h-3.5 w-3.5" /> Battery
