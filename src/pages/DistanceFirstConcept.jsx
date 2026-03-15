@@ -25,13 +25,6 @@ const panelTheme = (alliance) =>
         stateTele: 'bg-emerald-50 text-emerald-800 ring-emerald-200',
       };
 
-const issueBand = (mode) => {
-  if (mode === 'critical') return 'bg-red-500';
-  if (mode === 'degraded') return 'bg-amber-400';
-  if (mode === 'blocking') return 'bg-amber-500';
-  return '';
-};
-
 const issueLabel = (mode) => {
   if (mode === 'critical') return 'CRITICAL';
   if (mode === 'degraded') return 'WARN';
@@ -190,12 +183,8 @@ export default function DistanceFirstConcept() {
               return (
                 <div
                   key={`distance-${panel.alliance}-${row.team}-${row.station}`}
-                  className={`relative flex flex-1 flex-col overflow-hidden rounded-2xl bg-white ${isCritical ? 'ring-2 ring-red-400 shadow-sm' : isDegraded ? 'ring-2 ring-amber-300' : isBlocking ? 'ring-2 ring-amber-400 shadow-sm' : 'ring-1 ring-zinc-200'}`}
+                  className={`relative flex flex-1 flex-col rounded-2xl bg-white ${isCritical ? 'ring-[4px] ring-red-500 shadow-sm' : isDegraded ? 'ring-2 ring-amber-400' : isBlocking ? 'ring-[4px] ring-amber-500 shadow-sm' : 'ring-1 ring-zinc-200'}`}
                 >
-                  {row.mode !== 'normal' && (
-                    <div className={`absolute inset-x-0 top-0 h-2.5 ${issueBand(row.mode)}`} />
-                  )}
-
                   <div className="flex flex-1 flex-col justify-center px-5 py-3">
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
