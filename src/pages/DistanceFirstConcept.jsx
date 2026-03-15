@@ -51,18 +51,75 @@ const barCountFromDetail = (detail) => {
   return 0;
 };
 
-function SignalBars({ detail }) {
-  const count = barCountFromDetail(detail);
-  if (count === 0) {
-    return <span className="text-[28px] font-extrabold">OUT</span>;
+const connectionTheme = (state) => {
+  if (state === 'bad') {
+    return {
+      tile: 'bg-zinc-900 text-white ring-[4px] ring-amber-700',
+      label: 'text-white/70',
+      accent: 'text-white',
+      iconShell: 'border-white/40 bg-white/10',
+      boardShell: 'border-white/30 bg-white/10',
+      caption: 'text-white/75',
+      chevron: 'text-amber-300',
+      emptyBar: 'bg-white/20',
+      filledBar: 'bg-white',
+    };
   }
-  const heights = ['25%', '50%', '75%', '100%'];
+
+  if (state === 'warn') {
+    return {
+      tile: 'bg-amber-200 text-zinc-950 ring-[3px] ring-amber-600',
+      label: 'text-amber-950/80',
+      accent: 'text-zinc-950',
+      iconShell: 'border-amber-700 bg-amber-50',
+      boardShell: 'border-amber-700 bg-amber-50',
+      caption: 'text-amber-900',
+      chevron: 'text-amber-700',
+      emptyBar: 'bg-amber-300',
+      filledBar: 'bg-zinc-900',
+    };
+  }
+
+  return {
+    tile: 'bg-white text-zinc-900 ring-2 ring-zinc-300',
+    label: 'text-zinc-500',
+    accent: 'text-zinc-900',
+    iconShell: 'border-zinc-300 bg-zinc-50',
+    boardShell: 'border-zinc-300 bg-zinc-50',
+    caption: 'text-zinc-500',
+    chevron: 'text-zinc-300',
+    emptyBar: 'bg-zinc-200',
+    filledBar: 'bg-zinc-900',
+  };
+};
+
+const deviceStatusText = (kind, state) => {
+  if (state === 'bad') return 'OUT';
+  if (state === 'warn') return kind === 'radio' ? 'LOW' : 'WARN';
+  if (kind === 'ds') return 'LINK';
+  if (kind === 'rio') return 'ONLINE';
+  return 'GOOD';
+};
+
+function SignalBars({ detail, state = 'good', hero = false }) {
+  const count = barCountFromDetail(detail);
+  const theme = connectionTheme(state);
+  if (count === 0) {
+    return (
+      <span className={`font-extrabold tracking-wide ${hero ? 'text-[34px]' : 'text-[28px]'}`}>
+        OUT
+      </span>
+    );
+  }
+  const heights = hero ? ['32%', '54%', '76%', '100%'] : ['25%', '50%', '75%', '100%'];
   return (
-    <span className="inline-flex items-end justify-center gap-1.5 h-10">
-      {heights.slice(0, count).map((h, i) => (
+    <span className={`inline-flex items-end justify-center ${hero ? 'h-12 gap-2' : 'h-10 gap-1.5'}`}>
+      {heights.map((h, i) => (
         <span
           key={i}
-          className="w-3 rounded-sm bg-zinc-900"
+          className={`rounded-sm ${hero ? 'w-4' : 'w-3'} ${
+            i < count ? theme.filledBar : theme.emptyBar
+          }`}
           style={{ height: h }}
         />
       ))}
@@ -93,13 +150,62 @@ const issueBandClass = (mode) => {
   return '';
 };
 
-const signalTileClass = (state) => {
-  if (state === 'bad') return 'bg-zinc-900 text-white ring-[3px] ring-amber-700';
-  if (state === 'warn') return 'bg-amber-50 text-zinc-900 ring-2 ring-amber-400';
-  return 'bg-zinc-100 text-zinc-900 ring-1 ring-zinc-200';
-};
+function ConnectionTile({ kind, state, detail, label }) {
+  const theme = connectionTheme(state);
+  const isRadio = kind === 'radio';
+  const isDS = kind === 'ds';
+  const icon = isDS ? faGamepad : isRadio ? faTowerBroadcast : faMicrochip;
+  const status = deviceStatusText(kind, state);
 
-const signalLabelClass = (state) => (state === 'bad' ? 'text-white/80' : 'text-zinc-500');
+  return (
+    <div className={`flex min-h-[112px] flex-col justify-between rounded-xl px-3 py-3 text-center ${theme.tile}`}>
+      <div className={`text-[12px] font-black uppercase tracking-[0.18em] ${theme.label}`}>
+        {label}
+      </div>
+
+      {isRadio ? (
+        <div className="mt-1 flex flex-1 flex-col items-center justify-center">
+          <div className={`mb-1.5 ${theme.accent}`}>
+            <FontAwesomeIcon icon={icon} className="h-6 w-6" />
+          </div>
+          <div className={`flex min-h-[48px] items-center justify-center ${theme.accent}`}>
+            <SignalBars detail={detail || ''} state={state} hero />
+          </div>
+          <div className={`mt-1 text-[22px] font-extrabold uppercase tracking-wide ${theme.accent}`}>
+            {detail || status}
+          </div>
+        </div>
+      ) : (
+        <div className="mt-1 flex flex-1 flex-col items-center justify-center">
+          <div
+            className={`flex items-center justify-center ${
+              isDS
+                ? `h-16 w-16 rounded-full border-[4px] ${theme.iconShell}`
+                : `h-16 w-16 rounded-2xl border-[4px] ${theme.boardShell}`
+            }`}
+          >
+            <FontAwesomeIcon icon={icon} className="h-8 w-8" />
+          </div>
+          <div className={`mt-2 text-[30px] font-black uppercase leading-none tracking-wide ${theme.accent}`}>
+            {status}
+          </div>
+          <div className={`mt-1 text-[13px] font-bold uppercase tracking-[0.14em] ${theme.caption}`}>
+            {isDS ? 'Driver Link' : 'Robot Ctrl'}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ConnectionChevron({ state = 'good' }) {
+  const theme = connectionTheme(state);
+  return (
+    <div className={`flex items-center justify-center text-[26px] font-black ${theme.chevron}`}>
+      &gt;
+    </div>
+  );
+}
 
 const distancePanels = [
   {
@@ -242,51 +348,27 @@ export default function DistanceFirstConcept() {
                     </div>
 
                     {!isBlocking && (
-                      <div className="mt-2.5 grid grid-cols-3 gap-3">
-                        <div
-                          className={`rounded-xl px-3 py-3 text-center ${signalTileClass(row.ds?.state)}`}
-                        >
-                          <div className={`flex items-center justify-center gap-1.5 text-[15px] font-bold uppercase ${signalLabelClass(row.ds?.state)}`}>
-                            <FontAwesomeIcon icon={faGamepad} className="h-4 w-4" /> DS
-                          </div>
-                          <div className="mt-1.5 flex items-center justify-center">
-                            {row.ds?.state === 'good' ? (
-                              <span className="text-[28px] font-extrabold text-zinc-900">OK</span>
-                            ) : row.ds?.state === 'warn' ? (
-                              <span className="text-[28px] font-extrabold text-amber-800">WARN</span>
-                            ) : (
-                              <span className="text-[28px] font-extrabold text-white">OUT</span>
-                            )}
-                          </div>
-                        </div>
-
-                        <div
-                          className={`rounded-xl px-3 py-3 text-center ${signalTileClass(row.radio?.state)}`}
-                        >
-                          <div className={`flex items-center justify-center gap-1.5 text-[15px] font-bold uppercase ${signalLabelClass(row.radio?.state)}`}>
-                            <FontAwesomeIcon icon={faTowerBroadcast} className="h-4 w-4" /> RADIO
-                          </div>
-                          <div className={`mt-1.5 flex min-h-[40px] items-center justify-center ${row.radio?.state === 'bad' ? 'text-white' : 'text-zinc-900'}`}>
-                            <SignalBars detail={row.radio?.detail || ''} />
-                          </div>
-                        </div>
-
-                        <div
-                          className={`rounded-xl px-3 py-3 text-center ${signalTileClass(row.rio?.state)}`}
-                        >
-                          <div className={`flex items-center justify-center gap-1.5 text-[15px] font-bold uppercase ${signalLabelClass(row.rio?.state)}`}>
-                            <FontAwesomeIcon icon={faMicrochip} className="h-4 w-4" /> RIO
-                          </div>
-                          <div className="mt-1.5 flex items-center justify-center">
-                            {row.rio?.state === 'good' ? (
-                              <span className="text-[28px] font-extrabold text-zinc-900">OK</span>
-                            ) : row.rio?.state === 'warn' ? (
-                              <span className="text-[28px] font-extrabold text-amber-800">WARN</span>
-                            ) : (
-                              <span className="text-[28px] font-extrabold text-white">OUT</span>
-                            )}
-                          </div>
-                        </div>
+                      <div className="mt-2.5 grid grid-cols-[1fr_28px_1fr_28px_1fr] items-stretch gap-2">
+                        <ConnectionTile
+                          kind="ds"
+                          label={row.ds?.label || 'DS'}
+                          state={row.ds?.state || 'good'}
+                          detail={row.ds?.detail || ''}
+                        />
+                        <ConnectionChevron state={row.ds?.state || 'good'} />
+                        <ConnectionTile
+                          kind="radio"
+                          label={row.radio?.label || 'RADIO'}
+                          state={row.radio?.state || 'good'}
+                          detail={row.radio?.detail || ''}
+                        />
+                        <ConnectionChevron state={row.radio?.state || 'good'} />
+                        <ConnectionTile
+                          kind="rio"
+                          label={row.rio?.label || 'RIO'}
+                          state={row.rio?.state || 'good'}
+                          detail={row.rio?.detail || ''}
+                        />
                       </div>
                     )}
 
