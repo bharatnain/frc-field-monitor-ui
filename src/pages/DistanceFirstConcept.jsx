@@ -13,17 +13,13 @@ import {
 const panelTheme = (alliance) =>
   alliance === 'red'
     ? {
-        shell: 'bg-red-50/40 ring-red-200',
-        header: 'bg-red-600 text-white',
-        rail: 'bg-red-600',
+        bar: 'bg-red-600',
         accent: 'text-red-700',
         stateAuto: 'bg-violet-50 text-violet-800 ring-violet-200',
         stateTele: 'bg-emerald-50 text-emerald-800 ring-emerald-200',
       }
     : {
-        shell: 'bg-blue-50/40 ring-blue-200',
-        header: 'bg-blue-600 text-white',
-        rail: 'bg-blue-600',
+        bar: 'bg-blue-600',
         accent: 'text-blue-700',
         stateAuto: 'bg-violet-50 text-violet-800 ring-violet-200',
         stateTele: 'bg-emerald-50 text-emerald-800 ring-emerald-200',
@@ -178,11 +174,14 @@ const distancePanels = [
 
 export default function DistanceFirstConcept() {
   return (
-    <div className="h-screen grid grid-cols-2 gap-3 bg-zinc-100 p-3 text-zinc-900">
+    <div className="h-screen flex bg-zinc-100 text-zinc-900">
       {distancePanels.map((panel) => {
         const theme = panelTheme(panel.alliance);
+        const isRed = panel.alliance === 'red';
         return (
-          <div key={`distance-${panel.alliance}`} className="flex flex-col gap-3">
+          <div key={`distance-${panel.alliance}`} className="flex flex-1">
+            {isRed && <div className={`w-5 shrink-0 ${theme.bar}`} />}
+            <div className="flex flex-1 flex-col gap-3 p-3">
             {panel.rows.map((row) => {
               const isBlocking = row.mode === 'blocking';
               const isCritical = row.mode === 'critical';
@@ -191,14 +190,13 @@ export default function DistanceFirstConcept() {
               return (
                 <div
                   key={`distance-${panel.alliance}-${row.team}-${row.station}`}
-                  className={`relative flex flex-1 flex-col overflow-hidden rounded-r-2xl bg-white ${isCritical ? 'ring-2 ring-red-400 shadow-sm' : isDegraded ? 'ring-2 ring-amber-300' : isBlocking ? 'ring-2 ring-amber-400 shadow-sm' : 'ring-1 ring-zinc-200'}`}
+                  className={`relative flex flex-1 flex-col overflow-hidden rounded-2xl bg-white ${isCritical ? 'ring-2 ring-red-400 shadow-sm' : isDegraded ? 'ring-2 ring-amber-300' : isBlocking ? 'ring-2 ring-amber-400 shadow-sm' : 'ring-1 ring-zinc-200'}`}
                 >
                   {row.mode !== 'normal' && (
                     <div className={`absolute inset-x-0 top-0 h-2.5 ${issueBand(row.mode)}`} />
                   )}
-                  <div className={`absolute inset-y-0 left-0 w-4 ${theme.rail}`} />
 
-                  <div className="flex flex-1 flex-col justify-center pl-8 pr-4 py-3">
+                  <div className="flex flex-1 flex-col justify-center px-5 py-3">
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
                         <div>
@@ -330,6 +328,8 @@ export default function DistanceFirstConcept() {
                 </div>
               );
             })}
+            </div>
+            {!isRed && <div className={`w-5 shrink-0 ${theme.bar}`} />}
           </div>
         );
       })}
