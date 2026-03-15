@@ -171,186 +171,165 @@ const distancePanels = [
 
 export default function DistanceFirstConcept() {
   return (
-    <div className="min-h-screen bg-zinc-100 p-6 text-zinc-900">
-      <div className="mx-auto max-w-[1800px]">
-        <div className="mb-4 rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-zinc-200">
-          <div className="text-sm font-semibold text-zinc-900">Distance first concept</div>
-          <div className="mt-1 text-sm text-zinc-600">
-            Refined for the real match case of 6 teams total, 3 per alliance, on a fullscreen 16 by 9 or 4 by 3 monitor
-          </div>
-        </div>
-        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-          {distancePanels.map((panel) => {
-            const theme = panelTheme(panel.alliance);
-            return (
-              <section
-                key={`distance-${panel.alliance}`}
-                className={`rounded-3xl p-4 shadow-sm ring-1 ${theme.shell}`}
-              >
+    <div className="h-screen grid grid-cols-2 gap-2 bg-zinc-100 p-2 text-zinc-900">
+      {distancePanels.map((panel) => {
+        const theme = panelTheme(panel.alliance);
+        return (
+          <div key={`distance-${panel.alliance}`} className="flex flex-col gap-2">
+            {panel.rows.map((row) => {
+              const isBlocking = row.mode === 'blocking';
+              const isCritical = row.mode === 'critical';
+              const isDegraded = row.mode === 'degraded';
+
+              return (
                 <div
-                  className={`mb-4 rounded-2xl px-5 py-3.5 text-2xl font-bold shadow-sm ${theme.header}`}
+                  key={`distance-${panel.alliance}-${row.team}-${row.station}`}
+                  className={`relative flex flex-1 flex-col overflow-hidden rounded-3xl bg-white ${isCritical ? 'ring-2 ring-amber-400 shadow-sm' : isDegraded ? 'ring-2 ring-amber-200' : isBlocking ? 'ring-2 ring-amber-400 shadow-sm' : 'ring-1 ring-zinc-200'}`}
                 >
-                  {panel.title}
-                </div>
+                  {row.mode !== 'normal' && (
+                    <div className={`absolute inset-x-0 top-0 h-2 ${issueBand(row.mode)}`} />
+                  )}
+                  <div className={`absolute inset-y-0 left-0 w-4 ${theme.rail}`} />
 
-                <div className="space-y-4">
-                  {panel.rows.map((row) => {
-                    const isBlocking = row.mode === 'blocking';
-                    const isCritical = row.mode === 'critical';
-                    const isDegraded = row.mode === 'degraded';
-
-                    return (
-                      <div
-                        key={`distance-${panel.alliance}-${row.team}-${row.station}`}
-                        className={`relative overflow-hidden rounded-3xl bg-white ${isCritical ? 'ring-2 ring-amber-400 shadow-sm' : isDegraded ? 'ring-2 ring-amber-200' : isBlocking ? 'ring-2 ring-amber-400 shadow-sm' : 'ring-1 ring-zinc-200'}`}
-                      >
-                        {row.mode !== 'normal' && (
-                          <div className={`absolute inset-x-0 top-0 h-2 ${issueBand(row.mode)}`} />
-                        )}
-                        <div className={`absolute inset-y-0 left-0 w-4 ${theme.rail}`} />
-
-                        <div className="pl-8 pr-4 py-3">
-                          <div className="flex items-center justify-between gap-4">
-                            <div className="flex items-center gap-3">
-                              <div>
-                                <div className="flex items-center gap-2">
-                                  <div className="text-[42px] font-bold leading-none tracking-tight">
-                                    {row.team}
-                                  </div>
-                                  {row.mode !== 'blocking' && <IssueBadge mode={row.mode} />}
-                                </div>
-                                <div className={`mt-1 text-[18px] font-semibold ${theme.accent}`}>
-                                  {row.station}
-                                </div>
-                              </div>
+                  <div className="flex flex-1 flex-col justify-center pl-8 pr-4 py-3">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <div className="flex items-center gap-2">
+                            <div className="text-[42px] font-bold leading-none tracking-tight">
+                              {row.team}
                             </div>
-
-                            {isBlocking ? (
-                              <div className="flex items-center gap-4">
-                                <div className="flex h-[60px] min-w-[280px] items-center justify-center rounded-2xl bg-amber-50 text-center text-[24px] font-bold tracking-wide text-amber-900 ring-2 ring-amber-300">
-                                  {row.blockingText}
-                                </div>
-                                <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-4 py-2 text-[15px] font-bold uppercase tracking-wide text-amber-900 ring-1 ring-amber-300">
-                                  <FontAwesomeIcon icon={faTriangleExclamation} className="h-4 w-4" /> Hold
-                                </div>
-                              </div>
-                            ) : (
-                              <div
-                                className={`flex h-[60px] min-w-[170px] items-center justify-center rounded-2xl px-5 text-[28px] font-bold uppercase tracking-wide ring-2 ${stateTone(row.status || '', theme)}`}
-                              >
-                                {shortState(row.status || '')}
-                              </div>
-                            )}
+                            {row.mode !== 'blocking' && <IssueBadge mode={row.mode} />}
                           </div>
-
-                          {!isBlocking && (
-                            <div className="mt-2.5 grid grid-cols-3 gap-3">
-                              <div
-                                className={`rounded-2xl px-3 py-3 text-center ${row.ds?.state === 'good' ? 'bg-zinc-100 ring-1 ring-zinc-200' : row.ds?.state === 'warn' ? 'bg-amber-50 ring-2 ring-amber-200' : 'bg-amber-100 ring-2 ring-amber-300'}`}
-                              >
-                                <div className="flex items-center justify-center gap-1.5 text-[14px] font-bold uppercase text-zinc-500">
-                                  <FontAwesomeIcon icon={faGamepad} className="h-3.5 w-3.5" /> DS
-                                </div>
-                                <div className="mt-1.5 flex items-center justify-center">
-                                  {row.ds?.state === 'good' ? (
-                                    <span className="text-[24px] font-extrabold text-emerald-600">OK</span>
-                                  ) : row.ds?.state === 'warn' ? (
-                                    <span className="text-[24px] font-extrabold text-amber-600">WARN</span>
-                                  ) : (
-                                    <span className="text-[24px] font-extrabold text-amber-600">OUT</span>
-                                  )}
-                                </div>
-                              </div>
-
-                              <div
-                                className={`rounded-2xl px-3 py-3 text-center ${row.radio?.state === 'good' ? 'bg-zinc-100 ring-1 ring-zinc-200' : row.radio?.state === 'warn' ? 'bg-amber-50 ring-2 ring-amber-200' : 'bg-amber-100 ring-2 ring-amber-300'}`}
-                              >
-                                <div className="flex items-center justify-center gap-1.5 text-[14px] font-bold uppercase text-zinc-500">
-                                  <FontAwesomeIcon icon={faTowerBroadcast} className="h-3.5 w-3.5" /> RADIO
-                                </div>
-                                <div className="mt-1.5 flex min-h-[36px] items-center justify-center text-zinc-900">
-                                  <SignalBars detail={row.radio?.detail || ''} />
-                                </div>
-                              </div>
-
-                              <div
-                                className={`rounded-2xl px-3 py-3 text-center ${row.rio?.state === 'good' ? 'bg-zinc-100 ring-1 ring-zinc-200' : row.rio?.state === 'warn' ? 'bg-amber-50 ring-2 ring-amber-200' : 'bg-amber-100 ring-2 ring-amber-300'}`}
-                              >
-                                <div className="flex items-center justify-center gap-1.5 text-[14px] font-bold uppercase text-zinc-500">
-                                  <FontAwesomeIcon icon={faMicrochip} className="h-3.5 w-3.5" /> RIO
-                                </div>
-                                <div className="mt-1.5 flex items-center justify-center">
-                                  {row.rio?.state === 'good' ? (
-                                    <span className="text-[24px] font-extrabold text-emerald-600">OK</span>
-                                  ) : row.rio?.state === 'warn' ? (
-                                    <span className="text-[24px] font-extrabold text-amber-600">WARN</span>
-                                  ) : (
-                                    <span className="text-[24px] font-extrabold text-amber-600">OUT</span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          )}
-
-                          {!isBlocking && (
-                            <div className="mt-2.5 grid grid-cols-[1.4fr_1.3fr_0.7fr_0.85fr] gap-2.5 rounded-2xl bg-zinc-50/70 px-2.5 py-2">
-                              <div
-                                className={`rounded-2xl px-3 py-2.5 ${isCritical ? 'bg-amber-50 ring-1 ring-amber-300' : 'bg-white/80'}`}
-                              >
-                                <div className="flex items-center gap-1.5 text-[12px] font-bold uppercase text-zinc-500">
-                                  <FontAwesomeIcon icon={faBatteryHalf} className="h-3.5 w-3.5" /> Battery
-                                </div>
-                                <div className="mt-1 flex items-end gap-3">
-                                  <div className="text-[26px] font-bold leading-none text-zinc-900">
-                                    {row.battery?.value}
-                                  </div>
-                                  <div className="text-[15px] font-semibold text-zinc-500">
-                                    Min {row.battery?.min}
-                                  </div>
-                                </div>
-                              </div>
-
-                              <div className="rounded-2xl bg-white/80 px-3 py-2.5">
-                                <div className="flex items-center gap-1.5 text-[12px] font-bold uppercase text-zinc-500">
-                                  <FontAwesomeIcon icon={faRightLeft} className="h-3.5 w-3.5" /> Bandwidth
-                                </div>
-                                <div className="mt-1 text-[17px] font-bold leading-none text-zinc-900">
-                                  {row.bwu?.value}
-                                </div>
-                                <div className="mt-1 text-[14px] font-semibold text-zinc-500">
-                                  Tx {row.bwu?.tx}  Rx {row.bwu?.rx}
-                                </div>
-                              </div>
-
-                              <div className="rounded-2xl bg-white/80 px-3 py-2.5 text-center">
-                                <div className="flex items-center justify-center gap-1.5 text-[12px] font-bold uppercase text-zinc-500">
-                                  <FontAwesomeIcon icon={faRoute} className="h-3.5 w-3.5" /> Trip
-                                </div>
-                                <div className="mt-1 text-[17px] font-bold text-zinc-900">
-                                  {row.trip}
-                                </div>
-                              </div>
-
-                              <div className="rounded-2xl bg-white/80 px-3 py-2.5 text-center">
-                                <div className="flex items-center justify-center gap-1.5 text-[12px] font-bold uppercase text-zinc-500">
-                                  <FontAwesomeIcon icon={faXmark} className="h-3.5 w-3.5" /> Lost Pkts
-                                </div>
-                                <div className="mt-1 text-[17px] font-bold text-zinc-900">
-                                  {row.pkts}
-                                </div>
-                              </div>
-                            </div>
-                          )}
+                          <div className={`mt-1 text-[18px] font-semibold ${theme.accent}`}>
+                            {row.station}
+                          </div>
                         </div>
                       </div>
-                    );
-                  })}
+
+                      {isBlocking ? (
+                        <div className="flex items-center gap-4">
+                          <div className="flex h-[60px] min-w-[280px] items-center justify-center rounded-2xl bg-amber-50 text-center text-[24px] font-bold tracking-wide text-amber-900 ring-2 ring-amber-300">
+                            {row.blockingText}
+                          </div>
+                          <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-4 py-2 text-[15px] font-bold uppercase tracking-wide text-amber-900 ring-1 ring-amber-300">
+                            <FontAwesomeIcon icon={faTriangleExclamation} className="h-4 w-4" /> Hold
+                          </div>
+                        </div>
+                      ) : (
+                        <div
+                          className={`flex h-[60px] min-w-[170px] items-center justify-center rounded-2xl px-5 text-[28px] font-bold uppercase tracking-wide ring-2 ${stateTone(row.status || '', theme)}`}
+                        >
+                          {shortState(row.status || '')}
+                        </div>
+                      )}
+                    </div>
+
+                    {!isBlocking && (
+                      <div className="mt-2.5 grid grid-cols-3 gap-3">
+                        <div
+                          className={`rounded-2xl px-3 py-3 text-center ${row.ds?.state === 'good' ? 'bg-zinc-100 ring-1 ring-zinc-200' : row.ds?.state === 'warn' ? 'bg-amber-50 ring-2 ring-amber-200' : 'bg-amber-100 ring-2 ring-amber-300'}`}
+                        >
+                          <div className="flex items-center justify-center gap-1.5 text-[14px] font-bold uppercase text-zinc-500">
+                            <FontAwesomeIcon icon={faGamepad} className="h-3.5 w-3.5" /> DS
+                          </div>
+                          <div className="mt-1.5 flex items-center justify-center">
+                            {row.ds?.state === 'good' ? (
+                              <span className="text-[24px] font-extrabold text-emerald-600">OK</span>
+                            ) : row.ds?.state === 'warn' ? (
+                              <span className="text-[24px] font-extrabold text-amber-600">WARN</span>
+                            ) : (
+                              <span className="text-[24px] font-extrabold text-amber-600">OUT</span>
+                            )}
+                          </div>
+                        </div>
+
+                        <div
+                          className={`rounded-2xl px-3 py-3 text-center ${row.radio?.state === 'good' ? 'bg-zinc-100 ring-1 ring-zinc-200' : row.radio?.state === 'warn' ? 'bg-amber-50 ring-2 ring-amber-200' : 'bg-amber-100 ring-2 ring-amber-300'}`}
+                        >
+                          <div className="flex items-center justify-center gap-1.5 text-[14px] font-bold uppercase text-zinc-500">
+                            <FontAwesomeIcon icon={faTowerBroadcast} className="h-3.5 w-3.5" /> RADIO
+                          </div>
+                          <div className="mt-1.5 flex min-h-[36px] items-center justify-center text-zinc-900">
+                            <SignalBars detail={row.radio?.detail || ''} />
+                          </div>
+                        </div>
+
+                        <div
+                          className={`rounded-2xl px-3 py-3 text-center ${row.rio?.state === 'good' ? 'bg-zinc-100 ring-1 ring-zinc-200' : row.rio?.state === 'warn' ? 'bg-amber-50 ring-2 ring-amber-200' : 'bg-amber-100 ring-2 ring-amber-300'}`}
+                        >
+                          <div className="flex items-center justify-center gap-1.5 text-[14px] font-bold uppercase text-zinc-500">
+                            <FontAwesomeIcon icon={faMicrochip} className="h-3.5 w-3.5" /> RIO
+                          </div>
+                          <div className="mt-1.5 flex items-center justify-center">
+                            {row.rio?.state === 'good' ? (
+                              <span className="text-[24px] font-extrabold text-emerald-600">OK</span>
+                            ) : row.rio?.state === 'warn' ? (
+                              <span className="text-[24px] font-extrabold text-amber-600">WARN</span>
+                            ) : (
+                              <span className="text-[24px] font-extrabold text-amber-600">OUT</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {!isBlocking && (
+                      <div className="mt-2.5 grid grid-cols-[1.4fr_1.3fr_0.7fr_0.85fr] gap-2.5 rounded-2xl bg-zinc-50/70 px-2.5 py-2">
+                        <div
+                          className={`rounded-2xl px-3 py-2.5 ${isCritical ? 'bg-amber-50 ring-1 ring-amber-300' : 'bg-white/80'}`}
+                        >
+                          <div className="flex items-center gap-1.5 text-[12px] font-bold uppercase text-zinc-500">
+                            <FontAwesomeIcon icon={faBatteryHalf} className="h-3.5 w-3.5" /> Battery
+                          </div>
+                          <div className="mt-1 flex items-end gap-3">
+                            <div className="text-[26px] font-bold leading-none text-zinc-900">
+                              {row.battery?.value}
+                            </div>
+                            <div className="text-[15px] font-semibold text-zinc-500">
+                              Min {row.battery?.min}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="rounded-2xl bg-white/80 px-3 py-2.5">
+                          <div className="flex items-center gap-1.5 text-[12px] font-bold uppercase text-zinc-500">
+                            <FontAwesomeIcon icon={faRightLeft} className="h-3.5 w-3.5" /> Bandwidth
+                          </div>
+                          <div className="mt-1 text-[17px] font-bold leading-none text-zinc-900">
+                            {row.bwu?.value}
+                          </div>
+                          <div className="mt-1 text-[14px] font-semibold text-zinc-500">
+                            Tx {row.bwu?.tx}  Rx {row.bwu?.rx}
+                          </div>
+                        </div>
+
+                        <div className="rounded-2xl bg-white/80 px-3 py-2.5 text-center">
+                          <div className="flex items-center justify-center gap-1.5 text-[12px] font-bold uppercase text-zinc-500">
+                            <FontAwesomeIcon icon={faRoute} className="h-3.5 w-3.5" /> Trip
+                          </div>
+                          <div className="mt-1 text-[17px] font-bold text-zinc-900">
+                            {row.trip}
+                          </div>
+                        </div>
+
+                        <div className="rounded-2xl bg-white/80 px-3 py-2.5 text-center">
+                          <div className="flex items-center justify-center gap-1.5 text-[12px] font-bold uppercase text-zinc-500">
+                            <FontAwesomeIcon icon={faXmark} className="h-3.5 w-3.5" /> Lost Pkts
+                          </div>
+                          <div className="mt-1 text-[17px] font-bold text-zinc-900">
+                            {row.pkts}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </section>
-            );
-          })}
-        </div>
-      </div>
+              );
+            })}
+          </div>
+        );
+      })}
     </div>
   );
 }
