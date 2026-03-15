@@ -30,8 +30,8 @@ const panelTheme = (alliance) =>
       };
 
 const issueBand = (mode) => {
-  if (mode === 'critical') return 'bg-amber-500';
-  if (mode === 'degraded') return 'bg-amber-300';
+  if (mode === 'critical') return 'bg-red-500';
+  if (mode === 'degraded') return 'bg-amber-400';
   if (mode === 'blocking') return 'bg-amber-500';
   return '';
 };
@@ -65,15 +65,15 @@ const barCountFromDetail = (detail) => {
 function SignalBars({ detail }) {
   const count = barCountFromDetail(detail);
   if (count === 0) {
-    return <span className="text-[24px] font-extrabold text-amber-600">OUT</span>;
+    return <span className="text-[28px] font-extrabold text-red-600">OUT</span>;
   }
   const heights = ['25%', '50%', '75%', '100%'];
   return (
-    <span className="inline-flex items-end justify-center gap-1 h-9">
+    <span className="inline-flex items-end justify-center gap-1.5 h-10">
       {heights.slice(0, count).map((h, i) => (
         <span
           key={i}
-          className="w-2.5 min-w-[8px] rounded-sm bg-zinc-900"
+          className="w-3 rounded-sm bg-zinc-900"
           style={{ height: h }}
         />
       ))}
@@ -83,8 +83,15 @@ function SignalBars({ detail }) {
 
 function IssueBadge({ mode }) {
   if (mode === 'normal') return null;
+  const isCritical = mode === 'critical';
   return (
-    <div className="rounded-full bg-amber-400 px-3 py-1 text-[13px] font-extrabold uppercase tracking-wide text-amber-950 ring-1 ring-amber-500">
+    <div
+      className={`rounded-md px-3 py-1 text-[14px] font-extrabold uppercase tracking-wide ${
+        isCritical
+          ? 'bg-red-100 text-red-900 ring-1 ring-red-400'
+          : 'bg-amber-100 text-amber-900 ring-1 ring-amber-400'
+      }`}
+    >
       {issueLabel(mode)}
     </div>
   );
@@ -171,11 +178,11 @@ const distancePanels = [
 
 export default function DistanceFirstConcept() {
   return (
-    <div className="h-screen grid grid-cols-2 gap-2 bg-zinc-100 p-2 text-zinc-900">
+    <div className="h-screen grid grid-cols-2 gap-3 bg-zinc-100 p-3 text-zinc-900">
       {distancePanels.map((panel) => {
         const theme = panelTheme(panel.alliance);
         return (
-          <div key={`distance-${panel.alliance}`} className="flex flex-col gap-2">
+          <div key={`distance-${panel.alliance}`} className="flex flex-col gap-3">
             {panel.rows.map((row) => {
               const isBlocking = row.mode === 'blocking';
               const isCritical = row.mode === 'critical';
@@ -184,10 +191,10 @@ export default function DistanceFirstConcept() {
               return (
                 <div
                   key={`distance-${panel.alliance}-${row.team}-${row.station}`}
-                  className={`relative flex flex-1 flex-col overflow-hidden rounded-3xl bg-white ${isCritical ? 'ring-2 ring-amber-400 shadow-sm' : isDegraded ? 'ring-2 ring-amber-200' : isBlocking ? 'ring-2 ring-amber-400 shadow-sm' : 'ring-1 ring-zinc-200'}`}
+                  className={`relative flex flex-1 flex-col overflow-hidden rounded-r-2xl bg-white ${isCritical ? 'ring-2 ring-red-400 shadow-sm' : isDegraded ? 'ring-2 ring-amber-300' : isBlocking ? 'ring-2 ring-amber-400 shadow-sm' : 'ring-1 ring-zinc-200'}`}
                 >
                   {row.mode !== 'normal' && (
-                    <div className={`absolute inset-x-0 top-0 h-2 ${issueBand(row.mode)}`} />
+                    <div className={`absolute inset-x-0 top-0 h-2.5 ${issueBand(row.mode)}`} />
                   )}
                   <div className={`absolute inset-y-0 left-0 w-4 ${theme.rail}`} />
 
@@ -208,17 +215,13 @@ export default function DistanceFirstConcept() {
                       </div>
 
                       {isBlocking ? (
-                        <div className="flex items-center gap-4">
-                          <div className="flex h-[60px] min-w-[280px] items-center justify-center rounded-2xl bg-amber-50 text-center text-[24px] font-bold tracking-wide text-amber-900 ring-2 ring-amber-300">
-                            {row.blockingText}
-                          </div>
-                          <div className="inline-flex items-center gap-2 rounded-full bg-amber-50 px-4 py-2 text-[15px] font-bold uppercase tracking-wide text-amber-900 ring-1 ring-amber-300">
-                            <FontAwesomeIcon icon={faTriangleExclamation} className="h-4 w-4" /> Hold
-                          </div>
+                        <div className="flex flex-1 items-center justify-center rounded-xl bg-amber-50 px-6 py-4 text-[28px] font-bold tracking-wide text-amber-900 ring-2 ring-amber-300">
+                          <FontAwesomeIcon icon={faTriangleExclamation} className="mr-3 h-7 w-7 text-amber-600" />
+                          {row.blockingText}
                         </div>
                       ) : (
                         <div
-                          className={`flex h-[60px] min-w-[170px] items-center justify-center rounded-2xl px-5 text-[28px] font-bold uppercase tracking-wide ring-2 ${stateTone(row.status || '', theme)}`}
+                          className={`flex h-[60px] min-w-[170px] items-center justify-center rounded-xl px-5 text-[28px] font-bold uppercase tracking-wide ring-2 ${stateTone(row.status || '', theme)}`}
                         >
                           {shortState(row.status || '')}
                         </div>
@@ -228,46 +231,46 @@ export default function DistanceFirstConcept() {
                     {!isBlocking && (
                       <div className="mt-2.5 grid grid-cols-3 gap-3">
                         <div
-                          className={`rounded-2xl px-3 py-3 text-center ${row.ds?.state === 'good' ? 'bg-zinc-100 ring-1 ring-zinc-200' : row.ds?.state === 'warn' ? 'bg-amber-50 ring-2 ring-amber-200' : 'bg-amber-100 ring-2 ring-amber-300'}`}
+                          className={`rounded-xl px-3 py-3 text-center ${row.ds?.state === 'good' ? 'bg-zinc-100 ring-1 ring-zinc-200' : row.ds?.state === 'warn' ? 'bg-amber-50 ring-2 ring-amber-300' : 'bg-red-50 ring-2 ring-red-300'}`}
                         >
-                          <div className="flex items-center justify-center gap-1.5 text-[14px] font-bold uppercase text-zinc-500">
-                            <FontAwesomeIcon icon={faGamepad} className="h-3.5 w-3.5" /> DS
+                          <div className="flex items-center justify-center gap-1.5 text-[15px] font-bold uppercase text-zinc-500">
+                            <FontAwesomeIcon icon={faGamepad} className="h-4 w-4" /> DS
                           </div>
                           <div className="mt-1.5 flex items-center justify-center">
                             {row.ds?.state === 'good' ? (
-                              <span className="text-[24px] font-extrabold text-emerald-600">OK</span>
+                              <span className="text-[28px] font-extrabold text-emerald-600">OK</span>
                             ) : row.ds?.state === 'warn' ? (
-                              <span className="text-[24px] font-extrabold text-amber-600">WARN</span>
+                              <span className="text-[28px] font-extrabold text-amber-600">WARN</span>
                             ) : (
-                              <span className="text-[24px] font-extrabold text-amber-600">OUT</span>
+                              <span className="text-[28px] font-extrabold text-red-600">OUT</span>
                             )}
                           </div>
                         </div>
 
                         <div
-                          className={`rounded-2xl px-3 py-3 text-center ${row.radio?.state === 'good' ? 'bg-zinc-100 ring-1 ring-zinc-200' : row.radio?.state === 'warn' ? 'bg-amber-50 ring-2 ring-amber-200' : 'bg-amber-100 ring-2 ring-amber-300'}`}
+                          className={`rounded-xl px-3 py-3 text-center ${row.radio?.state === 'good' ? 'bg-zinc-100 ring-1 ring-zinc-200' : row.radio?.state === 'warn' ? 'bg-amber-50 ring-2 ring-amber-300' : 'bg-red-50 ring-2 ring-red-300'}`}
                         >
-                          <div className="flex items-center justify-center gap-1.5 text-[14px] font-bold uppercase text-zinc-500">
-                            <FontAwesomeIcon icon={faTowerBroadcast} className="h-3.5 w-3.5" /> RADIO
+                          <div className="flex items-center justify-center gap-1.5 text-[15px] font-bold uppercase text-zinc-500">
+                            <FontAwesomeIcon icon={faTowerBroadcast} className="h-4 w-4" /> RADIO
                           </div>
-                          <div className="mt-1.5 flex min-h-[36px] items-center justify-center text-zinc-900">
+                          <div className="mt-1.5 flex min-h-[40px] items-center justify-center text-zinc-900">
                             <SignalBars detail={row.radio?.detail || ''} />
                           </div>
                         </div>
 
                         <div
-                          className={`rounded-2xl px-3 py-3 text-center ${row.rio?.state === 'good' ? 'bg-zinc-100 ring-1 ring-zinc-200' : row.rio?.state === 'warn' ? 'bg-amber-50 ring-2 ring-amber-200' : 'bg-amber-100 ring-2 ring-amber-300'}`}
+                          className={`rounded-xl px-3 py-3 text-center ${row.rio?.state === 'good' ? 'bg-zinc-100 ring-1 ring-zinc-200' : row.rio?.state === 'warn' ? 'bg-amber-50 ring-2 ring-amber-300' : 'bg-red-50 ring-2 ring-red-300'}`}
                         >
-                          <div className="flex items-center justify-center gap-1.5 text-[14px] font-bold uppercase text-zinc-500">
-                            <FontAwesomeIcon icon={faMicrochip} className="h-3.5 w-3.5" /> RIO
+                          <div className="flex items-center justify-center gap-1.5 text-[15px] font-bold uppercase text-zinc-500">
+                            <FontAwesomeIcon icon={faMicrochip} className="h-4 w-4" /> RIO
                           </div>
                           <div className="mt-1.5 flex items-center justify-center">
                             {row.rio?.state === 'good' ? (
-                              <span className="text-[24px] font-extrabold text-emerald-600">OK</span>
+                              <span className="text-[28px] font-extrabold text-emerald-600">OK</span>
                             ) : row.rio?.state === 'warn' ? (
-                              <span className="text-[24px] font-extrabold text-amber-600">WARN</span>
+                              <span className="text-[28px] font-extrabold text-amber-600">WARN</span>
                             ) : (
-                              <span className="text-[24px] font-extrabold text-amber-600">OUT</span>
+                              <span className="text-[28px] font-extrabold text-red-600">OUT</span>
                             )}
                           </div>
                         </div>
@@ -275,11 +278,11 @@ export default function DistanceFirstConcept() {
                     )}
 
                     {!isBlocking && (
-                      <div className="mt-2.5 grid grid-cols-[1.4fr_1.3fr_0.7fr_0.85fr] gap-2.5 rounded-2xl bg-zinc-50/70 px-2.5 py-2">
+                      <div className="mt-2.5 grid grid-cols-[1.4fr_1.3fr_0.7fr_0.85fr] gap-2.5 rounded-xl bg-zinc-50/70 px-2.5 py-2">
                         <div
-                          className={`rounded-2xl px-3 py-2.5 ${isCritical ? 'bg-amber-50 ring-1 ring-amber-300' : 'bg-white/80'}`}
+                          className={`rounded-xl px-3 py-2.5 ${isCritical ? 'bg-red-50 ring-1 ring-red-300' : 'bg-white/80'}`}
                         >
-                          <div className="flex items-center gap-1.5 text-[12px] font-bold uppercase text-zinc-500">
+                          <div className="flex items-center gap-1.5 text-[13px] font-bold uppercase text-zinc-500">
                             <FontAwesomeIcon icon={faBatteryHalf} className="h-3.5 w-3.5" /> Battery
                           </div>
                           <div className="mt-1 flex items-end gap-3">
@@ -292,8 +295,8 @@ export default function DistanceFirstConcept() {
                           </div>
                         </div>
 
-                        <div className="rounded-2xl bg-white/80 px-3 py-2.5">
-                          <div className="flex items-center gap-1.5 text-[12px] font-bold uppercase text-zinc-500">
+                        <div className="rounded-xl bg-white/80 px-3 py-2.5">
+                          <div className="flex items-center gap-1.5 text-[13px] font-bold uppercase text-zinc-500">
                             <FontAwesomeIcon icon={faRightLeft} className="h-3.5 w-3.5" /> Bandwidth
                           </div>
                           <div className="mt-1 text-[17px] font-bold leading-none text-zinc-900">
@@ -304,8 +307,8 @@ export default function DistanceFirstConcept() {
                           </div>
                         </div>
 
-                        <div className="rounded-2xl bg-white/80 px-3 py-2.5 text-center">
-                          <div className="flex items-center justify-center gap-1.5 text-[12px] font-bold uppercase text-zinc-500">
+                        <div className="rounded-xl bg-white/80 px-3 py-2.5 text-center">
+                          <div className="flex items-center justify-center gap-1.5 text-[13px] font-bold uppercase text-zinc-500">
                             <FontAwesomeIcon icon={faRoute} className="h-3.5 w-3.5" /> Trip
                           </div>
                           <div className="mt-1 text-[17px] font-bold text-zinc-900">
@@ -313,8 +316,8 @@ export default function DistanceFirstConcept() {
                           </div>
                         </div>
 
-                        <div className="rounded-2xl bg-white/80 px-3 py-2.5 text-center">
-                          <div className="flex items-center justify-center gap-1.5 text-[12px] font-bold uppercase text-zinc-500">
+                        <div className="rounded-xl bg-white/80 px-3 py-2.5 text-center">
+                          <div className="flex items-center justify-center gap-1.5 text-[13px] font-bold uppercase text-zinc-500">
                             <FontAwesomeIcon icon={faXmark} className="h-3.5 w-3.5" /> Lost Pkts
                           </div>
                           <div className="mt-1 text-[17px] font-bold text-zinc-900">
