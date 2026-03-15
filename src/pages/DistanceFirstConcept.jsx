@@ -101,6 +101,12 @@ const deviceStatusText = (kind, state) => {
   return 'GOOD';
 };
 
+const deviceStatusIcon = (state) => {
+  if (state === 'bad') return faXmark;
+  if (state === 'warn') return faTriangleExclamation;
+  return null;
+};
+
 function SignalBars({ detail, state = 'good', hero = false }) {
   const count = barCountFromDetail(detail);
   const theme = connectionTheme(state);
@@ -124,6 +130,60 @@ function SignalBars({ detail, state = 'good', hero = false }) {
         />
       ))}
     </span>
+  );
+}
+
+function DeviceStatusBadge({ state, text }) {
+  const icon = deviceStatusIcon(state);
+  const badgeClass =
+    state === 'bad'
+      ? 'bg-amber-600 text-white ring-2 ring-amber-700'
+      : state === 'warn'
+        ? 'bg-amber-100 text-amber-950 ring-2 ring-amber-500'
+        : 'bg-emerald-50 text-emerald-900 ring-2 ring-emerald-200';
+
+  return (
+    <div
+      className={`inline-flex items-center justify-center gap-1 rounded-full px-3 py-1 text-[14px] font-black uppercase tracking-[0.14em] ${badgeClass}`}
+    >
+      {icon && <FontAwesomeIcon icon={icon} className="h-3.5 w-3.5" />}
+      <span>{text}</span>
+    </div>
+  );
+}
+
+function DsDeviceGlyph({ theme }) {
+  return (
+    <div className="relative flex h-20 w-20 items-center justify-center">
+      <div className={`absolute inset-0 rounded-full border-[5px] shadow-sm ${theme.iconShell}`} />
+      <div className={`absolute left-1/2 top-1/2 h-14 w-14 -translate-x-1/2 -translate-y-1/2 rounded-full ${theme.accent === 'text-white' ? 'bg-white/10' : 'bg-zinc-900/5'}`} />
+      <FontAwesomeIcon icon={faGamepad} className="relative h-10 w-10" />
+    </div>
+  );
+}
+
+function RioDeviceGlyph({ theme }) {
+  const pinClass = theme.accent === 'text-white' ? 'bg-white/45' : 'bg-zinc-400';
+
+  return (
+    <div className="relative flex h-20 w-20 items-center justify-center">
+      <span className={`absolute left-1 top-4 h-2 w-1 rounded-full ${pinClass}`} />
+      <span className={`absolute left-1 top-9 h-2 w-1 rounded-full ${pinClass}`} />
+      <span className={`absolute left-1 top-14 h-2 w-1 rounded-full ${pinClass}`} />
+      <span className={`absolute right-1 top-4 h-2 w-1 rounded-full ${pinClass}`} />
+      <span className={`absolute right-1 top-9 h-2 w-1 rounded-full ${pinClass}`} />
+      <span className={`absolute right-1 top-14 h-2 w-1 rounded-full ${pinClass}`} />
+      <span className={`absolute top-1 left-4 h-1 w-2 rounded-full ${pinClass}`} />
+      <span className={`absolute top-1 left-9 h-1 w-2 rounded-full ${pinClass}`} />
+      <span className={`absolute top-1 left-14 h-1 w-2 rounded-full ${pinClass}`} />
+      <span className={`absolute bottom-1 left-4 h-1 w-2 rounded-full ${pinClass}`} />
+      <span className={`absolute bottom-1 left-9 h-1 w-2 rounded-full ${pinClass}`} />
+      <span className={`absolute bottom-1 left-14 h-1 w-2 rounded-full ${pinClass}`} />
+
+      <div className={`absolute inset-[6px] rounded-2xl border-[5px] shadow-sm ${theme.boardShell}`} />
+      <div className={`absolute inset-[18px] rounded-lg ${theme.accent === 'text-white' ? 'bg-white/10' : 'bg-zinc-900/5'}`} />
+      <FontAwesomeIcon icon={faMicrochip} className="relative h-10 w-10" />
+    </div>
   );
 }
 
@@ -154,19 +214,18 @@ function ConnectionTile({ kind, state, detail, label }) {
   const theme = connectionTheme(state);
   const isRadio = kind === 'radio';
   const isDS = kind === 'ds';
-  const icon = isDS ? faGamepad : isRadio ? faTowerBroadcast : faMicrochip;
   const status = deviceStatusText(kind, state);
 
   return (
-    <div className={`flex min-h-[112px] flex-col justify-between rounded-xl px-3 py-3 text-center ${theme.tile}`}>
-      <div className={`text-[12px] font-black uppercase tracking-[0.18em] ${theme.label}`}>
+    <div className={`flex min-h-[128px] flex-col justify-between rounded-xl px-3 py-3 text-center ${theme.tile}`}>
+      <div className={`text-[11px] font-black uppercase tracking-[0.24em] ${theme.label}`}>
         {label}
       </div>
 
       {isRadio ? (
         <div className="mt-1 flex flex-1 flex-col items-center justify-center">
           <div className={`mb-1.5 ${theme.accent}`}>
-            <FontAwesomeIcon icon={icon} className="h-6 w-6" />
+            <FontAwesomeIcon icon={faTowerBroadcast} className="h-6 w-6" />
           </div>
           <div className={`flex min-h-[48px] items-center justify-center ${theme.accent}`}>
             <SignalBars detail={detail || ''} state={state} hero />
@@ -177,19 +236,13 @@ function ConnectionTile({ kind, state, detail, label }) {
         </div>
       ) : (
         <div className="mt-1 flex flex-1 flex-col items-center justify-center">
-          <div
-            className={`flex items-center justify-center ${
-              isDS
-                ? `h-16 w-16 rounded-full border-[4px] ${theme.iconShell}`
-                : `h-16 w-16 rounded-2xl border-[4px] ${theme.boardShell}`
-            }`}
-          >
-            <FontAwesomeIcon icon={icon} className="h-8 w-8" />
+          <div className="flex min-h-[86px] items-center justify-center">
+            {isDS ? <DsDeviceGlyph theme={theme} /> : <RioDeviceGlyph theme={theme} />}
           </div>
-          <div className={`mt-2 text-[30px] font-black uppercase leading-none tracking-wide ${theme.accent}`}>
-            {status}
+          <div className="mt-2">
+            <DeviceStatusBadge state={state} text={status} />
           </div>
-          <div className={`mt-1 text-[13px] font-bold uppercase tracking-[0.14em] ${theme.caption}`}>
+          <div className={`mt-2 text-[12px] font-bold uppercase tracking-[0.18em] ${theme.caption}`}>
             {isDS ? 'Driver Link' : 'Robot Ctrl'}
           </div>
         </div>
@@ -201,8 +254,11 @@ function ConnectionTile({ kind, state, detail, label }) {
 function ConnectionChevron({ state = 'good' }) {
   const theme = connectionTheme(state);
   return (
-    <div className={`flex items-center justify-center text-[26px] font-black ${theme.chevron}`}>
-      &gt;
+    <div className="flex items-center justify-center">
+      <div className={`flex w-full items-center justify-center gap-1 ${theme.chevron}`}>
+        <span className={`h-1 w-3 rounded-full ${state === 'bad' ? 'bg-amber-300' : state === 'warn' ? 'bg-amber-700' : 'bg-zinc-300'}`} />
+        <span className="text-[30px] font-black leading-none">&gt;</span>
+      </div>
     </div>
   );
 }
