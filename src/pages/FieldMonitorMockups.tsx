@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import {
   BatteryMedium,
   Activity,
@@ -22,6 +22,7 @@ import {
   faTriangleExclamation,
   faBolt,
 } from '@fortawesome/free-solid-svg-icons';
+import { useFieldMonitorLiveData } from '../lib/fieldMonitorLive';
 
 type RowMode = 'normal' | 'critical' | 'degraded' | 'blocking';
 type SignalState = 'good' | 'warn' | 'bad';
@@ -54,162 +55,13 @@ type AlliancePanel = {
 };
 
 export default function FieldMonitorMockups() {
-  const alliancePanels: AlliancePanel[] = [
-    {
-      alliance: 'red',
-      title: 'Red Alliance',
-      rows: [
-        {
-          team: '2056',
-          station: 'Stn 2',
-          mode: 'normal',
-          status: 'Teleop Enabled',
-          ds: { label: 'DS', state: 'good', detail: 'Connected' },
-          radio: { label: 'Radio', state: 'good', detail: '4 bars' },
-          rio: { label: 'RIO', state: 'good', detail: 'Connected' },
-          battery: { value: '11.9V', min: '7.8' },
-          bwu: { value: '4.2 Mbps', tx: '2.1', rx: '2.1' },
-          trip: '18 ms',
-          pkts: '12',
-        },
-        {
-          team: '118',
-          station: 'Stn 3',
-          mode: 'critical',
-          status: 'Teleop Enabled',
-          ds: { label: 'DS', state: 'good', detail: 'Connected' },
-          radio: { label: 'Radio', state: 'good', detail: '4 bars' },
-          rio: { label: 'RIO', state: 'good', detail: 'Connected' },
-          battery: { value: '7.8V', min: '7.4' },
-          bwu: { value: '5.0 Mbps', tx: '2.8', rx: '2.2' },
-          trip: '18 ms',
-          pkts: '11',
-        },
-        {
-          team: '148',
-          station: 'Stn 2',
-          mode: 'blocking',
-          blockingText: 'MOVE TO RED 2',
-        },
-        {
-          team: '3310',
-          station: 'Stn 1',
-          mode: 'degraded',
-          status: 'Teleop Enabled',
-          ds: { label: 'DS', state: 'warn', detail: 'Degraded' },
-          radio: { label: 'Radio', state: 'good', detail: '4 bars' },
-          rio: { label: 'RIO', state: 'good', detail: 'Connected' },
-          battery: { value: '12.0V', min: '10.8' },
-          bwu: { value: '3.8 Mbps', tx: '1.9', rx: '1.9' },
-          trip: '19 ms',
-          pkts: '4',
-        },
-        {
-          team: '604',
-          station: 'Stn 3',
-          mode: 'critical',
-          status: 'Teleop Disabled',
-          ds: { label: 'DS', state: 'good', detail: 'Connected' },
-          radio: { label: 'Radio', state: 'bad', detail: '0 bars' },
-          rio: { label: 'RIO', state: 'bad', detail: 'Missing' },
-          battery: { value: '12.5V', min: '12.2' },
-          bwu: { value: '0.0 Mbps', tx: '0.0', rx: '0.0' },
-          trip: '0 ms',
-          pkts: '0',
-        },
-        {
-          team: '987',
-          station: 'Stn 1',
-          mode: 'critical',
-          status: 'Auto Disabled',
-          ds: { label: 'DS', state: 'bad', detail: 'Missing' },
-          radio: { label: 'Radio', state: 'good', detail: '4 bars' },
-          rio: { label: 'RIO', state: 'good', detail: 'Connected' },
-          battery: { value: '12.3V', min: '12.1' },
-          bwu: { value: '0.5 Mbps', tx: '0.3', rx: '0.2' },
-          trip: '9 ms',
-          pkts: '1',
-        },
-      ],
-    },
-    {
-      alliance: 'blue',
-      title: 'Blue Alliance',
-      rows: [
-        {
-          team: '1678',
-          station: 'Stn 1',
-          mode: 'degraded',
-          status: 'Teleop Enabled',
-          ds: { label: 'DS', state: 'warn', detail: 'Degraded' },
-          radio: { label: 'Radio', state: 'warn', detail: '2 bars' },
-          rio: { label: 'RIO', state: 'good', detail: 'Connected' },
-          battery: { value: '11.3V', min: '8.9' },
-          bwu: { value: '4.8 Mbps', tx: '2.6', rx: '2.2' },
-          trip: '21 ms',
-          pkts: '9',
-        },
-        {
-          team: '6328',
-          station: 'Stn 1',
-          mode: 'blocking',
-          blockingText: 'TEAM MISMATCH',
-        },
-        {
-          team: '254',
-          station: 'Stn 2',
-          mode: 'normal',
-          status: 'Auto Disabled',
-          ds: { label: 'DS', state: 'good', detail: 'Connected' },
-          radio: { label: 'Radio', state: 'good', detail: '4 bars' },
-          rio: { label: 'RIO', state: 'good', detail: 'Connected' },
-          battery: { value: '12.1V', min: '9.4' },
-          bwu: { value: '3.2 Mbps', tx: '1.7', rx: '1.5' },
-          trip: '14 ms',
-          pkts: '3',
-        },
-        {
-          team: '4414',
-          station: 'Stn 3',
-          mode: 'degraded',
-          status: 'Teleop Enabled',
-          ds: { label: 'DS', state: 'good', detail: 'Connected' },
-          radio: { label: 'Radio', state: 'warn', detail: '1 bar' },
-          rio: { label: 'RIO', state: 'good', detail: 'Connected' },
-          battery: { value: '10.9V', min: '9.7' },
-          bwu: { value: '6.9 Mbps', tx: '4.0', rx: '2.9' },
-          trip: '47 ms',
-          pkts: '16',
-        },
-        {
-          team: '900',
-          station: 'Stn 2',
-          mode: 'critical',
-          status: 'Teleop Disabled',
-          ds: { label: 'DS', state: 'good', detail: 'Connected' },
-          radio: { label: 'Radio', state: 'good', detail: '4 bars' },
-          rio: { label: 'RIO', state: 'bad', detail: 'Missing' },
-          battery: { value: '12.0V', min: '11.8' },
-          bwu: { value: '1.1 Mbps', tx: '0.6', rx: '0.5' },
-          trip: '11 ms',
-          pkts: '2',
-        },
-        {
-          team: '2485',
-          station: 'Stn 1',
-          mode: 'degraded',
-          status: 'Auto Enabled',
-          ds: { label: 'DS', state: 'good', detail: 'Connected' },
-          radio: { label: 'Radio', state: 'good', detail: '4 bars' },
-          rio: { label: 'RIO', state: 'good', detail: 'Connected' },
-          battery: { value: '9.2V', min: '8.6' },
-          bwu: { value: '7.8 Mbps', tx: '4.7', rx: '3.1' },
-          trip: '63 ms',
-          pkts: '22',
-        },
-      ],
-    },
-  ];
+  const [searchParams] = useSearchParams();
+  const [recordingLabel, setRecordingLabel] = React.useState('');
+  const redOnRight = searchParams.get('redonright') !== 'false';
+  const { alliancePanels, matchStatus, aheadBehind, error, isConnected, hasLiveData, recorder } =
+    useFieldMonitorLiveData({
+      redOnRight,
+    });
 
   const panelTheme = (alliance: 'red' | 'blue') =>
     alliance === 'red'
@@ -260,7 +112,13 @@ export default function FieldMonitorMockups() {
         ? 'TELEOP OFF'
         : status === 'Auto Enabled'
           ? 'AUTO'
-          : 'AUTO DISABLED';
+          : status === 'Auto Disabled'
+            ? 'AUTO DISABLED'
+            : status === 'E-STOPPED'
+              ? 'E-STOP'
+              : status === 'A-STOPPED'
+                ? 'A-STOP'
+                : status;
 
   const radioBars = (detail: string) => {
     if (detail.includes('4')) return '▂▄▆█';
@@ -587,30 +445,105 @@ export default function FieldMonitorMockups() {
         <div className="mb-6">
           <h1 className="text-2xl font-semibold tracking-tight">FIRST Field Monitor Split View Mockups</h1>
           <p className="mt-1 text-sm text-zinc-600">
-            Baseline concept is frozen. Below it are two additional directions with stronger visual language and distance readable cues for FTAs.
+            Live FMS data is feeding both concepts below. The layout side order follows the `redonright` query param.
           </p>
+        </div>
+
+        <div className="mb-6 grid gap-3 lg:grid-cols-[auto_auto_1fr]">
+          <div className="rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-zinc-200">
+            <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Connection</div>
+            <div className={`mt-1 text-sm font-semibold ${isConnected ? 'text-emerald-700' : 'text-amber-700'}`}>
+              {isConnected ? 'Live feed connected' : 'Connecting to live feed'}
+            </div>
+          </div>
+          <div className="rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-zinc-200">
+            <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Match</div>
+            <div className="mt-1 text-sm font-semibold text-zinc-900">
+              {matchStatus.matchNumber > 0 ? `M${matchStatus.matchNumber}` : 'No match yet'}
+              {aheadBehind ? ` · ${aheadBehind}` : ''}
+            </div>
+            <div className="mt-1 text-sm text-zinc-600">{matchStatus.matchStateMessage}</div>
+          </div>
+          <div className="rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-zinc-200">
+            <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Feed Notes</div>
+            <div className="mt-1 text-sm text-zinc-700">
+              {error
+                ? error
+                : hasLiveData
+                  ? 'SignalR station updates are active and the mockups are rendering live rows.'
+                  : 'Waiting for the first station payload from the field monitor hubs.'}
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-6 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-zinc-200">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+            <div className="min-w-0">
+              <div className="text-sm font-semibold text-zinc-900">Live recorder</div>
+              <div className="mt-1 text-sm text-zinc-600">
+                Records copies of incoming SignalR events and downloads them as JSON while the live monitor keeps running.
+              </div>
+              <div className="mt-2 text-xs text-zinc-500">
+                {recorder.isRecording
+                  ? `Recording ${recorder.eventCount} events${recorder.startedAtIso ? ` since ${new Date(recorder.startedAtIso).toLocaleTimeString()}` : ''}.`
+                  : recorder.lastDownloadName
+                    ? `Last saved ${recorder.lastEventCount} events to ${recorder.lastDownloadName}.`
+                    : 'Ready to capture a live match.'}
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+              <input
+                type="text"
+                value={recordingLabel}
+                onChange={(event) => setRecordingLabel(event.target.value)}
+                disabled={recorder.isRecording}
+                placeholder="Optional label, e.g. qm-42"
+                className="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-blue-500 sm:w-64"
+              />
+              {recorder.isRecording ? (
+                <button
+                  type="button"
+                  onClick={() => recorder.stopRecordingAndDownload()}
+                  className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                >
+                  Stop and download
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => recorder.startRecording(recordingLabel)}
+                  className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+                >
+                  Start recording
+                </button>
+              )}
+            </div>
+          </div>
         </div>
 
         <OriginalConcept />
         <VisualConcept />
 
         <div className="mt-8 rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-zinc-200">
-          <Link to="/distance-first" className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline">
+          <Link
+            to={`/distance-first?redonright=${redOnRight}`}
+            className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline"
+          >
             Distance first concept →
           </Link>
           <div className="mt-1 text-sm text-zinc-600">
-            Refined for 6 teams (3 per alliance) on fullscreen 16:9 or 4:3. Opens on its own page.
+            Refined for 6 teams on fullscreen 16:9 or 4:3 using the same live field data feed.
           </div>
         </div>
 
         <div className="mt-8 rounded-2xl bg-white p-5 text-sm text-zinc-700 shadow-sm ring-1 ring-zinc-200">
-          <div className="font-semibold text-zinc-900">Issue treatment update</div>
+          <div className="font-semibold text-zinc-900">Live mapping notes</div>
           <ul className="mt-2 list-disc space-y-1 pl-5">
-            <li>The left issue indicator was removed from every concept.</li>
-            <li>Issue rows now use a top issue band plus a compact severity badge near the team and station block.</li>
-            <li>Blocking rows no longer show the extra Assignment label.</li>
-            <li>Issue cells keep stronger borders while healthy cells stay flatter.</li>
-            <li>Battery and Radio tiles in the distance concept were adjusted so the value sits cleanly inside the tile.</li>
+            <li>`TEAM MISMATCH` and `MOVE TO ...` rows are driven from live station status values.</li>
+            <li>DS, Radio, and RIO states are inferred from the same connection flags used by the live Angular field monitor.</li>
+            <li>Battery minimum is tracked over time per station while the hubs stay connected.</li>
+            <li>Severity bands are derived from live connection quality, battery, bandwidth, trip time, and packet loss.</li>
           </ul>
         </div>
       </div>

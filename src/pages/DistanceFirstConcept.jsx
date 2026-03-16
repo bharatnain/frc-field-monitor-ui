@@ -1,4 +1,5 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { useSearchParams } from 'react-router-dom';
 import {
   faTriangleExclamation,
   faGamepad,
@@ -9,6 +10,7 @@ import {
   faRoute,
   faXmark,
 } from '@fortawesome/free-solid-svg-icons';
+import { useFieldMonitorLiveData } from '../lib/fieldMonitorLive';
 
 const panelTheme = (alliance) =>
   alliance === 'red'
@@ -41,7 +43,13 @@ const shortState = (status) =>
       ? 'TELEOP OFF'
       : status === 'Auto Enabled'
         ? 'AUTO'
-        : 'AUTO DISABLED';
+        : status === 'Auto Disabled'
+          ? 'AUTO DISABLED'
+          : status === 'E-STOPPED'
+            ? 'E-STOP'
+            : status === 'A-STOPPED'
+              ? 'A-STOP'
+              : status;
 
 const barCountFromDetail = (detail) => {
   if (detail.includes('4')) return 4;
@@ -257,86 +265,11 @@ function ConnectionChevron({ state = 'good' }) {
   );
 }
 
-const distancePanels = [
-  {
-    alliance: 'red',
-    title: 'Red Alliance',
-    rows: [
-      {
-        team: '2056',
-        station: 'Stn 2',
-        mode: 'normal',
-        status: 'Teleop Enabled',
-        ds: { label: 'DS', state: 'good', detail: 'Connected' },
-        radio: { label: 'Radio', state: 'good', detail: '4 bars' },
-        rio: { label: 'RIO', state: 'good', detail: 'Connected' },
-        battery: { value: '11.9V', min: '7.8' },
-        bwu: { value: '4.2 Mbps', tx: '2.1', rx: '2.1' },
-        trip: '18 ms',
-        pkts: '12',
-      },
-      {
-        team: '118',
-        station: 'Stn 3',
-        mode: 'critical',
-        status: 'Teleop Enabled',
-        ds: { label: 'DS', state: 'good', detail: 'Connected' },
-        radio: { label: 'Radio', state: 'good', detail: '4 bars' },
-        rio: { label: 'RIO', state: 'good', detail: 'Connected' },
-        battery: { value: '7.8V', min: '7.4' },
-        bwu: { value: '5.0 Mbps', tx: '2.8', rx: '2.2' },
-        trip: '18 ms',
-        pkts: '11',
-      },
-      {
-        team: '148',
-        station: 'Stn 2',
-        mode: 'blocking',
-        blockingText: 'MOVE TO RED 2',
-      },
-    ],
-  },
-  {
-    alliance: 'blue',
-    title: 'Blue Alliance',
-    rows: [
-      {
-        team: '1678',
-        station: 'Stn 1',
-        mode: 'degraded',
-        status: 'Teleop Enabled',
-        ds: { label: 'DS', state: 'warn', detail: 'Degraded' },
-        radio: { label: 'Radio', state: 'warn', detail: '2 bars' },
-        rio: { label: 'RIO', state: 'good', detail: 'Connected' },
-        battery: { value: '11.3V', min: '8.9' },
-        bwu: { value: '4.8 Mbps', tx: '2.6', rx: '2.2' },
-        trip: '21 ms',
-        pkts: '9',
-      },
-      {
-        team: '6328',
-        station: 'Stn 1',
-        mode: 'blocking',
-        blockingText: 'TEAM MISMATCH',
-      },
-      {
-        team: '254',
-        station: 'Stn 2',
-        mode: 'normal',
-        status: 'Auto Disabled',
-        ds: { label: 'DS', state: 'good', detail: 'Connected' },
-        radio: { label: 'Radio', state: 'good', detail: '4 bars' },
-        rio: { label: 'RIO', state: 'good', detail: 'Connected' },
-        battery: { value: '12.1V', min: '9.4' },
-        bwu: { value: '3.2 Mbps', tx: '1.7', rx: '1.5' },
-        trip: '14 ms',
-        pkts: '3',
-      },
-    ],
-  },
-];
-
 export default function DistanceFirstConcept() {
+  const [searchParams] = useSearchParams();
+  const redOnRight = searchParams.get('redonright') !== 'false';
+  const { alliancePanels: distancePanels } = useFieldMonitorLiveData({ redOnRight });
+
   return (
     <div className="flex h-dvh bg-zinc-100 text-zinc-900">
       {distancePanels.map((panel) => {
