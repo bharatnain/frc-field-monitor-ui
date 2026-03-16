@@ -53,7 +53,7 @@ type AlliancePanel = {
   rows: DataRow[];
 };
 
-export default function FirstFieldMonitorRowMockup() {
+export default function FieldMonitorMockups() {
   const alliancePanels: AlliancePanel[] = [
     {
       alliance: 'red',
@@ -286,7 +286,11 @@ export default function FirstFieldMonitorRowMockup() {
   function HealthyChainItem({ label, state, detail }: SystemSignal) {
     return (
       <div className={`inline-flex items-center gap-1.5 rounded-full px-1.5 py-0.5 ${signalTone(state)}`}>
-        <span className={`text-[10px] font-semibold uppercase tracking-wide ${state === 'good' ? 'text-zinc-400' : 'text-zinc-500'}`}>
+        <span
+          className={`text-[10px] font-semibold uppercase tracking-wide ${
+            state === 'good' ? 'text-zinc-400' : 'text-zinc-500'
+          }`}
+        >
           {label}
         </span>
         {label === 'Radio' ? (
@@ -298,20 +302,40 @@ export default function FirstFieldMonitorRowMockup() {
     );
   }
 
-  function MetricPill({ label, value, emphasized = false }: { label: string; value: string; emphasized?: boolean }) {
+  function MetricPill({
+    label,
+    value,
+    emphasized = false,
+  }: {
+    label: string;
+    value: string;
+    emphasized?: boolean;
+  }) {
     return (
-      <div className={`inline-flex items-baseline gap-1 rounded-full px-2 py-1 ${emphasized ? 'bg-zinc-100 ring-1 ring-zinc-300' : 'bg-transparent'}`}>
+      <div
+        className={`inline-flex items-baseline gap-1 rounded-full px-2 py-1 ${
+          emphasized ? 'bg-zinc-100 ring-1 ring-zinc-300' : 'bg-transparent'
+        }`}
+      >
         <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">{label}</span>
         <span className={`${emphasized ? 'text-[15px]' : 'text-sm'} font-semibold text-zinc-900`}>{value}</span>
       </div>
     );
   }
 
-  function CompactMetricGroup({ title, children, emphasized = false }: { title: string; children: React.ReactNode; emphasized?: boolean }) {
+  function CompactMetricGroup({
+    title,
+    children,
+    emphasized = false,
+  }: {
+    title: string;
+    children: React.ReactNode;
+    emphasized?: boolean;
+  }) {
     return (
       <div className={`rounded-xl px-2 py-1 ${emphasized ? 'bg-zinc-100 ring-1 ring-zinc-300' : 'bg-zinc-50/70'}`}>
         <div className="text-[9px] font-semibold uppercase tracking-[0.14em] text-zinc-500">{title}</div>
-        <div className="mt-1 flex items-center gap-1.5 flex-wrap">{children}</div>
+        <div className="mt-1 flex flex-wrap items-center gap-1.5">{children}</div>
       </div>
     );
   }
@@ -349,18 +373,20 @@ export default function FirstFieldMonitorRowMockup() {
             const theme = panelTheme(panel.alliance);
             return (
               <section key={panel.alliance} className={`rounded-3xl p-4 shadow-sm ring-1 ${theme.shell}`}>
-                <div className={`mb-4 rounded-2xl px-4 py-3 text-lg font-semibold shadow-sm ${theme.header}`}>{panel.title}</div>
+                <div className={`mb-4 rounded-2xl px-4 py-3 text-lg font-semibold shadow-sm ${theme.header}`}>
+                  {panel.title}
+                </div>
                 <div className="space-y-2.5">
                   {panel.rows.map((row) => (
                     <div key={`${panel.alliance}-${row.team}-${row.station}`} className={`relative overflow-hidden rounded-2xl ${rowClass(row.mode)}`}>
                       {row.mode !== 'normal' && <div className={`absolute inset-x-0 top-0 h-1.5 ${issueBand(row.mode)}`} />}
                       <div className={`absolute inset-y-2 left-2 w-2 rounded-full ${theme.rail}`} />
 
-                      <div className="pl-7 pr-3 py-2">
+                      <div className="py-2 pl-7 pr-3">
                         <div className="grid grid-cols-[1fr_auto] items-center gap-2">
-                          <div className="flex items-center gap-2.5 min-w-0">
-                            <div className="text-[23px] font-bold leading-none tracking-tight shrink-0">{row.team}</div>
-                            <div className="flex items-center gap-2 min-w-0">
+                          <div className="flex min-w-0 items-center gap-2.5">
+                            <div className="shrink-0 text-[23px] font-bold leading-none tracking-tight">{row.team}</div>
+                            <div className="flex min-w-0 items-center gap-2">
                               <div className={`text-[12px] font-medium ${theme.accent}`}>{row.station}</div>
                               {row.mode !== 'blocking' && <IssueBadge mode={row.mode} />}
                             </div>
@@ -381,15 +407,15 @@ export default function FirstFieldMonitorRowMockup() {
                           </div>
                         ) : (
                           <>
-                            <div className="pt-2 flex items-center gap-2 border-t border-zinc-100">
-                              <div className="flex items-center gap-1.5 flex-wrap pt-2">
+                            <div className="flex items-center gap-2 border-t border-zinc-100 pt-2">
+                              <div className="flex flex-wrap items-center gap-1.5 pt-2">
                                 {row.ds && <HealthyChainItem {...row.ds} />}
                                 {row.radio && <HealthyChainItem {...row.radio} />}
                                 {row.rio && <HealthyChainItem {...row.rio} />}
                               </div>
                             </div>
 
-                            <div className="pt-2 grid grid-cols-[auto_auto_1fr] gap-2 items-start border-t border-zinc-100 rounded-xl bg-zinc-50/50 px-2 pb-1">
+                            <div className="grid grid-cols-[auto_auto_1fr] items-start gap-2 rounded-xl border-t border-zinc-100 bg-zinc-50/50 px-2 pb-1 pt-2">
                               <div className="pt-2">
                                 <CompactMetricGroup title="Battery" emphasized={row.mode === 'critical'}>
                                   <div className="inline-flex items-baseline gap-1 px-1 py-0.5">
@@ -447,17 +473,15 @@ export default function FirstFieldMonitorRowMockup() {
                       {row.mode !== 'normal' && <div className={`absolute inset-x-0 top-0 h-1.5 ${issueBand(row.mode)}`} />}
                       <div className={`absolute inset-y-2 left-2 w-2 rounded-full ${theme.rail}`} />
 
-                      <div className="pl-7 pr-3 py-2.5">
+                      <div className="px-3 py-2.5 pl-7">
                         <div className="grid grid-cols-[1fr_auto] items-center gap-2">
-                          <div className="flex items-center gap-3 min-w-0">
-                            <div className="text-[24px] font-bold leading-none tracking-tight shrink-0">{row.team}</div>
+                          <div className="flex min-w-0 items-center gap-3">
+                            <div className="shrink-0 text-[24px] font-bold leading-none tracking-tight">{row.team}</div>
                             <div className={`text-[12px] font-medium ${theme.accent}`}>{row.station}</div>
                             {row.mode !== 'blocking' && <IssueBadge mode={row.mode} />}
                           </div>
 
-                          {row.mode === 'blocking' ? null : (
-                            <VisualStatusPill status={row.status || ''} theme={theme} />
-                          )}
+                          {row.mode === 'blocking' ? null : <VisualStatusPill status={row.status || ''} theme={theme} />}
                         </div>
 
                         {row.mode === 'blocking' ? (
@@ -470,45 +494,76 @@ export default function FirstFieldMonitorRowMockup() {
                         ) : (
                           <>
                             <div className="mt-2 grid grid-cols-3 gap-2.5 border-t border-zinc-100 pt-2.5">
-                              <div className={`rounded-xl px-2.5 py-2 flex flex-col items-center justify-center ${row.ds?.state === 'good' ? 'bg-zinc-50/70' : 'bg-amber-50 ring-1 ring-amber-200'}`}>
-                                <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500"><FontAwesomeIcon icon={faGamepad} className="h-3.5 w-3.5" /> DS</div>
+                              <div
+                                className={`flex flex-col items-center justify-center rounded-xl px-2.5 py-2 ${
+                                  row.ds?.state === 'good' ? 'bg-zinc-50/70' : 'bg-amber-50 ring-1 ring-amber-200'
+                                }`}
+                              >
+                                <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                                  <FontAwesomeIcon icon={faGamepad} className="h-3.5 w-3.5" /> DS
+                                </div>
                                 {row.ds && <div className="mt-1 flex justify-center"><DsRioStateIcon state={row.ds.state} /></div>}
                               </div>
 
                               <div className={`rounded-xl px-2.5 py-2 ${row.radio?.state === 'good' ? 'bg-zinc-50/70' : 'bg-amber-50 ring-1 ring-amber-200'}`}>
-                                <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500"><FontAwesomeIcon icon={faTowerBroadcast} className="h-3.5 w-3.5" /> Radio</div>
+                                <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                                  <FontAwesomeIcon icon={faTowerBroadcast} className="h-3.5 w-3.5" /> Radio
+                                </div>
                                 <div className="mt-1 flex items-center justify-between gap-2 text-sm font-semibold text-zinc-900">
-                                  <span>{row.radio?.state === 'good' ? 'Link' : row.radio?.state === 'warn' ? 'Low Signal' : 'Missing'}</span>
+                                  <span>
+                                    {row.radio?.state === 'good'
+                                      ? 'Link'
+                                      : row.radio?.state === 'warn'
+                                        ? 'Low Signal'
+                                        : 'Missing'}
+                                  </span>
                                   <span className="text-[13px] tracking-tight">{radioBars(row.radio?.detail || '')}</span>
                                 </div>
                               </div>
 
-                              <div className={`rounded-xl px-2.5 py-2 flex flex-col items-center justify-center ${row.rio?.state === 'good' ? 'bg-zinc-50/70' : 'bg-amber-50 ring-1 ring-amber-200'}`}>
-                                <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500"><FontAwesomeIcon icon={faMicrochip} className="h-3.5 w-3.5" /> RIO</div>
+                              <div
+                                className={`flex flex-col items-center justify-center rounded-xl px-2.5 py-2 ${
+                                  row.rio?.state === 'good' ? 'bg-zinc-50/70' : 'bg-amber-50 ring-1 ring-amber-200'
+                                }`}
+                              >
+                                <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                                  <FontAwesomeIcon icon={faMicrochip} className="h-3.5 w-3.5" /> RIO
+                                </div>
                                 {row.rio && <div className="mt-1 flex justify-center"><DsRioStateIcon state={row.rio.state} /></div>}
                               </div>
                             </div>
 
                             <div className="mt-2 grid grid-cols-[1.2fr_1.15fr_0.9fr_1fr] gap-2.5 rounded-xl bg-zinc-50/60 px-2 py-2">
                               <div className={`rounded-xl px-2.5 py-2 ${row.mode === 'critical' ? 'bg-amber-50 ring-1 ring-amber-300' : 'bg-white/80'}`}>
-                                <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500"><FontAwesomeIcon icon={faBatteryHalf} className="h-3.5 w-3.5" /> Battery</div>
+                                <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                                  <FontAwesomeIcon icon={faBatteryHalf} className="h-3.5 w-3.5" /> Battery
+                                </div>
                                 <div className="mt-1 text-[18px] font-bold leading-none text-zinc-900">{row.battery?.value}</div>
                                 <div className="mt-1 text-[11px] font-medium text-zinc-500">Min {row.battery?.min}</div>
                               </div>
 
                               <div className="rounded-xl bg-white/80 px-2.5 py-2">
-                                <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500"><FontAwesomeIcon icon={faRightLeft} className="h-3.5 w-3.5" /> BWU</div>
+                                <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                                  <FontAwesomeIcon icon={faRightLeft} className="h-3.5 w-3.5" /> BWU
+                                </div>
                                 <div className="mt-1 text-[16px] font-semibold leading-none text-zinc-900">{row.bwu?.value}</div>
-                                <div className="mt-1 flex gap-2 text-[11px] font-medium text-zinc-500"><span>Tx {row.bwu?.tx}</span><span>Rx {row.bwu?.rx}</span></div>
+                                <div className="mt-1 flex gap-2 text-[11px] font-medium text-zinc-500">
+                                  <span>Tx {row.bwu?.tx}</span>
+                                  <span>Rx {row.bwu?.rx}</span>
+                                </div>
                               </div>
 
                               <div className="rounded-xl bg-white/80 px-2.5 py-2">
-                                <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500"><FontAwesomeIcon icon={faRoute} className="h-3.5 w-3.5" /> Trip</div>
+                                <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                                  <FontAwesomeIcon icon={faRoute} className="h-3.5 w-3.5" /> Trip
+                                </div>
                                 <div className="mt-1 text-[15px] font-semibold text-zinc-900">{row.trip}</div>
                               </div>
 
                               <div className="rounded-xl bg-white/80 px-2.5 py-2">
-                                <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500"><FontAwesomeIcon icon={faTriangleExclamation} className="h-3.5 w-3.5" /> Lost Pkts</div>
+                                <div className="flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                                  <FontAwesomeIcon icon={faTriangleExclamation} className="h-3.5 w-3.5" /> Lost Pkts
+                                </div>
                                 <div className="mt-1 text-[15px] font-semibold text-zinc-900">{row.pkts}</div>
                               </div>
                             </div>
@@ -531,7 +586,9 @@ export default function FirstFieldMonitorRowMockup() {
       <div className="mx-auto max-w-[1800px]">
         <div className="mb-6">
           <h1 className="text-2xl font-semibold tracking-tight">FIRST Field Monitor Split View Mockups</h1>
-          <p className="mt-1 text-sm text-zinc-600">Baseline concept is frozen. Below it are two additional directions with stronger visual language and distance readable cues for FTAs.</p>
+          <p className="mt-1 text-sm text-zinc-600">
+            Baseline concept is frozen. Below it are two additional directions with stronger visual language and distance readable cues for FTAs.
+          </p>
         </div>
 
         <OriginalConcept />
@@ -541,7 +598,9 @@ export default function FirstFieldMonitorRowMockup() {
           <Link to="/distance-first" className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline">
             Distance first concept →
           </Link>
-          <div className="mt-1 text-sm text-zinc-600">Refined for 6 teams (3 per alliance) on fullscreen 16:9 or 4:3. Opens on its own page.</div>
+          <div className="mt-1 text-sm text-zinc-600">
+            Refined for 6 teams (3 per alliance) on fullscreen 16:9 or 4:3. Opens on its own page.
+          </div>
         </div>
 
         <div className="mt-8 rounded-2xl bg-white p-5 text-sm text-zinc-700 shadow-sm ring-1 ring-zinc-200">
