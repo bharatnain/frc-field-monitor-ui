@@ -1,8 +1,13 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
 import { MessagePackHubProtocol } from '@microsoft/signalr-protocol-msgpack';
 
 const RECORDING_FILE_VERSION = 1;
+const DEFAULT_REPLAY_SPEED = 1;
+const REPLAY_SPEED_OPTIONS = [0.5, 1, 2, 4];
+
+let activeReplayRecording = null;
+let activeReplayFileName = '';
 
 const AllianceType = {
   None: 0,
@@ -328,6 +333,154 @@ function downloadRecordingFile(filename, recording) {
   URL.revokeObjectURL(url);
 }
 
+function createDefaultReplayState() {
+  return {
+    isReplayMode: false,
+    isPlaying: false,
+    currentTimeMs: 0,
+    durationMs: 0,
+    eventCount: 0,
+    speed: DEFAULT_REPLAY_SPEED,
+    fileName: '',
+    error: '',
+  };
+}
+
+function getReplayDurationMs(recording) {
+  if (!recording) {
+    return 0;
+  }
+
+  const metaDuration = Number(recording?.meta?.durationMs) || 0;
+  if (metaDuration > 0) {
+    return metaDuration;
+  }
+
+  const lastEvent = recording.events?.[recording.events.length - 1];
+  return Number(lastEvent?.t) || 0;
+}
+
+function coerceMatchStatusSnapshot(raw) {
+  if (!raw) {
+    return normalizeMatchStatus();
+  }
+
+  if ('matchState' in raw || 'matchStateMessage' in raw) {
+    const matchState = Number(raw.matchState) || MatchStateType.WaitingForPrestart;
+
+    return {
+      matchState,
+      matchNumber: Number(raw.matchNumber) || 0,
+      playNumber: Number(raw.playNumber) || 0,
+      tournamentLevel: raw.tournamentLevel || 'Unknown',
+      matchStateMessage: raw.matchStateMessage || getMatchStateMessage(matchState),
+    };
+  }
+
+  return normalizeMatchStatus(raw);
+}
+
+function coerceStationSnapshot(station) {
+  if (!station) {
+    return null;
+  }
+
+  if ('teamNumber' in station || 'alliance' in station || 'station' in station) {
+    const alliance = Number(station.alliance) || AllianceType.None;
+    const stationNumber = Number(station.station) || StationType.None;
+
+    if (!alliance || !stationNumber) {
+      return null;
+    }
+
+    return {
+      ...createEmptyStation(alliance, stationNumber),
+      ...station,
+      alliance,
+      station: stationNumber,
+      teamNumber: Number(station.teamNumber) || 0,
+      battery: Number(station.battery) || 0,
+      minBattery: Number(station.minBattery) || 0,
+      averageTripTime: Number(station.averageTripTime) || 0,
+      lostPackets: Number(station.lostPackets) || 0,
+      dataRateTotal: Number(station.dataRateTotal) || 0,
+      dataRateToRobot: Number(station.dataRateToRobot) || 0,
+      dataRateFromRobot: Number(station.dataRateFromRobot) || 0,
+      bwUtilization: Number(station.bwUtilization) || BWUtilizationType.Low,
+      stationStatus: Number(station.stationStatus) || StationStatusType.Unknown,
+      radioConnectionQuality: Number(station.radioConnectionQuality) || RadioConnectionQuality.Warning,
+    };
+  }
+
+  return null;
+}
+
+function buildStationsFromSnapshot(stationSnapshot) {
+  const stationMap = new Map(
+    ALL_STATION_SLOTS.map((slot) => [slotKey(slot.alliance, slot.station), createEmptyStation(slot.alliance, slot.station)])
+  );
+
+  (stationSnapshot || []).forEach((station) => {
+    const nextStation = coerceStationSnapshot(station);
+    if (!nextStation) {
+      return;
+    }
+
+    stationMap.set(slotKey(nextStation.alliance, nextStation.station), nextStation);
+  });
+
+  return ALL_STATION_SLOTS.map((slot) => stationMap.get(slotKey(slot.alliance, slot.station)));
+}
+
+function createMinBatteryMap(stations) {
+  const minBatteryMap = new Map();
+
+  (stations || []).forEach((station) => {
+    if (!station) {
+      return;
+    }
+
+    const minBattery = Number(station.minBattery) || 0;
+    if (minBattery > 0) {
+      minBatteryMap.set(slotKey(station.alliance, station.station), minBattery);
+    }
+  });
+
+  return minBatteryMap;
+}
+
+function parseReplayRecording(text) {
+  const parsed = JSON.parse(text);
+
+  if (!parsed || typeof parsed !== 'object') {
+    throw new Error('Replay file must contain a JSON object.');
+  }
+
+  if (!Array.isArray(parsed.events)) {
+    throw new Error('Replay file is missing an events array.');
+  }
+
+  const events = parsed.events.map((event, index) => {
+    if (!event || typeof event !== 'object') {
+      throw new Error(`Replay event ${index + 1} is invalid.`);
+    }
+
+    return {
+      t: Number(event.t) || 0,
+      source: event.source || '',
+      event: event.event || '',
+      payload: event.payload,
+    };
+  });
+
+  return {
+    version: Number(parsed.version) || RECORDING_FILE_VERSION,
+    meta: parsed.meta || {},
+    initialState: parsed.initialState || {},
+    events,
+  };
+}
+
 function getStatusLabel(station) {
   if (station.isEStopped || station.monitorStatus === MonitorStatusType.EStopped) {
     return 'E-STOPPED';
@@ -521,12 +674,37 @@ export function useFieldMonitorLiveData({ redOnRight = true } = {}) {
     initialState: null,
     events: [],
   });
+  const replayRuntimeRef = useRef({
+    timeoutId: null,
+    basePositionMs: 0,
+    wallStartMs: 0,
+    nextEventIndex: 0,
+    speed: DEFAULT_REPLAY_SPEED,
+  });
   const [stations, setStations] = useState(buildInitialStations);
   const [matchStatus, setMatchStatus] = useState(normalizeMatchStatus());
   const [aheadBehind, setAheadBehind] = useState('');
   const [error, setError] = useState('');
   const [isFieldHubConnected, setIsFieldHubConnected] = useState(false);
   const [isInfrastructureHubConnected, setIsInfrastructureHubConnected] = useState(false);
+  const [sourceMode, setSourceMode] = useState(() => (activeReplayRecording ? 'replay' : 'live'));
+  const [replayRecording, setReplayRecording] = useState(() => activeReplayRecording);
+  const [replayState, setReplayState] = useState(() => {
+    if (!activeReplayRecording) {
+      return createDefaultReplayState();
+    }
+
+    return {
+      isReplayMode: true,
+      isPlaying: true,
+      currentTimeMs: 0,
+      durationMs: getReplayDurationMs(activeReplayRecording),
+      eventCount: activeReplayRecording.events.length,
+      speed: DEFAULT_REPLAY_SPEED,
+      fileName: activeReplayFileName,
+      error: '',
+    };
+  });
   const [recorderState, setRecorderState] = useState({
     isRecording: false,
     eventCount: 0,
@@ -535,7 +713,36 @@ export function useFieldMonitorLiveData({ redOnRight = true } = {}) {
     lastEventCount: 0,
   });
 
-  function recordIncomingEvent(source, event, payload) {
+  const clearReplayTimer = useCallback(() => {
+    if (replayRuntimeRef.current.timeoutId) {
+      window.clearTimeout(replayRuntimeRef.current.timeoutId);
+      replayRuntimeRef.current.timeoutId = null;
+    }
+  }, []);
+
+  const getCurrentReplayPositionMs = useCallback(() => {
+    const runtime = replayRuntimeRef.current;
+
+    if (!replayState.isPlaying || runtime.wallStartMs === 0) {
+      return runtime.basePositionMs;
+    }
+
+    return runtime.basePositionMs + (Date.now() - runtime.wallStartMs) * runtime.speed;
+  }, [replayState.isPlaying]);
+
+  const applyReplaySnapshot = useCallback((recording) => {
+    const snapshotStations = buildStationsFromSnapshot(recording?.initialState?.stations);
+    minBatteryRef.current = createMinBatteryMap(snapshotStations);
+    currentMatchRef.current = recording?.initialState?.currentMatch ?? null;
+    setStations(snapshotStations);
+    setMatchStatus(coerceMatchStatusSnapshot(recording?.initialState?.matchStatus));
+    setAheadBehind(recording?.initialState?.aheadBehind || '');
+    setError('');
+    setIsFieldHubConnected(false);
+    setIsInfrastructureHubConnected(false);
+  }, []);
+
+  const recordIncomingEvent = useCallback((source, event, payload) => {
     if (!recordingStateRef.current.isRecording) {
       return;
     }
@@ -551,7 +758,57 @@ export function useFieldMonitorLiveData({ redOnRight = true } = {}) {
       ...current,
       eventCount: recordingStateRef.current.events.length,
     }));
-  }
+  }, []);
+
+  const applyStationData = useCallback(
+    (dataArray, { shouldRecord = false } = {}) => {
+      if (shouldRecord) {
+        recordIncomingEvent('fieldHub', 'fieldMonitorDataChanged', dataArray || []);
+      }
+
+      const stationMap = new Map(
+        ALL_STATION_SLOTS.map((slot) => [slotKey(slot.alliance, slot.station), createEmptyStation(slot.alliance, slot.station)])
+      );
+
+      (dataArray || []).forEach((item) => {
+        const station = normalizeStation(item, minBatteryRef.current);
+        stationMap.set(slotKey(station.alliance, station.station), station);
+      });
+
+      setStations(ALL_STATION_SLOTS.map((slot) => stationMap.get(slotKey(slot.alliance, slot.station))));
+    },
+    [recordIncomingEvent]
+  );
+
+  const applyMatchStatus = useCallback(
+    (data, { shouldRecord = false } = {}) => {
+      if (shouldRecord) {
+        recordIncomingEvent('infrastructureHub', 'matchStatusInfoChanged', data);
+      }
+
+      const nextStatus = normalizeMatchStatus(data);
+      if (
+        nextStatus.matchState === MatchStateType.WaitingForPrestart ||
+        nextStatus.matchState === MatchStateType.MatchAuto
+      ) {
+        minBatteryRef.current.clear();
+      }
+
+      setMatchStatus(nextStatus);
+    },
+    [recordIncomingEvent]
+  );
+
+  const applyAheadBehind = useCallback(
+    (data, { shouldRecord = false } = {}) => {
+      if (shouldRecord) {
+        recordIncomingEvent('infrastructureHub', 'ScheduleAheadBehindChanged', data || '');
+      }
+
+      setAheadBehind(data || '');
+    },
+    [recordIncomingEvent]
+  );
 
   function startRecording(label = '') {
     const startedAt = new Date();
@@ -564,6 +821,7 @@ export function useFieldMonitorLiveData({ redOnRight = true } = {}) {
       initialState: {
         currentMatch: cloneRecordingPayload(currentMatchRef.current),
         matchStatus: cloneRecordingPayload(matchStatus),
+        stations: cloneRecordingPayload(stations),
         aheadBehind,
       },
       events: [],
@@ -621,7 +879,219 @@ export function useFieldMonitorLiveData({ redOnRight = true } = {}) {
     return true;
   }
 
+  const initializeReplay = useCallback(
+    (recording, fileName, { autoPlay = true } = {}) => {
+      clearReplayTimer();
+      applyReplaySnapshot(recording);
+      replayRuntimeRef.current = {
+        timeoutId: null,
+        basePositionMs: 0,
+        wallStartMs: autoPlay ? Date.now() : 0,
+        nextEventIndex: 0,
+        speed: DEFAULT_REPLAY_SPEED,
+      };
+      setReplayRecording(recording);
+      setSourceMode('replay');
+      setReplayState({
+        isReplayMode: true,
+        isPlaying: autoPlay,
+        currentTimeMs: 0,
+        durationMs: getReplayDurationMs(recording),
+        eventCount: recording.events.length,
+        speed: DEFAULT_REPLAY_SPEED,
+        fileName,
+        error: '',
+      });
+      setError('');
+    },
+    [applyReplaySnapshot, clearReplayTimer]
+  );
+
+  const dispatchReplayEvent = useCallback(
+    (entry) => {
+      if (entry.source === 'fieldHub' && entry.event === 'fieldMonitorDataChanged') {
+        applyStationData(entry.payload, { shouldRecord: false });
+        return;
+      }
+
+      if (entry.source === 'infrastructureHub' && entry.event === 'matchStatusInfoChanged') {
+        applyMatchStatus(entry.payload, { shouldRecord: false });
+        return;
+      }
+
+      if (entry.source === 'infrastructureHub' && entry.event === 'ScheduleAheadBehindChanged') {
+        applyAheadBehind(entry.payload, { shouldRecord: false });
+      }
+    },
+    [applyAheadBehind, applyMatchStatus, applyStationData]
+  );
+
+  const scheduleReplay = useCallback(() => {
+    clearReplayTimer();
+
+    if (sourceMode !== 'replay' || !replayRecording || !replayState.isPlaying) {
+      return;
+    }
+
+    const runtime = replayRuntimeRef.current;
+    const durationMs = getReplayDurationMs(replayRecording);
+    const events = replayRecording.events || [];
+    let positionMs = Math.min(getCurrentReplayPositionMs(), durationMs);
+
+    while (runtime.nextEventIndex < events.length && events[runtime.nextEventIndex].t <= positionMs) {
+      const nextEntry = events[runtime.nextEventIndex];
+      dispatchReplayEvent(nextEntry);
+      runtime.nextEventIndex += 1;
+      positionMs = nextEntry.t;
+    }
+
+    setReplayState((current) => ({
+      ...current,
+      currentTimeMs: positionMs,
+    }));
+
+    if (runtime.nextEventIndex >= events.length) {
+      runtime.basePositionMs = durationMs;
+      runtime.wallStartMs = 0;
+      setReplayState((current) => ({
+        ...current,
+        isPlaying: false,
+        currentTimeMs: durationMs,
+      }));
+      return;
+    }
+
+    const nextEntry = events[runtime.nextEventIndex];
+    runtime.basePositionMs = positionMs;
+    runtime.wallStartMs = Date.now();
+    runtime.speed = replayState.speed;
+    runtime.timeoutId = window.setTimeout(() => {
+      const currentRuntime = replayRuntimeRef.current;
+      dispatchReplayEvent(nextEntry);
+      currentRuntime.nextEventIndex += 1;
+      currentRuntime.basePositionMs = nextEntry.t;
+      currentRuntime.wallStartMs = Date.now();
+      setReplayState((current) => ({
+        ...current,
+        currentTimeMs: nextEntry.t,
+      }));
+      scheduleReplay();
+    }, Math.max(0, (nextEntry.t - positionMs) / replayState.speed));
+  }, [
+    clearReplayTimer,
+    dispatchReplayEvent,
+    getCurrentReplayPositionMs,
+    replayRecording,
+    replayState.isPlaying,
+    replayState.speed,
+    sourceMode,
+  ]);
+
+  const loadReplayFile = useCallback(
+    async (file) => {
+      if (!file) {
+        return false;
+      }
+
+      try {
+        const text = await file.text();
+        const recording = parseReplayRecording(text);
+        activeReplayRecording = recording;
+        activeReplayFileName = file.name || 'field-monitor-recording.json';
+        initializeReplay(recording, activeReplayFileName);
+        return true;
+      } catch (loadError) {
+        const message = loadError instanceof Error ? loadError.message : 'Unable to load replay file';
+        setReplayState((current) => ({
+          ...current,
+          error: message,
+        }));
+        setError(message);
+        return false;
+      }
+    },
+    [initializeReplay]
+  );
+
+  const pauseReplay = useCallback(() => {
+    clearReplayTimer();
+    const nextPosition = Math.min(getCurrentReplayPositionMs(), replayState.durationMs);
+    replayRuntimeRef.current.basePositionMs = nextPosition;
+    replayRuntimeRef.current.wallStartMs = 0;
+    setReplayState((current) => ({
+      ...current,
+      isPlaying: false,
+      currentTimeMs: nextPosition,
+    }));
+  }, [clearReplayTimer, getCurrentReplayPositionMs, replayState.durationMs]);
+
+  const resumeReplay = useCallback(() => {
+    if (!replayRecording) {
+      return;
+    }
+
+    replayRuntimeRef.current.wallStartMs = Date.now();
+    replayRuntimeRef.current.speed = replayState.speed;
+    setReplayState((current) => ({
+      ...current,
+      isPlaying: true,
+      error: '',
+    }));
+  }, [replayRecording, replayState.speed]);
+
+  const restartReplay = useCallback(() => {
+    if (!replayRecording) {
+      return;
+    }
+
+    initializeReplay(replayRecording, replayState.fileName, { autoPlay: true });
+  }, [initializeReplay, replayRecording, replayState.fileName]);
+
+  const setReplaySpeed = useCallback(
+    (nextSpeed) => {
+      const speed = REPLAY_SPEED_OPTIONS.includes(nextSpeed) ? nextSpeed : DEFAULT_REPLAY_SPEED;
+      const nextPosition = Math.min(getCurrentReplayPositionMs(), replayState.durationMs);
+      replayRuntimeRef.current.basePositionMs = nextPosition;
+      replayRuntimeRef.current.wallStartMs = replayState.isPlaying ? Date.now() : 0;
+      replayRuntimeRef.current.speed = speed;
+      setReplayState((current) => ({
+        ...current,
+        speed,
+        currentTimeMs: nextPosition,
+      }));
+    },
+    [getCurrentReplayPositionMs, replayState.durationMs, replayState.isPlaying]
+  );
+
+  const clearReplay = useCallback(() => {
+    clearReplayTimer();
+    activeReplayRecording = null;
+    activeReplayFileName = '';
+    replayRuntimeRef.current = {
+      timeoutId: null,
+      basePositionMs: 0,
+      wallStartMs: 0,
+      nextEventIndex: 0,
+      speed: DEFAULT_REPLAY_SPEED,
+    };
+    minBatteryRef.current.clear();
+    currentMatchRef.current = null;
+    setReplayRecording(null);
+    setReplayState(createDefaultReplayState());
+    setSourceMode('live');
+    setStations(buildInitialStations());
+    setMatchStatus(normalizeMatchStatus());
+    setAheadBehind('');
+    setError('');
+    setIsFieldHubConnected(false);
+    setIsInfrastructureHubConnected(false);
+  }, [clearReplayTimer]);
+
   useEffect(() => {
+    if (sourceMode !== 'live') {
+      return undefined;
+    }
+
     let isCancelled = false;
 
     async function fetchCurrentMatch() {
@@ -653,9 +1123,13 @@ export function useFieldMonitorLiveData({ redOnRight = true } = {}) {
     return () => {
       isCancelled = true;
     };
-  }, [baseUrl]);
+  }, [baseUrl, sourceMode]);
 
   useEffect(() => {
+    if (sourceMode !== 'live') {
+      return undefined;
+    }
+
     const fieldHub = new HubConnectionBuilder()
       .withUrl(`${baseUrl}/fieldMonitorHub`)
       .withAutomaticReconnect()
@@ -673,45 +1147,22 @@ export function useFieldMonitorLiveData({ redOnRight = true } = {}) {
     let isMounted = true;
 
     function handleStationData(dataArray) {
-      recordIncomingEvent('fieldHub', 'fieldMonitorDataChanged', dataArray || []);
-
-      const stationMap = new Map(
-        ALL_STATION_SLOTS.map((slot) => [slotKey(slot.alliance, slot.station), createEmptyStation(slot.alliance, slot.station)])
-      );
-
-      (dataArray || []).forEach((item) => {
-        const station = normalizeStation(item, minBatteryRef.current);
-        stationMap.set(slotKey(station.alliance, station.station), station);
-      });
-
       if (isMounted) {
-        setStations(ALL_STATION_SLOTS.map((slot) => stationMap.get(slotKey(slot.alliance, slot.station))));
+        applyStationData(dataArray, { shouldRecord: true });
       }
     }
 
     function handleMatchStatus(data) {
-      recordIncomingEvent('infrastructureHub', 'matchStatusInfoChanged', data);
-
-      const nextStatus = normalizeMatchStatus(data);
-      if (
-        nextStatus.matchState === MatchStateType.WaitingForPrestart ||
-        nextStatus.matchState === MatchStateType.MatchAuto
-      ) {
-        minBatteryRef.current.clear();
-      }
-
       if (isMounted) {
-        setMatchStatus(nextStatus);
+        applyMatchStatus(data, { shouldRecord: true });
       }
     }
 
     fieldHub.on('fieldMonitorDataChanged', handleStationData);
     infrastructureHub.on('matchStatusInfoChanged', handleMatchStatus);
     infrastructureHub.on('ScheduleAheadBehindChanged', (data) => {
-      recordIncomingEvent('infrastructureHub', 'ScheduleAheadBehindChanged', data || '');
-
       if (isMounted) {
-        setAheadBehind(data || '');
+        applyAheadBehind(data, { shouldRecord: true });
       }
     });
 
@@ -771,25 +1222,63 @@ export function useFieldMonitorLiveData({ redOnRight = true } = {}) {
       fieldHub.stop();
       infrastructureHub.stop();
     };
-  }, [baseUrl]);
+  }, [applyAheadBehind, applyMatchStatus, applyStationData, baseUrl, sourceMode]);
+
+  useEffect(() => {
+    if (
+      sourceMode !== 'replay' ||
+      !replayRecording ||
+      replayRuntimeRef.current.nextEventIndex !== 0 ||
+      replayRuntimeRef.current.wallStartMs !== 0 ||
+      replayState.currentTimeMs !== 0
+    ) {
+      return;
+    }
+
+    initializeReplay(replayRecording, replayState.fileName || activeReplayFileName, { autoPlay: replayState.isPlaying });
+  }, [initializeReplay, replayRecording, replayState.currentTimeMs, replayState.fileName, replayState.isPlaying, sourceMode]);
+
+  useEffect(() => {
+    if (sourceMode !== 'replay' || !replayRecording || !replayState.isPlaying) {
+      clearReplayTimer();
+      return undefined;
+    }
+
+    scheduleReplay();
+
+    return () => {
+      clearReplayTimer();
+    };
+  }, [clearReplayTimer, replayRecording, replayState.isPlaying, replayState.speed, scheduleReplay, sourceMode]);
 
   const alliancePanels = useMemo(() => buildPanels(stations, redOnRight), [redOnRight, stations]);
 
   return {
+    sourceMode,
     alliancePanels,
     matchStatus,
     aheadBehind,
     error,
-    isConnected: isFieldHubConnected && isInfrastructureHubConnected,
+    isConnected: sourceMode === 'live' && isFieldHubConnected && isInfrastructureHubConnected,
     hasLiveData: stations.some((station) => station.teamNumber > 0),
     recorder: {
-      isRecording: recorderState.isRecording,
+      isRecording: sourceMode === 'live' && recorderState.isRecording,
       eventCount: recorderState.eventCount,
       startedAtIso: recorderState.startedAtIso,
       lastDownloadName: recorderState.lastDownloadName,
       lastEventCount: recorderState.lastEventCount,
       startRecording,
       stopRecordingAndDownload,
+    },
+    replay: {
+      ...replayState,
+      speedOptions: REPLAY_SPEED_OPTIONS,
+      loadReplayFile,
+      resumeReplay,
+      pauseReplay,
+      restartReplay,
+      clearReplay,
+      setReplaySpeed,
     },
   };
 }

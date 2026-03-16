@@ -58,7 +58,7 @@ export default function FieldMonitorMockups() {
   const [searchParams] = useSearchParams();
   const [recordingLabel, setRecordingLabel] = React.useState('');
   const redOnRight = searchParams.get('redonright') !== 'false';
-  const { alliancePanels, matchStatus, aheadBehind, error, isConnected, hasLiveData, recorder } =
+  const { sourceMode, alliancePanels, matchStatus, aheadBehind, error, isConnected, hasLiveData, recorder, replay } =
     useFieldMonitorLiveData({
       redOnRight,
     });
@@ -445,7 +445,9 @@ export default function FieldMonitorMockups() {
         <div className="mb-6">
           <h1 className="text-2xl font-semibold tracking-tight">FIRST Field Monitor Split View Mockups</h1>
           <p className="mt-1 text-sm text-zinc-600">
-            Live FMS data is feeding both concepts below. The layout side order follows the `redonright` query param.
+            {sourceMode === 'replay'
+              ? 'A saved match recording is driving both concepts below. The layout side order follows the `redonright` query param.'
+              : 'Live FMS data is feeding both concepts below. The layout side order follows the `redonright` query param.'}
           </p>
         </div>
 
@@ -453,7 +455,13 @@ export default function FieldMonitorMockups() {
           <div className="rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-zinc-200">
             <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Connection</div>
             <div className={`mt-1 text-sm font-semibold ${isConnected ? 'text-emerald-700' : 'text-amber-700'}`}>
-              {isConnected ? 'Live feed connected' : 'Connecting to live feed'}
+              {sourceMode === 'replay'
+                ? replay.isPlaying
+                  ? 'Replay playing'
+                  : 'Replay paused'
+                : isConnected
+                  ? 'Live feed connected'
+                  : 'Connecting to live feed'}
             </div>
           </div>
           <div className="rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-zinc-200">
@@ -467,60 +475,139 @@ export default function FieldMonitorMockups() {
           <div className="rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-zinc-200">
             <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Feed Notes</div>
             <div className="mt-1 text-sm text-zinc-700">
-              {error
-                ? error
-                : hasLiveData
-                  ? 'SignalR station updates are active and the mockups are rendering live rows.'
-                  : 'Waiting for the first station payload from the field monitor hubs.'}
+              {sourceMode === 'replay'
+                ? replay.error
+                  ? replay.error
+                  : replay.fileName
+                    ? `Rendering from ${replay.fileName} at ${replay.speed}x speed.`
+                    : 'Replay mode is ready for a recording file.'
+                : error
+                  ? error
+                  : hasLiveData
+                    ? 'SignalR station updates are active and the mockups are rendering live rows.'
+                    : 'Waiting for the first station payload from the field monitor hubs.'}
             </div>
           </div>
         </div>
 
         <div className="mb-6 rounded-2xl bg-white p-4 shadow-sm ring-1 ring-zinc-200">
-          <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_auto]">
             <div className="min-w-0">
-              <div className="text-sm font-semibold text-zinc-900">Live recorder</div>
+              <div className="text-sm font-semibold text-zinc-900">Recorder and replay</div>
               <div className="mt-1 text-sm text-zinc-600">
-                Records copies of incoming SignalR events and downloads them as JSON while the live monitor keeps running.
+                Capture live SignalR traffic as JSON, then load that file back in to replay the match offline through the same UI.
               </div>
               <div className="mt-2 text-xs text-zinc-500">
-                {recorder.isRecording
-                  ? `Recording ${recorder.eventCount} events${recorder.startedAtIso ? ` since ${new Date(recorder.startedAtIso).toLocaleTimeString()}` : ''}.`
-                  : recorder.lastDownloadName
-                    ? `Last saved ${recorder.lastEventCount} events to ${recorder.lastDownloadName}.`
-                    : 'Ready to capture a live match.'}
+                {sourceMode === 'replay'
+                  ? replay.fileName
+                    ? `Replay loaded from ${replay.fileName} with ${replay.eventCount} events.`
+                    : 'Load a saved recording to enter replay mode.'
+                  : recorder.isRecording
+                    ? `Recording ${recorder.eventCount} events${recorder.startedAtIso ? ` since ${new Date(recorder.startedAtIso).toLocaleTimeString()}` : ''}.`
+                    : recorder.lastDownloadName
+                      ? `Last saved ${recorder.lastEventCount} events to ${recorder.lastDownloadName}.`
+                      : 'Ready to capture a live match.'}
               </div>
             </div>
 
-            <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-              <input
-                type="text"
-                value={recordingLabel}
-                onChange={(event) => setRecordingLabel(event.target.value)}
-                disabled={recorder.isRecording}
-                placeholder="Optional label, e.g. qm-42"
-                className="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-blue-500 sm:w-64"
-              />
-              {recorder.isRecording ? (
-                <button
-                  type="button"
-                  onClick={() => recorder.stopRecordingAndDownload()}
-                  className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
-                >
-                  Stop and download
-                </button>
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <label className="inline-flex cursor-pointer items-center justify-center rounded-xl border border-zinc-300 px-4 py-2 text-sm font-semibold text-zinc-700 transition hover:border-blue-500 hover:text-blue-700">
+                  Load replay JSON
+                  <input
+                    type="file"
+                    accept="application/json,.json"
+                    className="hidden"
+                    onChange={async (event) => {
+                      const file = event.target.files?.[0];
+                      if (file) {
+                        await replay.loadReplayFile(file);
+                      }
+                      event.target.value = '';
+                    }}
+                  />
+                </label>
+
+                {sourceMode === 'replay' ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => (replay.isPlaying ? replay.pauseReplay() : replay.resumeReplay())}
+                      className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+                    >
+                      {replay.isPlaying ? 'Pause replay' : 'Resume replay'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => replay.restartReplay()}
+                      className="rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white transition hover:bg-zinc-800"
+                    >
+                      Restart replay
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => replay.clearReplay()}
+                      className="rounded-xl bg-white px-4 py-2 text-sm font-semibold text-zinc-700 ring-1 ring-zinc-300 transition hover:bg-zinc-50"
+                    >
+                      Return to live
+                    </button>
+                    <select
+                      value={String(replay.speed)}
+                      onChange={(event) => replay.setReplaySpeed(Number(event.target.value))}
+                      className="rounded-xl border border-zinc-300 px-3 py-2 text-sm text-zinc-900 outline-none focus:border-blue-500"
+                    >
+                      {replay.speedOptions.map((speed) => (
+                        <option key={speed} value={speed}>
+                          {speed}x
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                ) : null}
+              </div>
+
+              {sourceMode === 'live' ? (
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <input
+                    type="text"
+                    value={recordingLabel}
+                    onChange={(event) => setRecordingLabel(event.target.value)}
+                    disabled={recorder.isRecording}
+                    placeholder="Optional label, e.g. qm-42"
+                    className="w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm text-zinc-900 outline-none placeholder:text-zinc-400 focus:border-blue-500 sm:w-64"
+                  />
+                  {recorder.isRecording ? (
+                    <button
+                      type="button"
+                      onClick={() => recorder.stopRecordingAndDownload()}
+                      className="rounded-xl bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700"
+                    >
+                      Stop and download
+                    </button>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={() => recorder.startRecording(recordingLabel)}
+                      className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
+                    >
+                      Start recording
+                    </button>
+                  )}
+                </div>
               ) : (
-                <button
-                  type="button"
-                  onClick={() => recorder.startRecording(recordingLabel)}
-                  className="rounded-xl bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700"
-                >
-                  Start recording
-                </button>
+                <div className="text-xs text-zinc-500">
+                  Replay time {Math.round(replay.currentTimeMs / 100) / 10}s / {Math.round(replay.durationMs / 100) / 10}s
+                </div>
               )}
             </div>
           </div>
         </div>
+
+        {sourceMode === 'replay' ? (
+          <div className="mb-6 rounded-xl bg-blue-50 px-4 py-3 text-sm text-blue-900 ring-1 ring-blue-200">
+            Live SignalR is disconnected while replay mode is active. Use `Return to live` to reconnect to the field.
+          </div>
+        ) : null}
 
         <OriginalConcept />
         <VisualConcept />
