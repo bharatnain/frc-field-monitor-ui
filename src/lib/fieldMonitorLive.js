@@ -111,6 +111,11 @@ export function createHubConnection(url) {
 }
 
 function getBaseUrl() {
+  const configuredBaseUrl = import.meta.env.VITE_FIELD_MONITOR_BASE_URL?.trim();
+  if (configuredBaseUrl) {
+    return configuredBaseUrl;
+  }
+
   if (typeof window === 'undefined') {
     return 'http://10.0.100.5';
   }
