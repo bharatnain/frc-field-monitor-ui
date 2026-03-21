@@ -168,8 +168,8 @@ function SignalBars({ detail, state = 'good', hero = false }) {
     <span
       className={`inline-flex items-end justify-center ${
         hero
-          ? 'h-9 gap-1 sm:h-10 sm:gap-1.5 [@media(min-width:900px)]:h-11'
-          : 'h-8 gap-1 sm:h-9 sm:gap-1.5 [@media(min-width:900px)]:h-10'
+          ? 'h-9 gap-1 sm:h-10 sm:gap-1.5 [@media(min-width:900px)]:h-11 [@media(min-width:900px)_and_(max-height:860px)]:h-[38px] [@media(min-width:900px)_and_(max-height:720px)]:h-[34px]'
+          : 'h-8 gap-1 sm:h-9 sm:gap-1.5 [@media(min-width:900px)]:h-10 [@media(min-width:900px)_and_(max-height:860px)]:h-[34px] [@media(min-width:900px)_and_(max-height:720px)]:h-[30px]'
       }`}
     >
       {heights.map((h, i) => (
@@ -198,7 +198,7 @@ function DeviceStatusBadge({ state, text }) {
 
   return (
     <div
-      className={`inline-flex items-center justify-center gap-1 rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] sm:px-2.5 sm:text-[11px] [@media(min-width:900px)]:text-[12px] ${badgeClass}`}
+      className={`inline-flex items-center justify-center gap-1 rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] sm:px-2.5 sm:text-[11px] [@media(min-width:900px)]:text-[12px] [@media(min-width:900px)_and_(max-height:860px)]:px-1.5 [@media(min-width:900px)_and_(max-height:860px)]:py-0.5 [@media(min-width:900px)_and_(max-height:860px)]:text-[11px] [@media(min-width:900px)_and_(max-height:720px)]:text-[10px] ${badgeClass}`}
     >
       {icon && <FontAwesomeIcon icon={icon} className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
       <span>{text}</span>
@@ -208,7 +208,7 @@ function DeviceStatusBadge({ state, text }) {
 
 function DsDeviceGlyph({ theme }) {
   return (
-    <div className="relative flex h-[70px] w-[70px] items-center justify-center">
+    <div className="relative flex h-[70px] w-[70px] origin-center items-center justify-center [@media(min-width:900px)_and_(max-height:860px)]:scale-[0.88] [@media(min-width:900px)_and_(max-height:720px)]:scale-[0.8]">
       <div className={`absolute inset-0 rounded-full border-[4px] shadow-sm ${theme.iconShell}`} />
       <div className={`absolute left-1/2 top-1/2 h-12 w-12 -translate-x-1/2 -translate-y-1/2 rounded-full ${theme.accent === 'text-white' ? 'bg-white/10' : 'bg-zinc-900/5'}`} />
       <FontAwesomeIcon icon={faGamepad} className="relative h-9 w-9" />
@@ -220,7 +220,7 @@ function RioDeviceGlyph({ theme }) {
   const pinClass = theme.accent === 'text-white' ? 'bg-white/45' : 'bg-zinc-400';
 
   return (
-    <div className="relative flex h-[70px] w-[70px] items-center justify-center">
+    <div className="relative flex h-[70px] w-[70px] origin-center items-center justify-center [@media(min-width:900px)_and_(max-height:860px)]:scale-[0.88] [@media(min-width:900px)_and_(max-height:720px)]:scale-[0.8]">
       <span className={`absolute left-1 top-3.5 h-1.5 w-1 rounded-full ${pinClass}`} />
       <span className={`absolute left-1 top-7.5 h-1.5 w-1 rounded-full ${pinClass}`} />
       <span className={`absolute left-1 top-11.5 h-1.5 w-1 rounded-full ${pinClass}`} />
@@ -247,7 +247,7 @@ function IssueBadge({ mode }) {
   const isCritical = mode === 'critical';
   return (
     <div
-      className={`rounded-md px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wide sm:px-3 sm:text-[12px] [@media(min-width:900px)]:text-[14px] ${
+      className={`rounded-md px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wide sm:px-3 sm:text-[12px] [@media(min-width:900px)]:text-[14px] [@media(min-width:900px)_and_(max-height:860px)]:px-2 [@media(min-width:900px)_and_(max-height:860px)]:py-0.5 [@media(min-width:900px)_and_(max-height:860px)]:text-[12px] [@media(min-width:900px)_and_(max-height:720px)]:text-[11px] ${
         isEmergencyStop
           ? 'bg-rose-600 text-white ring-1 ring-rose-700'
           : isCritical
@@ -337,26 +337,32 @@ function ConnectionTile({ kind, state, detail, label }) {
   const status = deviceStatusText(kind, state);
 
   return (
-    <div className={`flex h-full min-h-0 flex-col justify-between rounded-xl px-2.5 py-2 text-center ${theme.tile}`}>
+    <div
+      className={`flex h-full min-h-0 flex-col justify-between rounded-xl px-2.5 py-2 text-center [@media(min-width:900px)_and_(max-height:860px)]:px-2 [@media(min-width:900px)_and_(max-height:860px)]:py-1.5 [@media(min-width:900px)_and_(max-height:720px)]:px-1.5 [@media(min-width:900px)_and_(max-height:720px)]:py-1 ${theme.tile}`}
+    >
       <div className={`text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.24em] ${theme.label}`}>
         {label}
       </div>
 
       {isRadio ? (
-        <div className="mt-2 flex min-h-0 flex-1 flex-col items-center justify-center sm:mt-1">
-          <div className={`mb-0.5 ${theme.accent}`}>
+        <div className="mt-2 flex min-h-0 flex-1 flex-col items-center justify-center sm:mt-1 [@media(min-width:900px)_and_(max-height:860px)]:mt-0.5 [@media(min-width:900px)_and_(max-height:720px)]:mt-0">
+          <div
+            className={`mb-0.5 origin-center ${theme.accent} [@media(min-width:900px)_and_(max-height:860px)]:scale-[0.88] [@media(min-width:900px)_and_(max-height:720px)]:scale-[0.8]`}
+          >
             <FontAwesomeIcon icon={faTowerBroadcast} className="h-6 w-6" />
           </div>
-          <div className={`flex min-h-0 items-center justify-center ${theme.accent}`}>
+          <div
+            className={`flex min-h-0 items-center justify-center ${theme.accent} [@media(min-width:900px)_and_(max-height:860px)]:scale-[0.88] [@media(min-width:900px)_and_(max-height:720px)]:scale-[0.8]`}
+          >
             <SignalBars detail={detail || ''} state={state} hero />
           </div>
         </div>
       ) : (
-        <div className="mt-2 flex min-h-0 flex-1 flex-col items-center justify-center sm:mt-1">
-          <div className="flex h-[70px] items-center justify-center">
+        <div className="mt-2 flex min-h-0 flex-1 flex-col items-center justify-center sm:mt-1 [@media(min-width:900px)_and_(max-height:860px)]:mt-0.5 [@media(min-width:900px)_and_(max-height:720px)]:mt-0">
+          <div className="flex h-[70px] items-center justify-center [@media(min-width:900px)_and_(max-height:860px)]:h-[60px] [@media(min-width:900px)_and_(max-height:720px)]:h-[52px]">
             {isDS ? <DsDeviceGlyph theme={theme} /> : <RioDeviceGlyph theme={theme} />}
           </div>
-          <div className="mt-1">
+          <div className="mt-1 [@media(min-width:900px)_and_(max-height:860px)]:mt-0.5">
             <DeviceStatusBadge state={state} text={status} />
           </div>
         </div>
@@ -368,10 +374,12 @@ function ConnectionTile({ kind, state, detail, label }) {
 function ConnectionChevron({ state = 'good' }) {
   const theme = connectionTheme(state);
   return (
-    <div className="flex items-center justify-center py-1 sm:py-0">
+    <div className="flex items-center justify-center py-1 sm:py-0 [@media(min-width:900px)_and_(max-height:860px)]:py-0">
       <div className={`flex w-full rotate-90 items-center justify-center gap-1 sm:rotate-0 ${theme.chevron}`}>
         <span className={`h-1 w-3 rounded-full ${state === 'bad' ? 'bg-amber-300' : state === 'warn' ? 'bg-amber-700' : 'bg-zinc-300'}`} />
-        <span className="text-[24px] font-black leading-none sm:text-[30px]">&gt;</span>
+        <span className="text-[24px] font-black leading-none sm:text-[30px] [@media(min-width:900px)_and_(max-height:860px)]:text-[24px] [@media(min-width:900px)_and_(max-height:720px)]:text-[20px]">
+          &gt;
+        </span>
       </div>
     </div>
   );
@@ -491,7 +499,7 @@ export default function FieldMonitor() {
               <div
                 className={`pointer-events-none absolute inset-1.5 rounded-[28px] ${theme.backplate} ${theme.panelGlow}`}
               />
-              <div className="grid min-h-0 flex-1 auto-rows-max gap-2 p-2.5 [@media(min-width:900px)]:grid-rows-3">
+              <div className="grid min-h-0 flex-1 auto-rows-max gap-2 p-2.5 [@media(min-width:900px)]:grid-rows-3 [@media(min-width:900px)_and_(max-height:860px)]:grid-rows-none">
                 {panel.rows.map((row) => {
                   const isBlocking = row.mode === 'blocking';
                   const isEmergencyStop = isEmergencyStopMode(row.mode);
@@ -504,10 +512,10 @@ export default function FieldMonitor() {
                   return (
                     <div
                       key={`distance-${panel.alliance}-${row.team}-${row.station}`}
-                      className={`relative grid min-h-[220px] overflow-hidden rounded-2xl bg-white [@media(min-width:900px)]:min-h-0 ${
+                      className={`relative grid min-h-[220px] overflow-hidden rounded-2xl bg-white [@media(min-width:900px)]:min-h-0 [@media(min-width:900px)_and_(max-height:860px)]:min-h-[224px] [@media(min-width:900px)_and_(max-height:720px)]:min-h-[208px] ${
                         isBlocking
-                          ? 'grid-rows-[auto_minmax(0,1fr)]'
-                          : 'grid-rows-[auto_minmax(0,1fr)_auto] [@media(min-width:900px)]:grid-rows-[auto_minmax(0,1fr)_minmax(72px,auto)]'
+                          ? 'grid-rows-[auto_minmax(0,1fr)] [@media(min-width:900px)_and_(max-height:860px)]:grid-rows-[auto_minmax(124px,auto)]'
+                          : 'grid-rows-[auto_minmax(0,1fr)_auto] [@media(min-width:900px)]:grid-rows-[auto_minmax(0,1fr)_minmax(72px,auto)] [@media(min-width:900px)_and_(max-height:860px)]:grid-rows-[auto_minmax(124px,auto)_auto] [@media(min-width:900px)_and_(max-height:720px)]:grid-rows-[auto_minmax(112px,auto)_auto]'
                       } ${rowShellClass(row.mode, theme)}`}
                     >
                       <div
@@ -516,9 +524,9 @@ export default function FieldMonitor() {
                       {row.mode !== 'normal' && (
                         <div className={`absolute inset-x-0 top-0 h-2 rounded-t-2xl ${issueBandClass(row.mode)}`} />
                       )}
-                      <div className="flex min-h-0 flex-wrap items-start justify-between gap-x-3 gap-y-2 px-4 pb-1 pt-2 sm:px-5">
-                        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-2">
-                          <div className="text-[30px] font-bold leading-none tracking-tight sm:text-[34px] [@media(min-width:900px)]:text-[40px]">
+                      <div className="flex min-h-0 flex-wrap items-start justify-between gap-x-3 gap-y-2 px-4 pb-1 pt-2 sm:px-5 [@media(min-width:900px)_and_(max-height:860px)]:gap-x-2 [@media(min-width:900px)_and_(max-height:860px)]:gap-y-1 [@media(min-width:900px)_and_(max-height:860px)]:px-4 [@media(min-width:900px)_and_(max-height:860px)]:pb-0.5 [@media(min-width:900px)_and_(max-height:860px)]:pt-1.5 [@media(min-width:900px)_and_(max-height:720px)]:pt-1">
+                        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-2 [@media(min-width:900px)_and_(max-height:860px)]:gap-y-1">
+                          <div className="text-[30px] font-bold leading-none tracking-tight sm:text-[34px] [@media(min-width:900px)]:text-[40px] [@media(min-width:900px)_and_(max-height:860px)]:text-[34px] [@media(min-width:900px)_and_(max-height:720px)]:text-[30px]">
                             {row.team}
                           </div>
                           <StationBadge station={row.station} theme={theme} />
@@ -527,7 +535,7 @@ export default function FieldMonitor() {
 
                         {!isBlocking && !isBypassed && (
                           <div
-                            className={`inline-flex self-center items-center justify-center rounded-md px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wide ring-1 sm:px-3 sm:text-[13px] [@media(min-width:900px)]:text-[14px] ${
+                            className={`inline-flex self-center items-center justify-center rounded-md px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wide ring-1 sm:px-3 sm:text-[13px] [@media(min-width:900px)]:text-[14px] [@media(min-width:900px)_and_(max-height:860px)]:px-2 [@media(min-width:900px)_and_(max-height:860px)]:py-0.5 [@media(min-width:900px)_and_(max-height:860px)]:text-[12px] [@media(min-width:900px)_and_(max-height:720px)]:text-[11px] ${
                               isPostMatchMuted ? 'opacity-70' : ''
                             } ${stateTone(row.status, theme)}`}
                           >
@@ -539,7 +547,7 @@ export default function FieldMonitor() {
                       <div
                         className={`min-h-0 px-4 sm:px-5 ${isBlocking ? 'pb-3' : 'pb-1'} ${
                           isPostMatchMuted ? 'opacity-60' : ''
-                        }`}
+                        } [@media(min-width:900px)_and_(max-height:860px)]:min-h-[124px] [@media(min-width:900px)_and_(max-height:860px)]:px-4 [@media(min-width:900px)_and_(max-height:860px)]:pb-0.5 [@media(min-width:900px)_and_(max-height:720px)]:min-h-[112px]`}
                       >
                         {isBlocking ? (
                           <div className="flex h-full min-h-0 items-center justify-center">
@@ -551,7 +559,7 @@ export default function FieldMonitor() {
                         ) : (
                           <div
                             data-testid="connection-layout"
-                            className="grid h-full min-h-0 grid-cols-1 items-stretch gap-2 pb-px sm:grid-cols-[minmax(0,1fr)_28px_minmax(0,1fr)_28px_minmax(0,1fr)]"
+                            className="grid h-full min-h-0 grid-cols-1 items-stretch gap-2 pb-px sm:grid-cols-[minmax(0,1fr)_28px_minmax(0,1fr)_28px_minmax(0,1fr)] [@media(min-width:900px)_and_(max-height:860px)]:gap-1.5 [@media(min-width:900px)_and_(max-height:860px)]:pb-0 [@media(min-width:900px)_and_(max-height:720px)]:gap-1"
                           >
                             <ConnectionTile
                               kind="ds"
@@ -578,8 +586,10 @@ export default function FieldMonitor() {
                       </div>
 
                       {!isBlocking && (
-                        <div className={`px-4 pb-2.5 sm:px-5 ${isPostMatchMuted ? 'opacity-70' : ''}`}>
-                          <div className="grid gap-2 rounded-xl bg-zinc-50/70 py-1.5 sm:min-h-[72px] sm:grid-cols-[1fr_1.35fr]">
+                        <div
+                          className={`px-4 pb-2.5 sm:px-5 ${isPostMatchMuted ? 'opacity-70' : ''} [@media(min-width:900px)_and_(max-height:860px)]:px-4 [@media(min-width:900px)_and_(max-height:860px)]:pb-2 [@media(min-width:900px)_and_(max-height:720px)]:pb-1.5`}
+                        >
+                          <div className="grid gap-2 rounded-xl bg-zinc-50/70 py-1.5 sm:min-h-[72px] sm:grid-cols-[1fr_1.35fr] [@media(min-width:900px)_and_(max-height:860px)]:gap-1.5 [@media(min-width:900px)_and_(max-height:860px)]:py-1 [@media(min-width:900px)_and_(max-height:720px)]:gap-1">
                             <div
                               className={`rounded-xl px-2.5 py-1.5 ${batteryToneClass(row.battery, isAStop)}`}
                             >

@@ -216,6 +216,27 @@ describe('FieldMonitor', () => {
     );
   });
 
+  it('adds short-height desktop guards so connection tiles keep enough room for icons', () => {
+    renderFieldMonitor('/');
+
+    const [connectionLayout] = screen.getAllByTestId('connection-layout');
+    const connectionSection = connectionLayout.parentElement;
+    const rowCard = connectionSection?.parentElement;
+
+    expect(connectionLayout).toHaveClass(
+      '[@media(min-width:900px)_and_(max-height:860px)]:gap-1.5',
+      '[@media(min-width:900px)_and_(max-height:720px)]:gap-1'
+    );
+    expect(connectionSection).toHaveClass(
+      '[@media(min-width:900px)_and_(max-height:860px)]:min-h-[124px]',
+      '[@media(min-width:900px)_and_(max-height:720px)]:min-h-[112px]'
+    );
+    expect(rowCard).toHaveClass(
+      '[@media(min-width:900px)_and_(max-height:860px)]:min-h-[224px]',
+      '[@media(min-width:900px)_and_(max-height:720px)]:min-h-[208px]'
+    );
+  });
+
   it('allows replay load errors to be dismissed locally', async () => {
     const user = userEvent.setup();
 
