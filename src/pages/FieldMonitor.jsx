@@ -17,10 +17,11 @@ const panelTheme = (alliance) =>
   alliance === 'red'
     ? {
         backplate: 'bg-white',
-        gutter:
-          'bg-gradient-to-b from-red-800 via-red-600 to-red-500 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.4),0_0_30px_rgba(239,68,68,0.28)]',
-        panelGlow: '',
-        stationBadge: 'bg-white text-zinc-700 ring-zinc-300',
+        panelGlow: 'ring-[4px] ring-red-500 shadow-[0_0_0_1px_rgba(255,255,255,0.7),0_0_32px_rgba(239,68,68,0.18)]',
+        defaultRowShell:
+          'bg-gradient-to-b from-white to-zinc-50 ring-[2px] ring-zinc-300 shadow-[0_8px_18px_rgba(15,23,42,0.06)]',
+        defaultRowInset: 'border-white/95',
+        stationBadge: 'bg-red-50 text-red-800 ring-red-200',
         stateDanger: 'bg-rose-600 text-white ring-rose-800 shadow-sm',
         stateWarn: 'bg-amber-100 text-amber-950 ring-amber-300',
         stateAuto: 'bg-violet-50 text-violet-800 ring-violet-200',
@@ -28,10 +29,11 @@ const panelTheme = (alliance) =>
       }
     : {
         backplate: 'bg-white',
-        gutter:
-          'bg-gradient-to-b from-blue-800 via-blue-600 to-blue-500 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.4),0_0_30px_rgba(59,130,246,0.28)]',
-        panelGlow: '',
-        stationBadge: 'bg-white text-zinc-700 ring-zinc-300',
+        panelGlow: 'ring-[4px] ring-blue-500 shadow-[0_0_0_1px_rgba(255,255,255,0.7),0_0_32px_rgba(59,130,246,0.18)]',
+        defaultRowShell:
+          'bg-gradient-to-b from-white to-zinc-50 ring-[2px] ring-zinc-300 shadow-[0_8px_18px_rgba(15,23,42,0.06)]',
+        defaultRowInset: 'border-white/95',
+        stationBadge: 'bg-blue-50 text-blue-800 ring-blue-200',
         stateDanger: 'bg-rose-600 text-white ring-rose-800 shadow-sm',
         stateWarn: 'bg-amber-100 text-amber-950 ring-amber-300',
         stateAuto: 'bg-violet-50 text-violet-800 ring-violet-200',
@@ -255,7 +257,7 @@ const issueBandClass = (mode) => {
   return '';
 };
 
-const rowShellClass = (mode) => {
+const rowShellClass = (mode, theme) => {
   if (mode === 'estopped' || mode === 'bypassed') {
     return 'bg-gradient-to-b from-white to-rose-50/45 ring-[4px] ring-rose-700 shadow-[0_10px_24px_rgba(190,24,93,0.18)]';
   }
@@ -276,10 +278,10 @@ const rowShellClass = (mode) => {
     return 'bg-gradient-to-b from-white to-amber-50/25 ring-[3px] ring-amber-400 shadow-[0_8px_20px_rgba(245,158,11,0.12)]';
   }
 
-  return 'bg-gradient-to-b from-white to-zinc-50 ring-[2px] ring-zinc-300 shadow-[0_8px_18px_rgba(15,23,42,0.06)]';
+  return theme.defaultRowShell;
 };
 
-const rowInsetClass = (mode) => {
+const rowInsetClass = (mode, theme) => {
   if (mode === 'estopped' || mode === 'bypassed') {
     return 'border-rose-100/80';
   }
@@ -292,7 +294,7 @@ const rowInsetClass = (mode) => {
     return 'border-amber-100/80';
   }
 
-  return 'border-white/95';
+  return theme.defaultRowInset;
 };
 
 const formatReplayClock = (ms = 0) => {
@@ -383,14 +385,6 @@ function TopBarItem({ label, value, align = 'left' }) {
 
 const stationNumberText = (stationLabel) => stationLabel.match(/\d+/)?.[0] || '--';
 
-function AllianceRail({ theme, className }) {
-  return (
-    <div className={`pointer-events-none absolute inset-y-2.5 w-6 rounded-full ${className} ${theme.gutter}`}>
-      <div className="h-full rounded-full" />
-    </div>
-  );
-}
-
 function StationBadge({ station, theme }) {
   const stationNumber = stationNumberText(station);
 
@@ -472,17 +466,11 @@ export default function FieldMonitor() {
       <div className="flex min-h-0 flex-1">
         {distancePanels.map((panel, index) => {
           const theme = panelTheme(panel.alliance);
-          const panelSide = index === 0 ? 'left' : 'right';
-          const gutterClass = panelSide === 'left' ? 'left-1.5' : 'right-1.5';
-          const panelPadding = panelSide === 'left' ? 'pl-5 pr-3' : 'pl-3 pr-5';
+          const panelPadding = index === 0 ? 'pl-3 pr-2.5' : 'pl-2.5 pr-3';
           return (
             <div key={`distance-${panel.alliance}`} className="relative flex min-w-0 flex-1 px-1.5 pb-1">
               <div
                 className={`pointer-events-none absolute inset-1.5 rounded-[28px] ${theme.backplate} ${theme.panelGlow}`}
-              />
-              <AllianceRail
-                theme={theme}
-                className={gutterClass}
               />
               <div className={`grid min-h-0 flex-1 grid-rows-3 gap-2 pb-2 pt-3 ${panelPadding}`}>
                 {panel.rows.map((row) => {
@@ -499,10 +487,10 @@ export default function FieldMonitor() {
                       key={`distance-${panel.alliance}-${row.team}-${row.station}`}
                       className={`relative grid min-h-0 overflow-hidden rounded-2xl bg-white ${
                         isBlocking ? 'grid-rows-[auto_minmax(0,1fr)]' : 'grid-rows-[auto_minmax(0,1fr)_72px]'
-                      } ${rowShellClass(row.mode)}`}
+                      } ${rowShellClass(row.mode, theme)}`}
                     >
                       <div
-                        className={`pointer-events-none absolute inset-[2px] rounded-[14px] border shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] ${rowInsetClass(row.mode)}`}
+                        className={`pointer-events-none absolute inset-[2px] rounded-[14px] border shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] ${rowInsetClass(row.mode, theme)}`}
                       />
                       {row.mode !== 'normal' && (
                         <div className={`absolute inset-x-0 top-0 h-2 rounded-t-2xl ${issueBandClass(row.mode)}`} />
