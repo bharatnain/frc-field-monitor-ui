@@ -110,22 +110,28 @@ export function createHubConnection(url) {
     .build();
 }
 
-function getBaseUrl() {
-  const configuredBaseUrl = import.meta.env.VITE_FIELD_MONITOR_BASE_URL?.trim();
+function trimBaseUrl(baseUrl) {
+  return baseUrl.replace(/\/+$/, '');
+}
+
+export function getBaseUrl({
+  env = import.meta.env,
+  location = typeof window === 'undefined' ? undefined : window.location,
+} = {}) {
+  const configuredBaseUrl = env?.VITE_FIELD_MONITOR_BASE_URL?.trim();
   if (configuredBaseUrl) {
-    return configuredBaseUrl;
+    return trimBaseUrl(configuredBaseUrl);
   }
 
-  if (typeof window === 'undefined') {
-    return 'http://10.0.100.5';
+  if (location?.origin && location.origin !== 'null') {
+    return trimBaseUrl(location.origin);
   }
 
-  const { hostname, origin } = window.location;
-  if (hostname === 'localhost' || hostname === '127.0.0.1') {
-    return 'http://10.0.100.5';
-  }
+  return '';
+}
 
-  return origin;
+function buildFieldMonitorUrl(baseUrl, pathname) {
+  return baseUrl ? `${baseUrl}${pathname}` : pathname;
 }
 
 function getValue(object, shortKey, longKey, fallback) {
@@ -1337,7 +1343,9 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
 
     async function fetchCurrentMatch() {
       try {
-        const response = await fetch(`${baseUrl}/api/v1.0/fieldMonitor/get/GetCurrentMatchAndPlayNumber`);
+        const response = await fetch(
+          buildFieldMonitorUrl(baseUrl, '/api/v1.0/fieldMonitor/get/GetCurrentMatchAndPlayNumber')
+        );
         if (!response.ok) {
           throw new Error(`Current match request failed with ${response.status}`);
         }
@@ -1371,8 +1379,8 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
       return undefined;
     }
 
-    const fieldHub = hubConnectionFactory(`${baseUrl}/fieldMonitorHub`);
-    const infrastructureHub = hubConnectionFactory(`${baseUrl}/infrastructureHub`);
+    const fieldHub = hubConnectionFactory(buildFieldMonitorUrl(baseUrl, '/fieldMonitorHub'));
+    const infrastructureHub = hubConnectionFactory(buildFieldMonitorUrl(baseUrl, '/infrastructureHub'));
 
     let isMounted = true;
 

@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "start": "node server/index.js",
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest"
@@ -16,6 +17,8 @@
     "@fortawesome/react-fontawesome": "^3.2.0",
     "@microsoft/signalr": "^10.0.0",
     "@microsoft/signalr-protocol-msgpack": "^10.0.0",
+    "dotenv": "^17.3.1",
+    "http-proxy": "^1.18.1",
     "lucide-react": "^0.460.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",

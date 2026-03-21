@@ -2,12 +2,14 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import {
   fieldMonitorTypes,
+  getBaseUrl,
   resetFieldMonitorLiveTestState,
   useFieldMonitorLiveData,
 } from './fieldMonitorLive';
 import { createFakeHubFactory } from '../test/fakeSignalR';
 
 const { AllianceType, MatchStateType, MonitorStatusType, RadioConnectionQuality, StationType } = fieldMonitorTypes;
+const originalBaseUrl = import.meta.env.VITE_FIELD_MONITOR_BASE_URL;
 
 function createStationPayload(overrides = {}) {
   return {
@@ -48,6 +50,7 @@ async function flushPromises() {
 describe('useFieldMonitorLiveData', () => {
   beforeEach(() => {
     resetFieldMonitorLiveTestState();
+    delete import.meta.env.VITE_FIELD_MONITOR_BASE_URL;
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -60,9 +63,16 @@ describe('useFieldMonitorLiveData', () => {
 
   afterEach(() => {
     resetFieldMonitorLiveTestState();
+    if (originalBaseUrl === undefined) {
+      delete import.meta.env.VITE_FIELD_MONITOR_BASE_URL;
+      return;
+    }
+
+    import.meta.env.VITE_FIELD_MONITOR_BASE_URL = originalBaseUrl;
   });
 
-  it('bootstraps live data, handles hub events, and cleans up both SignalR connections', async () => {
+  it('bootstraps live data in direct mode, handles hub events, and cleans up both SignalR connections', async () => {
+    import.meta.env.VITE_FIELD_MONITOR_BASE_URL = 'http://10.0.100.5/';
     const hubFactory = createFakeHubFactory();
     const { result, unmount } = renderHook(() =>
       useFieldMonitorLiveData({
@@ -119,6 +129,58 @@ describe('useFieldMonitorLiveData', () => {
 
     expect(fieldHub.stop).toHaveBeenCalledTimes(1);
     expect(infrastructureHub.stop).toHaveBeenCalledTimes(1);
+  });
+
+  it('defaults live requests to same-origin when no browser base URL is configured', async () => {
+    const hubFactory = createFakeHubFactory();
+
+    renderHook(() =>
+      useFieldMonitorLiveData({
+        hubConnectionFactory: hubFactory.factory,
+      })
+    );
+
+    await waitFor(() => {
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        `${window.location.origin}/api/v1.0/fieldMonitor/get/GetCurrentMatchAndPlayNumber`
+      );
+    });
+
+    expect(hubFactory.hubs.map((hub) => hub.url)).toEqual(
+      expect.arrayContaining([
+        `${window.location.origin}/fieldMonitorHub`,
+        `${window.location.origin}/infrastructureHub`,
+      ])
+    );
+  });
+
+  it('resolves the browser base URL from env first and falls back to same-origin', () => {
+    expect(
+      getBaseUrl({
+        env: {
+          VITE_FIELD_MONITOR_BASE_URL: 'http://10.0.100.5/',
+        },
+        location: {
+          origin: 'http://proxy.local:3000',
+        },
+      })
+    ).toBe('http://10.0.100.5');
+
+    expect(
+      getBaseUrl({
+        env: {},
+        location: {
+          origin: 'http://proxy.local:3000',
+        },
+      })
+    ).toBe('http://proxy.local:3000');
+
+    expect(
+      getBaseUrl({
+        env: {},
+        location: null,
+      })
+    ).toBe('');
   });
 
   it('records live hub traffic and downloads a JSON capture', async () => {
