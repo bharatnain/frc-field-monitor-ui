@@ -462,7 +462,7 @@ export default function FieldMonitor() {
 
                         {!isBlocking && !isBypassed && (
                           <div
-                            className={`flex h-[40px] min-w-[132px] items-center justify-center rounded-xl px-3.5 text-[18px] font-bold uppercase tracking-wide ring-2 ${stateTone(row.status, theme)}`}
+                            className={`inline-flex self-center items-center justify-center rounded-md px-3 py-1 text-[14px] font-extrabold uppercase tracking-wide ring-1 ${stateTone(row.status, theme)}`}
                           >
                             {stateLabel(row.status)}
                           </div>
