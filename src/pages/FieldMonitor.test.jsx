@@ -178,6 +178,44 @@ describe('FieldMonitor', () => {
     expect(setReplaySpeed).toHaveBeenCalledWith(2);
   });
 
+  it('adds bottom padding to the main content and constrains the replay overlay when replay is visible', () => {
+    mockUseFieldMonitorLiveData.mockReturnValue(
+      createHookState({
+        sourceMode: 'replay',
+        replay: {
+          isReplayMode: true,
+          fileName: 'qm42.json',
+        },
+      })
+    );
+
+    renderFieldMonitor('/');
+
+    expect(screen.getByTestId('field-monitor-content')).toHaveClass('pb-40', 'sm:pb-32');
+    expect(screen.getByTestId('replay-overlay-panel')).toHaveClass(
+      'max-h-[45vh]',
+      'overflow-y-auto',
+      'md:max-h-none',
+      'md:overflow-visible'
+    );
+  });
+
+  it('keeps the row internals configured for stacked mobile layouts', () => {
+    renderFieldMonitor('/');
+
+    const [connectionLayout] = screen.getAllByTestId('connection-layout');
+    const [metricsGrid] = screen.getAllByTestId('row-metrics-grid');
+
+    expect(connectionLayout).toHaveClass(
+      'grid-cols-1',
+      'sm:grid-cols-[minmax(0,1fr)_28px_minmax(0,1fr)_28px_minmax(0,1fr)]'
+    );
+    expect(metricsGrid).toHaveClass(
+      'grid-cols-2',
+      '[@media(min-width:440px)]:grid-cols-3'
+    );
+  });
+
   it('allows replay load errors to be dismissed locally', async () => {
     const user = userEvent.setup();
 

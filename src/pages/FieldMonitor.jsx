@@ -154,18 +154,30 @@ function SignalBars({ detail, state = 'good', hero = false }) {
   const theme = connectionTheme(state);
   if (count === 0) {
     return (
-      <span className={`font-extrabold tracking-wide ${hero ? 'text-[32px]' : 'text-[28px]'}`}>
+      <span
+        className={`font-extrabold tracking-wide ${
+          hero ? 'text-[28px] sm:text-[30px] [@media(min-width:900px)]:text-[32px]' : 'text-[24px] sm:text-[26px] [@media(min-width:900px)]:text-[28px]'
+        }`}
+      >
         OUT
       </span>
     );
   }
   const heights = hero ? ['32%', '54%', '76%', '100%'] : ['25%', '50%', '75%', '100%'];
   return (
-    <span className={`inline-flex items-end justify-center ${hero ? 'h-11 gap-1.5' : 'h-10 gap-1.5'}`}>
+    <span
+      className={`inline-flex items-end justify-center ${
+        hero
+          ? 'h-9 gap-1 sm:h-10 sm:gap-1.5 [@media(min-width:900px)]:h-11'
+          : 'h-8 gap-1 sm:h-9 sm:gap-1.5 [@media(min-width:900px)]:h-10'
+      }`}
+    >
       {heights.map((h, i) => (
         <span
           key={i}
-          className={`rounded-sm ${hero ? 'w-4' : 'w-3'} ${
+          className={`rounded-sm ${
+            hero ? 'w-3 sm:w-3.5 [@media(min-width:900px)]:w-4' : 'w-2.5 sm:w-3'
+          } ${
             i < count ? theme.filledBar : theme.emptyBar
           }`}
           style={{ height: h }}
@@ -186,9 +198,9 @@ function DeviceStatusBadge({ state, text }) {
 
   return (
     <div
-      className={`inline-flex items-center justify-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-black uppercase tracking-[0.14em] ${badgeClass}`}
+      className={`inline-flex items-center justify-center gap-1 rounded-full px-2 py-1 text-[10px] font-black uppercase tracking-[0.14em] sm:px-2.5 sm:text-[11px] [@media(min-width:900px)]:text-[12px] ${badgeClass}`}
     >
-      {icon && <FontAwesomeIcon icon={icon} className="h-3.5 w-3.5" />}
+      {icon && <FontAwesomeIcon icon={icon} className="h-3 w-3 sm:h-3.5 sm:w-3.5" />}
       <span>{text}</span>
     </div>
   );
@@ -235,7 +247,7 @@ function IssueBadge({ mode }) {
   const isCritical = mode === 'critical';
   return (
     <div
-      className={`rounded-md px-3 py-1 text-[14px] font-extrabold uppercase tracking-wide ${
+      className={`rounded-md px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wide sm:px-3 sm:text-[12px] [@media(min-width:900px)]:text-[14px] ${
         isEmergencyStop
           ? 'bg-rose-600 text-white ring-1 ring-rose-700'
           : isCritical
@@ -326,12 +338,12 @@ function ConnectionTile({ kind, state, detail, label }) {
 
   return (
     <div className={`flex h-full min-h-0 flex-col justify-between rounded-xl px-2.5 py-2 text-center ${theme.tile}`}>
-      <div className={`text-[10px] font-black uppercase tracking-[0.24em] ${theme.label}`}>
+      <div className={`text-[10px] font-black uppercase tracking-[0.2em] sm:tracking-[0.24em] ${theme.label}`}>
         {label}
       </div>
 
       {isRadio ? (
-        <div className="mt-1 flex min-h-0 flex-1 flex-col items-center justify-center">
+        <div className="mt-2 flex min-h-0 flex-1 flex-col items-center justify-center sm:mt-1">
           <div className={`mb-0.5 ${theme.accent}`}>
             <FontAwesomeIcon icon={faTowerBroadcast} className="h-6 w-6" />
           </div>
@@ -340,7 +352,7 @@ function ConnectionTile({ kind, state, detail, label }) {
           </div>
         </div>
       ) : (
-        <div className="mt-1 flex min-h-0 flex-1 flex-col items-center justify-center">
+        <div className="mt-2 flex min-h-0 flex-1 flex-col items-center justify-center sm:mt-1">
           <div className="flex h-[70px] items-center justify-center">
             {isDS ? <DsDeviceGlyph theme={theme} /> : <RioDeviceGlyph theme={theme} />}
           </div>
@@ -356,10 +368,10 @@ function ConnectionTile({ kind, state, detail, label }) {
 function ConnectionChevron({ state = 'good' }) {
   const theme = connectionTheme(state);
   return (
-    <div className="flex items-center justify-center">
-      <div className={`flex w-full items-center justify-center gap-1 ${theme.chevron}`}>
+    <div className="flex items-center justify-center py-1 sm:py-0">
+      <div className={`flex w-full rotate-90 items-center justify-center gap-1 sm:rotate-0 ${theme.chevron}`}>
         <span className={`h-1 w-3 rounded-full ${state === 'bad' ? 'bg-amber-300' : state === 'warn' ? 'bg-amber-700' : 'bg-zinc-300'}`} />
-        <span className="text-[30px] font-black leading-none">&gt;</span>
+        <span className="text-[24px] font-black leading-none sm:text-[30px]">&gt;</span>
       </div>
     </div>
   );
@@ -390,7 +402,7 @@ function StationBadge({ station, theme }) {
 
   return (
     <div
-      className={`inline-flex rounded-md px-2.5 py-1 text-[12px] font-bold uppercase tracking-wide ring-1 ${theme.stationBadge}`}
+      className={`inline-flex rounded-md px-2 py-1 text-[11px] font-bold uppercase tracking-wide ring-1 sm:px-2.5 sm:text-[12px] ${theme.stationBadge}`}
     >
       STN {stationNumber}
     </div>
@@ -463,16 +475,23 @@ export default function FieldMonitor() {
         </div>
       </div>
 
-      <div className="flex min-h-0 flex-1">
-        {distancePanels.map((panel, index) => {
+      <div
+        data-testid="field-monitor-content"
+        className={`flex min-h-0 flex-1 flex-col overflow-y-auto [@media(min-width:900px)]:flex-row ${
+          showReplayOverlay ? 'pb-40 sm:pb-32' : ''
+        }`}
+      >
+        {distancePanels.map((panel) => {
           const theme = panelTheme(panel.alliance);
-          const panelPadding = index === 0 ? 'pl-3 pr-2.5' : 'pl-2.5 pr-3';
           return (
-            <div key={`distance-${panel.alliance}`} className="relative flex min-w-0 flex-1 px-1.5 pb-1">
+            <div
+              key={`distance-${panel.alliance}`}
+              className="relative flex w-full min-w-0 flex-none p-1.5 [@media(min-width:900px)]:flex-1"
+            >
               <div
                 className={`pointer-events-none absolute inset-1.5 rounded-[28px] ${theme.backplate} ${theme.panelGlow}`}
               />
-              <div className={`grid min-h-0 flex-1 grid-rows-3 gap-2 pb-2 pt-3 ${panelPadding}`}>
+              <div className="grid min-h-0 flex-1 auto-rows-max gap-2 p-2.5 [@media(min-width:900px)]:grid-rows-3">
                 {panel.rows.map((row) => {
                   const isBlocking = row.mode === 'blocking';
                   const isEmergencyStop = isEmergencyStopMode(row.mode);
@@ -485,8 +504,10 @@ export default function FieldMonitor() {
                   return (
                     <div
                       key={`distance-${panel.alliance}-${row.team}-${row.station}`}
-                      className={`relative grid min-h-0 overflow-hidden rounded-2xl bg-white ${
-                        isBlocking ? 'grid-rows-[auto_minmax(0,1fr)]' : 'grid-rows-[auto_minmax(0,1fr)_72px]'
+                      className={`relative grid min-h-[220px] overflow-hidden rounded-2xl bg-white [@media(min-width:900px)]:min-h-0 ${
+                        isBlocking
+                          ? 'grid-rows-[auto_minmax(0,1fr)]'
+                          : 'grid-rows-[auto_minmax(0,1fr)_auto] [@media(min-width:900px)]:grid-rows-[auto_minmax(0,1fr)_minmax(72px,auto)]'
                       } ${rowShellClass(row.mode, theme)}`}
                     >
                       <div
@@ -495,9 +516,9 @@ export default function FieldMonitor() {
                       {row.mode !== 'normal' && (
                         <div className={`absolute inset-x-0 top-0 h-2 rounded-t-2xl ${issueBandClass(row.mode)}`} />
                       )}
-                      <div className="flex min-h-0 items-start justify-between gap-3 px-5 pb-1 pt-2">
-                        <div className="flex min-w-0 items-center gap-2.5">
-                          <div className="text-[40px] font-bold leading-none tracking-tight">
+                      <div className="flex min-h-0 flex-wrap items-start justify-between gap-x-3 gap-y-2 px-4 pb-1 pt-2 sm:px-5">
+                        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-2">
+                          <div className="text-[30px] font-bold leading-none tracking-tight sm:text-[34px] [@media(min-width:900px)]:text-[40px]">
                             {row.team}
                           </div>
                           <StationBadge station={row.station} theme={theme} />
@@ -506,7 +527,7 @@ export default function FieldMonitor() {
 
                         {!isBlocking && !isBypassed && (
                           <div
-                            className={`inline-flex self-center items-center justify-center rounded-md px-3 py-1 text-[14px] font-extrabold uppercase tracking-wide ring-1 ${
+                            className={`inline-flex self-center items-center justify-center rounded-md px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wide ring-1 sm:px-3 sm:text-[13px] [@media(min-width:900px)]:text-[14px] ${
                               isPostMatchMuted ? 'opacity-70' : ''
                             } ${stateTone(row.status, theme)}`}
                           >
@@ -515,16 +536,23 @@ export default function FieldMonitor() {
                         )}
                       </div>
 
-                      <div className={`min-h-0 px-5 ${isBlocking ? 'pb-3' : 'pb-1'} ${isPostMatchMuted ? 'opacity-60' : ''}`}>
+                      <div
+                        className={`min-h-0 px-4 sm:px-5 ${isBlocking ? 'pb-3' : 'pb-1'} ${
+                          isPostMatchMuted ? 'opacity-60' : ''
+                        }`}
+                      >
                         {isBlocking ? (
                           <div className="flex h-full min-h-0 items-center justify-center">
-                            <div className="flex min-h-[92px] w-full items-center justify-center rounded-xl border-[3px] border-dashed border-amber-700 bg-amber-50 px-6 py-5 text-[26px] font-bold tracking-wide text-amber-950">
-                              <FontAwesomeIcon icon={faTriangleExclamation} className="mr-3 h-7 w-7 text-amber-700" />
+                            <div className="flex min-h-[92px] w-full items-center justify-center rounded-xl border-[3px] border-dashed border-amber-700 bg-amber-50 px-4 py-4 text-center text-[18px] font-bold tracking-wide text-amber-950 sm:px-6 sm:py-5 sm:text-[22px] [@media(min-width:900px)]:text-[26px]">
+                              <FontAwesomeIcon icon={faTriangleExclamation} className="mr-3 h-6 w-6 text-amber-700 sm:h-7 sm:w-7" />
                               {row.blockingText}
                             </div>
                           </div>
                         ) : (
-                          <div className="grid h-full min-h-0 grid-cols-[1fr_28px_1fr_28px_1fr] items-stretch gap-2 pb-px">
+                          <div
+                            data-testid="connection-layout"
+                            className="grid h-full min-h-0 grid-cols-1 items-stretch gap-2 pb-px sm:grid-cols-[minmax(0,1fr)_28px_minmax(0,1fr)_28px_minmax(0,1fr)]"
+                          >
                             <ConnectionTile
                               kind="ds"
                               label={row.ds?.label || 'DS'}
@@ -550,8 +578,8 @@ export default function FieldMonitor() {
                       </div>
 
                       {!isBlocking && (
-                        <div className={`px-5 pb-2.5 ${isPostMatchMuted ? 'opacity-70' : ''}`}>
-                          <div className="grid h-[72px] grid-cols-[1fr_1.35fr] gap-2 rounded-xl bg-zinc-50/70 py-1.5">
+                        <div className={`px-4 pb-2.5 sm:px-5 ${isPostMatchMuted ? 'opacity-70' : ''}`}>
+                          <div className="grid gap-2 rounded-xl bg-zinc-50/70 py-1.5 sm:min-h-[72px] sm:grid-cols-[1fr_1.35fr]">
                             <div
                               className={`rounded-xl px-2.5 py-1.5 ${batteryToneClass(row.battery, isAStop)}`}
                             >
@@ -577,8 +605,11 @@ export default function FieldMonitor() {
                               </div>
                             </div>
 
-                            <div className="grid grid-cols-3 items-center gap-1 rounded-xl bg-white/65 px-2 py-1.5">
-                              <div className="min-w-0">
+                            <div
+                              data-testid="row-metrics-grid"
+                              className="grid grid-cols-2 items-center gap-1 rounded-xl bg-white/65 px-2 py-1.5 [@media(min-width:440px)]:grid-cols-3"
+                            >
+                              <div className="min-w-0 col-span-2 [@media(min-width:440px)]:col-span-1">
                                 <div className="flex items-center gap-1 text-[9px] font-bold uppercase text-zinc-500">
                                   <FontAwesomeIcon icon={faRightLeft} className="h-3 w-3" /> BW
                                 </div>
@@ -623,7 +654,8 @@ export default function FieldMonitor() {
       {showReplayOverlay ? (
         <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-4">
           <div
-            className="pointer-events-auto w-full max-w-3xl rounded-2xl border border-white/20 bg-zinc-950/72 px-4 py-3 text-white shadow-2xl backdrop-blur-md"
+            data-testid="replay-overlay-panel"
+            className="pointer-events-auto max-h-[45vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-white/20 bg-zinc-950/72 px-4 py-3 text-white shadow-2xl backdrop-blur-md md:max-h-none md:overflow-visible"
             style={{ backgroundColor: 'rgba(24, 24, 27, 0.92)' }}
           >
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
