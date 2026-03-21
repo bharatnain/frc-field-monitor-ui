@@ -32,6 +32,7 @@ The screen should help the FTA quickly decide when to:
 - Layout must work fullscreen in both **16:9** and **4:3**
 - The screen must preserve a clear **Red vs Blue alliance split**
 - Alliance sides may be swappable in implementation, but the split itself is essential
+- If the UI exposes a mirrored layout, such as `mirror=true`, it should also reverse the Red alliance card order so driver stations still read **1, 2, 3** from behind the driver station wall
 
 ## Core Mental Model
 Each row represents:

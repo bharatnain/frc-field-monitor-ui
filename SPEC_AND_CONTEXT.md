@@ -60,6 +60,12 @@ red and blue alliance split layout is important and should be preserved
 
 left and right alliance sides can be swappable depending on where staff are standing
 
+implementation note
+
+the UI may expose this with a mirror layout toggle or query param such as mirror=true
+
+when mirrored, the red alliance panel should also reverse its station card order so the displayed driver stations still read 1 2 3 from the perspective of someone standing behind the driver station wall
+
 Core data model
 
 Each row is fundamentally
