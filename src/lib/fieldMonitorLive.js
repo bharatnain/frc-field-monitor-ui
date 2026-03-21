@@ -264,7 +264,7 @@ function getMatchStateMessage(matchState) {
       return 'PRESTARTING';
     case MatchStateType.WaitingForSetAudience:
     case MatchStateType.WaitingForSetAudienceTO:
-      return 'SET AUDIENCE';
+      return 'WAITING FOR MATCH READY';
     case MatchStateType.WaitingForMatchReady:
       return 'WAITING FOR MATCH READY';
     case MatchStateType.WaitingForMatchStart:

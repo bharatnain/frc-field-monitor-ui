@@ -181,6 +181,20 @@ describe('fieldMonitorLive helpers', () => {
     });
   });
 
+  it('treats set audience as waiting for the match to be ready', () => {
+    expect(
+      normalizeMatchStatus({
+        MatchState: MatchStateType.WaitingForSetAudience,
+      }).matchStateMessage
+    ).toBe('WAITING FOR MATCH READY');
+
+    expect(
+      normalizeMatchStatus({
+        MatchState: MatchStateType.WaitingForSetAudienceTO,
+      }).matchStateMessage
+    ).toBe('WAITING FOR MATCH READY');
+  });
+
   it('supports both short and long station payload keys', () => {
     const minBatteryMap = new Map();
     const brownoutLatchMap = new Map();
