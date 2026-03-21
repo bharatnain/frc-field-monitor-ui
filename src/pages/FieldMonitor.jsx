@@ -57,6 +57,30 @@ const stateTone = (status, theme) => {
   return theme.stateTele;
 };
 
+const batteryToneClass = (battery, isAStop) => {
+  if (battery?.tone === 'critical') {
+    return 'bg-amber-50 ring-2 ring-amber-400';
+  }
+
+  if (battery?.tone === 'warn' || isAStop) {
+    return 'bg-amber-50 ring-2 ring-amber-300';
+  }
+
+  return 'bg-white/80';
+};
+
+const batteryActionClass = (battery) => {
+  if (battery?.tone === 'critical') {
+    return 'bg-amber-600 text-white ring-1 ring-amber-700';
+  }
+
+  if (battery?.tone === 'warn') {
+    return 'bg-amber-100 text-amber-950 ring-1 ring-amber-400';
+  }
+
+  return 'bg-zinc-100 text-zinc-600 ring-1 ring-zinc-300';
+};
+
 const stateLabel = (status) => status?.shortLabel || status?.label || '';
 
 const barCountFromDetail = (detail) => {
@@ -229,6 +253,46 @@ const issueBandClass = (mode) => {
   if (mode === 'critical') return 'bg-amber-600';
   if (mode === 'degraded') return 'bg-amber-400';
   return '';
+};
+
+const rowShellClass = (mode) => {
+  if (mode === 'estopped' || mode === 'bypassed') {
+    return 'bg-gradient-to-b from-white to-rose-50/45 ring-[4px] ring-rose-700 shadow-[0_10px_24px_rgba(190,24,93,0.18)]';
+  }
+
+  if (mode === 'astopped') {
+    return 'bg-gradient-to-b from-white to-amber-50/55 ring-[3px] ring-amber-500 shadow-[0_8px_20px_rgba(217,119,6,0.14)]';
+  }
+
+  if (mode === 'blocking') {
+    return 'bg-gradient-to-b from-white to-amber-50/50 ring-[4px] ring-amber-700 shadow-[0_10px_24px_rgba(180,83,9,0.16)]';
+  }
+
+  if (mode === 'critical') {
+    return 'bg-gradient-to-b from-white to-amber-50/40 ring-[4px] ring-amber-600 shadow-[0_10px_24px_rgba(217,119,6,0.16)]';
+  }
+
+  if (mode === 'degraded') {
+    return 'bg-gradient-to-b from-white to-amber-50/25 ring-[3px] ring-amber-400 shadow-[0_8px_20px_rgba(245,158,11,0.12)]';
+  }
+
+  return 'bg-gradient-to-b from-white to-zinc-50 ring-[2px] ring-zinc-300 shadow-[0_8px_18px_rgba(15,23,42,0.06)]';
+};
+
+const rowInsetClass = (mode) => {
+  if (mode === 'estopped' || mode === 'bypassed') {
+    return 'border-rose-100/80';
+  }
+
+  if (mode === 'astopped') {
+    return 'border-amber-100/90';
+  }
+
+  if (mode === 'blocking' || mode === 'critical' || mode === 'degraded') {
+    return 'border-amber-100/80';
+  }
+
+  return 'border-white/95';
 };
 
 const formatReplayClock = (ms = 0) => {
@@ -428,26 +492,18 @@ export default function FieldMonitor() {
                   const isCritical = row.mode === 'critical';
                   const isDegraded = row.mode === 'degraded';
                   const isBypassed = row.mode === 'bypassed';
+                  const isPostMatchMuted = Boolean(row.isPostMatchMuted);
 
                   return (
                     <div
                       key={`distance-${panel.alliance}-${row.team}-${row.station}`}
                       className={`relative grid min-h-0 overflow-hidden rounded-2xl bg-white ${
-                        isBlocking ? 'grid-rows-[auto_minmax(0,1fr)]' : 'grid-rows-[auto_minmax(0,1fr)_64px]'
-                      } ${
-                        isEmergencyStop
-                          ? 'ring-[4px] ring-rose-700 shadow-sm'
-                          : isAStop
-                            ? 'ring-[3px] ring-amber-500 shadow-sm'
-                          : isBlocking
-                          ? 'ring-[4px] ring-amber-700 shadow-sm'
-                          : isCritical
-                            ? 'ring-[4px] ring-amber-600 shadow-sm'
-                            : isDegraded
-                              ? 'ring-2 ring-amber-400'
-                              : 'ring-1 ring-zinc-200'
-                      }`}
+                        isBlocking ? 'grid-rows-[auto_minmax(0,1fr)]' : 'grid-rows-[auto_minmax(0,1fr)_72px]'
+                      } ${rowShellClass(row.mode)}`}
                     >
+                      <div
+                        className={`pointer-events-none absolute inset-[2px] rounded-[14px] border shadow-[inset_0_1px_0_rgba(255,255,255,0.9)] ${rowInsetClass(row.mode)}`}
+                      />
                       {row.mode !== 'normal' && (
                         <div className={`absolute inset-x-0 top-0 h-2 rounded-t-2xl ${issueBandClass(row.mode)}`} />
                       )}
@@ -462,14 +518,16 @@ export default function FieldMonitor() {
 
                         {!isBlocking && !isBypassed && (
                           <div
-                            className={`inline-flex self-center items-center justify-center rounded-md px-3 py-1 text-[14px] font-extrabold uppercase tracking-wide ring-1 ${stateTone(row.status, theme)}`}
+                            className={`inline-flex self-center items-center justify-center rounded-md px-3 py-1 text-[14px] font-extrabold uppercase tracking-wide ring-1 ${
+                              isPostMatchMuted ? 'opacity-70' : ''
+                            } ${stateTone(row.status, theme)}`}
                           >
                             {stateLabel(row.status)}
                           </div>
                         )}
                       </div>
 
-                      <div className={`min-h-0 px-5 ${isBlocking ? 'pb-3' : 'pb-1'}`}>
+                      <div className={`min-h-0 px-5 ${isBlocking ? 'pb-3' : 'pb-1'} ${isPostMatchMuted ? 'opacity-60' : ''}`}>
                         {isBlocking ? (
                           <div className="flex h-full min-h-0 items-center justify-center">
                             <div className="flex min-h-[92px] w-full items-center justify-center rounded-xl border-[3px] border-dashed border-amber-700 bg-amber-50 px-6 py-5 text-[26px] font-bold tracking-wide text-amber-950">
@@ -504,19 +562,22 @@ export default function FieldMonitor() {
                       </div>
 
                       {!isBlocking && (
-                        <div className="px-5 pb-2.5">
-                          <div className="grid h-[64px] grid-cols-[1fr_1.35fr] gap-2 rounded-xl bg-zinc-50/70 py-1.5">
+                        <div className={`px-5 pb-2.5 ${isPostMatchMuted ? 'opacity-70' : ''}`}>
+                          <div className="grid h-[72px] grid-cols-[1fr_1.35fr] gap-2 rounded-xl bg-zinc-50/70 py-1.5">
                             <div
-                              className={`rounded-xl px-2.5 py-1.5 ${
-                                isAStop
-                                    ? 'bg-amber-50 ring-2 ring-amber-300'
-                                  : isCritical
-                                    ? 'bg-amber-50 ring-2 ring-amber-400'
-                                    : 'bg-white/80'
-                              }`}
+                              className={`rounded-xl px-2.5 py-1.5 ${batteryToneClass(row.battery, isAStop)}`}
                             >
-                              <div className="flex items-center gap-1 text-[10px] font-bold uppercase text-zinc-500">
-                                <FontAwesomeIcon icon={faBatteryHalf} className="h-3 w-3" /> Battery
+                              <div className="flex items-center justify-between gap-2 text-[10px] font-bold uppercase text-zinc-500">
+                                <div className="flex items-center gap-1">
+                                  <FontAwesomeIcon icon={faBatteryHalf} className="h-3 w-3" /> Battery
+                                </div>
+                                {row.battery?.action ? (
+                                  <div
+                                    className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] ${batteryActionClass(row.battery)}`}
+                                  >
+                                    {row.battery.action}
+                                  </div>
+                                ) : null}
                               </div>
                               <div className="mt-1 flex items-end gap-1.5">
                                 <div className="text-[20px] font-bold leading-none text-zinc-900">
@@ -537,7 +598,7 @@ export default function FieldMonitor() {
                                   {row.bwu?.value}
                                 </div>
                                 <div className="mt-0.5 truncate text-[8px] font-semibold leading-none text-zinc-500">
-                                  {row.bwu?.tx}/{row.bwu?.rx}
+                                  Tx {row.bwu?.tx} / Rx {row.bwu?.rx}
                                 </div>
                               </div>
 

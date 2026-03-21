@@ -5,6 +5,7 @@ import { MessagePackHubProtocol } from '@microsoft/signalr-protocol-msgpack';
 const RECORDING_FILE_VERSION = 1;
 const DEFAULT_REPLAY_SPEED = 1;
 const REPLAY_SPEED_OPTIONS = [0.5, 1, 2, 4];
+const BROWNOUT_LATCH_TICKS = 6;
 
 let activeReplayRecording = null;
 let activeReplayFileName = '';
@@ -138,18 +139,34 @@ function createEmptyStation(alliance, station) {
     radioConnectionQuality: RadioConnectionQuality.Warning,
     radioConnectedToAp: false,
     brownout: false,
+    brownoutLatched: false,
   };
 }
 
-function normalizeStation(raw, minBatteryMap) {
+function getDirectionalRate(raw, primaryShortKey, primaryLongKey, fallbackShortKey) {
+  const primaryValue = Number(getValue(raw, primaryShortKey, primaryLongKey, 0)) || 0;
+  if (primaryValue > 0) {
+    return primaryValue;
+  }
+
+  const fallbackValue = Number(getValue(raw, fallbackShortKey, '', 0)) || 0;
+  return fallbackValue > 0 ? fallbackValue : 0;
+}
+
+function normalizeStation(raw, minBatteryMap, brownoutLatchMap) {
   const alliance = getValue(raw, 'p1', 'Alliance', AllianceType.None);
   const station = getValue(raw, 'p2', 'Station', StationType.None);
   const key = slotKey(alliance, station);
   const battery = Number(getValue(raw, 'pe', 'Battery', 0)) || 0;
+  const brownout = Boolean(getValue(raw, 'pgg', 'Brownout', false));
 
   const previousMin = minBatteryMap.get(key) ?? 0;
   const nextMin = battery > 0 && (previousMin === 0 || battery < previousMin) ? battery : previousMin;
   minBatteryMap.set(key, nextMin);
+
+  const previousBrownoutTicks = brownoutLatchMap.get(key) ?? 0;
+  const nextBrownoutTicks = brownout ? BROWNOUT_LATCH_TICKS : Math.max(previousBrownoutTicks - 1, 0);
+  brownoutLatchMap.set(key, nextBrownoutTicks);
 
   return {
     alliance,
@@ -171,11 +188,12 @@ function normalizeStation(raw, minBatteryMap) {
     averageTripTime: Number(getValue(raw, 'pg', 'AverageTripTime', 0)) || 0,
     lostPackets: Number(getValue(raw, 'ph', 'LostPackets', 0)) || 0,
     dataRateTotal: Number(getValue(raw, 'pz', 'DataRateTotal', 0)) || 0,
-    dataRateToRobot: Number(getValue(raw, 'paa', 'DataRateToRobot', 0)) || 0,
-    dataRateFromRobot: Number(getValue(raw, 'pbb', 'DataRateFromRobot', 0)) || 0,
+    dataRateToRobot: getDirectionalRate(raw, 'paa', 'DataRateToRobot', 'pn'),
+    dataRateFromRobot: getDirectionalRate(raw, 'pbb', 'DataRateFromRobot', 'pt'),
     bwUtilization: Number(getValue(raw, 'pcc', 'BWUtilization', BWUtilizationType.Low)) || 0,
     stationStatus: Number(getValue(raw, 'pff', 'StationStatus', StationStatusType.Unknown)) || 0,
-    brownout: Boolean(getValue(raw, 'pgg', 'Brownout', false)),
+    brownout,
+    brownoutLatched: nextBrownoutTicks > 0,
     moveToStation: getValue(raw, 'pjk', 'MoveToStation', '') || '',
     radioConnectionQuality:
       Number(getValue(raw, 'pll', 'RadioConnectionQuality', RadioConnectionQuality.Warning)) || 0,
@@ -435,6 +453,7 @@ function coerceStationSnapshot(station) {
       bwUtilization: Number(station.bwUtilization) || BWUtilizationType.Low,
       stationStatus: Number(station.stationStatus) || StationStatusType.Unknown,
       radioConnectionQuality: Number(station.radioConnectionQuality) || RadioConnectionQuality.Warning,
+      brownoutLatched: Boolean(station.brownoutLatched),
     };
   }
 
@@ -663,7 +682,87 @@ function getRioSignal(station) {
   return { label: 'RIO', state: 'good', detail: 'Connected' };
 }
 
-function getRowMode(station) {
+function isPostMatchMuteState(matchState) {
+  return (
+    matchState === MatchStateType.WaitingForCommit ||
+    matchState === MatchStateType.WaitingForPostResults ||
+    matchState === MatchStateType.TournamentLevelComplete ||
+    matchState === MatchStateType.MatchCancelled
+  );
+}
+
+function shouldMutePostMatchDisconnects(station, matchStatus) {
+  if (!isPostMatchMuteState(matchStatus?.matchState)) {
+    return false;
+  }
+
+  if (station.brownout || station.brownoutLatched || station.isEnabled || getStopKind(station) || getBlockingText(station)) {
+    return false;
+  }
+
+  return (
+    !station.dsLinkActive &&
+    !station.linkActive &&
+    !station.radioLink &&
+    !station.rioLink &&
+    station.battery <= 0
+  );
+}
+
+function getBatteryInfo(station) {
+  const currentBattery = station.battery;
+  const minBattery = station.minBattery > 0 ? formatNumber(station.minBattery) : '--';
+
+  if (station.brownout) {
+    return {
+      value: formatBattery(currentBattery),
+      min: minBattery,
+      tone: 'critical',
+      action: 'BROWNOUT',
+      detail: 'Robot is browning out now',
+    };
+  }
+
+  if (currentBattery > 0 && currentBattery < 7.0) {
+    return {
+      value: formatBattery(currentBattery),
+      min: minBattery,
+      tone: 'critical',
+      action: 'LOW BATT',
+      detail: 'Brownout risk',
+    };
+  }
+
+  return {
+    value: formatBattery(currentBattery),
+    min: minBattery,
+    tone: 'normal',
+    action: '',
+    detail: currentBattery > 0 ? 'Stable' : '',
+  };
+}
+
+function formatDirectionalTraffic(value) {
+  if (!(value > 0)) {
+    return '--';
+  }
+
+  if (value >= 100) {
+    return String(Math.round(value));
+  }
+
+  return formatNumber(value);
+}
+
+function isLiveMatchState(matchState) {
+  return (
+    matchState === MatchStateType.MatchAuto ||
+    matchState === MatchStateType.MatchTransition ||
+    matchState === MatchStateType.MatchTeleop
+  );
+}
+
+function getRowMode(station, matchStatus) {
   const stopKind = getStopKind(station);
   if (stopKind === 'estopped' || stopKind === 'bypassed') {
     return stopKind;
@@ -677,58 +776,57 @@ function getRowMode(station) {
     return stopKind;
   }
 
+  if (shouldMutePostMatchDisconnects(station, matchStatus)) {
+    return 'normal';
+  }
+
+  const isLiveMatch = isLiveMatchState(matchStatus?.matchState);
   const hasCriticalConnection =
-    !station.connection ||
-    !station.rioLink ||
-    (!station.radioConnectedToAp && !station.linkActive);
+    isLiveMatch &&
+    (!station.connection || !station.rioLink || (!station.radioConnectedToAp && !station.linkActive));
   const hasCriticalPerformance =
     station.brownout ||
-    (station.battery > 0 && station.battery < 8.5) ||
-    station.averageTripTime >= 55;
+    (station.battery > 0 && station.battery < 7.0);
 
   if (hasCriticalConnection || hasCriticalPerformance) {
     return 'critical';
   }
 
   const hasWarningConnection =
-    station.stationStatus === StationStatusType.Unknown ||
-    (!station.linkActive && station.radioConnectedToAp) ||
-    (station.rioLink && !station.linkActive) ||
-    station.radioConnectionQuality <= RadioConnectionQuality.Caution;
-  const hasWarningPerformance =
-    (station.battery > 0 && station.battery < 10.0) ||
-    station.lostPackets >= 5 ||
-    station.averageTripTime >= 25 ||
-    station.bwUtilization >= BWUtilizationType.High;
+    isLiveMatch &&
+    ((station.connection && !station.dsLinkActive) ||
+      (!station.linkActive && station.radioConnectedToAp) ||
+      (station.rioLink && !station.linkActive) ||
+      (station.radioConnectedToAp && station.radioConnectionQuality <= RadioConnectionQuality.Caution));
 
-  if (hasWarningConnection || hasWarningPerformance) {
+  if (hasWarningConnection) {
     return 'degraded';
   }
 
   return 'normal';
 }
 
-function toRow(station) {
+function toRow(station, matchStatus) {
   const blockingText = getBlockingText(station);
   const status = getStatusInfo(station);
-  const mode = getRowMode(station);
+  const battery = getBatteryInfo(station);
+  const mode = getRowMode(station, matchStatus);
+  const isPostMatchMuted = shouldMutePostMatchDisconnects(station, matchStatus);
 
   return {
     team: station.teamNumber > 0 ? String(station.teamNumber) : '----',
     station: formatStationLabel(station.station),
     mode,
     status,
+    isPostMatchMuted,
     ds: getDsSignal(station),
     radio: getRadioSignal(station),
     rio: getRioSignal(station),
-    battery: {
-      value: formatBattery(station.battery),
-      min: station.minBattery > 0 ? formatNumber(station.minBattery) : '--',
-    },
+    battery,
     bwu: {
       value: formatRate(station.dataRateTotal),
-      tx: formatNumber(station.dataRateToRobot),
-      rx: formatNumber(station.dataRateFromRobot),
+      tx: formatDirectionalTraffic(station.dataRateToRobot),
+      rx: formatDirectionalTraffic(station.dataRateFromRobot),
     },
     trip: `${Math.round(station.averageTripTime)} ms`,
     pkts: String(Math.round(station.lostPackets)),
@@ -737,7 +835,7 @@ function toRow(station) {
   };
 }
 
-function buildPanels(stations, mirrorLayout) {
+function buildPanels(stations, mirrorLayout, matchStatus) {
   const grouped = {
     red: [],
     blue: [],
@@ -762,7 +860,7 @@ function buildPanels(stations, mirrorLayout) {
   return orderedKeys.map((alliance) => ({
     alliance,
     title: alliance === 'red' ? 'Red Alliance' : 'Blue Alliance',
-    rows: grouped[alliance].map(toRow),
+    rows: grouped[alliance].map((station) => toRow(station, matchStatus)),
   }));
 }
 
@@ -773,6 +871,7 @@ function buildInitialStations() {
 export function useFieldMonitorLiveData({ mirrorLayout = false } = {}) {
   const baseUrl = getBaseUrl();
   const minBatteryRef = useRef(new Map());
+  const brownoutLatchRef = useRef(new Map());
   const currentMatchRef = useRef(null);
   const recordingStateRef = useRef({
     isRecording: false,
@@ -841,6 +940,7 @@ export function useFieldMonitorLiveData({ mirrorLayout = false } = {}) {
   const applyReplaySnapshot = useCallback((recording) => {
     const snapshotStations = buildStationsFromSnapshot(recording?.initialState?.stations);
     minBatteryRef.current = createMinBatteryMap(snapshotStations);
+    brownoutLatchRef.current = new Map();
     currentMatchRef.current = recording?.initialState?.currentMatch ?? null;
     setStations(snapshotStations);
     setMatchStatus(coerceMatchStatusSnapshot(recording?.initialState?.matchStatus));
@@ -881,7 +981,7 @@ export function useFieldMonitorLiveData({ mirrorLayout = false } = {}) {
       );
 
       (dataArray || []).forEach((item) => {
-        const station = normalizeStation(item, minBatteryRef.current);
+        const station = normalizeStation(item, minBatteryRef.current, brownoutLatchRef.current);
         stationMap.set(slotKey(station.alliance, station.station), station);
       });
 
@@ -902,6 +1002,7 @@ export function useFieldMonitorLiveData({ mirrorLayout = false } = {}) {
         nextStatus.matchState === MatchStateType.MatchAuto
       ) {
         minBatteryRef.current.clear();
+        brownoutLatchRef.current.clear();
       }
 
       setMatchStatus(nextStatus);
@@ -1362,7 +1463,10 @@ export function useFieldMonitorLiveData({ mirrorLayout = false } = {}) {
     };
   }, [clearReplayTimer, replayRecording, replayState.isPlaying, replayState.speed, scheduleReplay, sourceMode]);
 
-  const alliancePanels = useMemo(() => buildPanels(stations, mirrorLayout), [mirrorLayout, stations]);
+  const alliancePanels = useMemo(
+    () => buildPanels(stations, mirrorLayout, matchStatus),
+    [matchStatus, mirrorLayout, stations]
+  );
   const scheduleStatus = aheadBehind.isKnown ? aheadBehind.text || 'On schedule' : 'Unknown';
 
   return {
