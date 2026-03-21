@@ -2,7 +2,7 @@ import React from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useFieldMonitorLiveData } from '../lib/fieldMonitorLive';
 
-export default function FieldMonitorConfig() {
+export default function Config() {
   const [searchParams] = useSearchParams();
   const [recordingLabel, setRecordingLabel] = React.useState('');
   const redOnRight = searchParams.get('redonright') !== 'false';
