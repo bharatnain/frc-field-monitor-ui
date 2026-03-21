@@ -208,7 +208,7 @@ describe('FieldMonitor', () => {
 
     expect(connectionLayout).toHaveClass(
       'grid-cols-1',
-      'sm:grid-cols-[minmax(0,1fr)_28px_minmax(0,1fr)_28px_minmax(0,1fr)]'
+      'sm:grid-cols-[minmax(0,1fr)_22px_minmax(0,1fr)_22px_minmax(0,1fr)]'
     );
     expect(metricsGrid).toHaveClass(
       'grid-cols-2',
@@ -216,7 +216,7 @@ describe('FieldMonitor', () => {
     );
   });
 
-  it('adds short-height desktop guards so connection tiles keep enough room for icons', () => {
+  it('adds short-height wide-desktop guards so connection tiles keep enough room for icons', () => {
     renderFieldMonitor('/');
 
     const [connectionLayout] = screen.getAllByTestId('connection-layout');
@@ -224,17 +224,33 @@ describe('FieldMonitor', () => {
     const rowCard = connectionSection?.parentElement;
 
     expect(connectionLayout).toHaveClass(
-      '[@media(min-width:900px)_and_(max-height:860px)]:gap-1.5',
-      '[@media(min-width:900px)_and_(max-height:720px)]:gap-1'
+      '[@media(min-width:1200px)_and_(max-height:860px)]:gap-1.5',
+      '[@media(min-width:1200px)_and_(max-height:720px)]:gap-1'
     );
     expect(connectionSection).toHaveClass(
-      '[@media(min-width:900px)_and_(max-height:860px)]:min-h-[124px]',
-      '[@media(min-width:900px)_and_(max-height:720px)]:min-h-[112px]'
+      '[@media(min-width:1200px)_and_(max-height:860px)]:min-h-[94px]',
+      '[@media(min-width:1200px)_and_(max-height:720px)]:min-h-[78px]'
     );
     expect(rowCard).toHaveClass(
-      '[@media(min-width:900px)_and_(max-height:860px)]:min-h-[224px]',
-      '[@media(min-width:900px)_and_(max-height:720px)]:min-h-[208px]'
+      '[@media(min-width:1200px)_and_(max-height:860px)]:min-h-[188px]',
+      '[@media(min-width:1200px)_and_(max-height:720px)]:min-h-[162px]'
     );
+  });
+
+  it('keeps the issue band flush with the top edge of non-normal rows', () => {
+    mockUseFieldMonitorLiveData.mockReturnValue(
+      createHookState({
+        alliancePanels: [
+          { alliance: 'red', title: 'Red Alliance', rows: [createRow({ mode: 'blocking' })] },
+          { alliance: 'blue', title: 'Blue Alliance', rows: [createRow({ team: '1114' })] },
+        ],
+      })
+    );
+
+    renderFieldMonitor('/');
+
+    const issueBand = screen.getByTestId('issue-band');
+    expect(issueBand).toHaveClass('inset-x-0', 'top-0', 'rounded-t-2xl');
   });
 
   it('allows replay load errors to be dismissed locally', async () => {
