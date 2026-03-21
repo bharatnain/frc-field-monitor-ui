@@ -21,6 +21,8 @@ const panelTheme = (alliance) =>
           'bg-gradient-to-b from-red-800 via-red-600 to-red-500 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.4),0_0_30px_rgba(239,68,68,0.28)]',
         panelGlow: '',
         stationBadge: 'bg-white text-zinc-700 ring-zinc-300',
+        stateDanger: 'bg-rose-600 text-white ring-rose-800 shadow-sm',
+        stateWarn: 'bg-amber-100 text-amber-950 ring-amber-300',
         stateAuto: 'bg-violet-50 text-violet-800 ring-violet-200',
         stateTele: 'bg-emerald-50 text-emerald-800 ring-emerald-200',
       }
@@ -30,33 +32,31 @@ const panelTheme = (alliance) =>
           'bg-gradient-to-b from-blue-800 via-blue-600 to-blue-500 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.4),0_0_30px_rgba(59,130,246,0.28)]',
         panelGlow: '',
         stationBadge: 'bg-white text-zinc-700 ring-zinc-300',
+        stateDanger: 'bg-rose-600 text-white ring-rose-800 shadow-sm',
+        stateWarn: 'bg-amber-100 text-amber-950 ring-amber-300',
         stateAuto: 'bg-violet-50 text-violet-800 ring-violet-200',
         stateTele: 'bg-emerald-50 text-emerald-800 ring-emerald-200',
       };
 
 const issueLabel = (mode) => {
+  if (mode === 'estopped') return 'E-STOP';
+  if (mode === 'astopped') return 'A-STOP';
   if (mode === 'critical') return 'CRITICAL';
   if (mode === 'degraded') return 'WARN';
   return '';
 };
 
-const stateTone = (status, theme) =>
-  status.includes('Auto') ? theme.stateAuto : theme.stateTele;
+const isEmergencyStopMode = (mode) => mode === 'estopped';
+const isAStopMode = (mode) => mode === 'astopped';
 
-const shortState = (status) =>
-  status === 'Teleop Enabled'
-    ? 'TELEOP'
-    : status === 'Teleop Disabled'
-      ? 'TELEOP OFF'
-      : status === 'Auto Enabled'
-        ? 'AUTO'
-        : status === 'Auto Disabled'
-          ? 'AUTO DISABLED'
-          : status === 'E-STOPPED'
-            ? 'E-STOP'
-            : status === 'A-STOPPED'
-              ? 'A-STOP'
-              : status;
+const stateTone = (status, theme) => {
+  if (status?.tone === 'danger') return theme.stateDanger;
+  if (status?.tone === 'warn') return theme.stateWarn;
+  if (status?.tone === 'auto') return theme.stateAuto;
+  return theme.stateTele;
+};
+
+const stateLabel = (status) => status?.shortLabel || status?.label || '';
 
 const barCountFromDetail = (detail) => {
   if (detail.includes('4')) return 4;
@@ -204,11 +204,14 @@ function RioDeviceGlyph({ theme }) {
 
 function IssueBadge({ mode }) {
   if (mode === 'normal') return null;
+  const isEmergencyStop = isEmergencyStopMode(mode);
   const isCritical = mode === 'critical';
   return (
     <div
       className={`rounded-md px-3 py-1 text-[14px] font-extrabold uppercase tracking-wide ${
-        isCritical
+        isEmergencyStop
+          ? 'bg-rose-600 text-white ring-1 ring-rose-700'
+          : isCritical
           ? 'bg-amber-600 text-white ring-1 ring-amber-700'
           : 'bg-amber-100 text-amber-950 ring-1 ring-amber-500'
       }`}
@@ -219,6 +222,8 @@ function IssueBadge({ mode }) {
 }
 
 const issueBandClass = (mode) => {
+  if (isEmergencyStopMode(mode)) return 'bg-rose-700';
+  if (isAStopMode(mode)) return 'bg-amber-500';
   if (mode === 'blocking') return 'bg-amber-700';
   if (mode === 'critical') return 'bg-amber-600';
   if (mode === 'degraded') return 'bg-amber-400';
@@ -417,6 +422,8 @@ export default function FieldMonitor() {
               <div className={`grid min-h-0 flex-1 grid-rows-3 gap-2.5 pb-3 pt-4 ${panelPadding}`}>
                 {panel.rows.map((row) => {
                   const isBlocking = row.mode === 'blocking';
+                  const isEmergencyStop = isEmergencyStopMode(row.mode);
+                  const isAStop = isAStopMode(row.mode);
                   const isCritical = row.mode === 'critical';
                   const isDegraded = row.mode === 'degraded';
 
@@ -426,7 +433,11 @@ export default function FieldMonitor() {
                       className={`relative grid min-h-0 overflow-hidden rounded-2xl bg-white ${
                         isBlocking ? 'grid-rows-[auto_minmax(0,1fr)]' : 'grid-rows-[auto_minmax(0,1fr)_64px]'
                       } ${
-                        isBlocking
+                        isEmergencyStop
+                          ? 'ring-[4px] ring-rose-700 shadow-sm'
+                          : isAStop
+                            ? 'ring-[3px] ring-amber-500 shadow-sm'
+                          : isBlocking
                           ? 'ring-[4px] ring-amber-700 shadow-sm'
                           : isCritical
                             ? 'ring-[4px] ring-amber-600 shadow-sm'
@@ -449,9 +460,9 @@ export default function FieldMonitor() {
 
                         {!isBlocking && (
                           <div
-                            className={`flex h-[40px] min-w-[132px] items-center justify-center rounded-xl px-3.5 text-[18px] font-bold uppercase tracking-wide ring-2 ${stateTone(row.status || '', theme)}`}
+                            className={`flex h-[40px] min-w-[132px] items-center justify-center rounded-xl px-3.5 text-[18px] font-bold uppercase tracking-wide ring-2 ${stateTone(row.status, theme)}`}
                           >
-                            {shortState(row.status || '')}
+                            {stateLabel(row.status)}
                           </div>
                         )}
                       </div>
@@ -465,9 +476,7 @@ export default function FieldMonitor() {
                             </div>
                           </div>
                         ) : (
-                          <div
-                            className="grid h-full min-h-0 grid-cols-[1fr_28px_1fr_28px_1fr] items-stretch gap-2 pb-px"
-                          >
+                          <div className="grid h-full min-h-0 grid-cols-[1fr_28px_1fr_28px_1fr] items-stretch gap-2 pb-px">
                             <ConnectionTile
                               kind="ds"
                               label={row.ds?.label || 'DS'}
@@ -496,7 +505,13 @@ export default function FieldMonitor() {
                         <div className="px-5 pb-2.5">
                           <div className="grid h-[64px] grid-cols-[1fr_1.35fr] gap-2 rounded-xl bg-zinc-50/70 py-1.5">
                             <div
-                              className={`rounded-xl px-2.5 py-1.5 ${isCritical ? 'bg-amber-50 ring-2 ring-amber-400' : 'bg-white/80'}`}
+                              className={`rounded-xl px-2.5 py-1.5 ${
+                                isAStop
+                                    ? 'bg-amber-50 ring-2 ring-amber-300'
+                                  : isCritical
+                                    ? 'bg-amber-50 ring-2 ring-amber-400'
+                                    : 'bg-white/80'
+                              }`}
                             >
                               <div className="flex items-center gap-1 text-[10px] font-bold uppercase text-zinc-500">
                                 <FontAwesomeIcon icon={faBatteryHalf} className="h-3 w-3" /> Battery

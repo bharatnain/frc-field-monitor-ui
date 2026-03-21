@@ -507,30 +507,84 @@ function parseReplayRecording(text) {
   };
 }
 
-function getStatusLabel(station) {
+function getStopKind(station) {
   if (station.isEStopped || station.monitorStatus === MonitorStatusType.EStopped) {
-    return 'E-STOPPED';
+    return 'estopped';
   }
 
   if (station.isAStopped || station.monitorStatus === MonitorStatusType.AStopped) {
-    return 'A-STOPPED';
+    return 'astopped';
+  }
+
+  return '';
+}
+
+function getStatusInfo(station) {
+  const stopKind = getStopKind(station);
+
+  if (stopKind === 'estopped') {
+    return {
+      kind: stopKind,
+      label: 'E-STOPPED',
+      shortLabel: 'E-STOP',
+      tone: 'danger',
+      headline: 'Robot cannot operate',
+      detail: 'E-stopped by referee or team',
+    };
+  }
+
+  if (stopKind === 'astopped') {
+    return {
+      kind: stopKind,
+      label: 'A-STOPPED',
+      shortLabel: 'A-STOP',
+      tone: 'warn',
+      headline: 'Robot intentionally disabled',
+      detail: 'Usually expected during autonomous',
+    };
   }
 
   if (
     station.monitorStatus === MonitorStatusType.EnabledAuto ||
     station.monitorStatus === MonitorStatusType.DisabledAuto
   ) {
-    return station.monitorStatus === MonitorStatusType.EnabledAuto ? 'Auto Enabled' : 'Auto Disabled';
+    const isEnabled = station.monitorStatus === MonitorStatusType.EnabledAuto;
+    return {
+      kind: isEnabled ? 'auto-enabled' : 'auto-disabled',
+      label: isEnabled ? 'Auto Enabled' : 'Auto Disabled',
+      shortLabel: isEnabled ? 'AUTO' : 'AUTO DISABLED',
+      tone: 'auto',
+      headline: '',
+      detail: '',
+    };
   }
 
   if (
     station.monitorStatus === MonitorStatusType.EnabledTeleop ||
     station.monitorStatus === MonitorStatusType.DisabledTeleop
   ) {
-    return station.monitorStatus === MonitorStatusType.EnabledTeleop ? 'Teleop Enabled' : 'Teleop Disabled';
+    const isEnabled = station.monitorStatus === MonitorStatusType.EnabledTeleop;
+    return {
+      kind: isEnabled ? 'teleop-enabled' : 'teleop-disabled',
+      label: isEnabled ? 'Teleop Enabled' : 'Teleop Disabled',
+      shortLabel: isEnabled ? 'TELEOP' : 'TELEOP OFF',
+      tone: 'tele',
+      headline: '',
+      detail: '',
+    };
   }
 
-  return `${station.isAuto ? 'Auto' : 'Teleop'} ${station.isEnabled ? 'Enabled' : 'Disabled'}`;
+  const isAuto = station.isAuto;
+  const isEnabled = station.isEnabled;
+
+  return {
+    kind: isAuto ? (isEnabled ? 'auto-enabled' : 'auto-disabled') : isEnabled ? 'teleop-enabled' : 'teleop-disabled',
+    label: `${isAuto ? 'Auto' : 'Teleop'} ${isEnabled ? 'Enabled' : 'Disabled'}`,
+    shortLabel: isAuto ? (isEnabled ? 'AUTO' : 'AUTO DISABLED') : isEnabled ? 'TELEOP' : 'TELEOP OFF',
+    tone: isAuto ? 'auto' : 'tele',
+    headline: '',
+    detail: '',
+  };
 }
 
 function getBlockingText(station) {
@@ -595,16 +649,23 @@ function getRioSignal(station) {
 }
 
 function getRowMode(station) {
+  const stopKind = getStopKind(station);
+  if (stopKind === 'estopped') {
+    return stopKind;
+  }
+
   if (getBlockingText(station)) {
     return 'blocking';
+  }
+
+  if (stopKind === 'astopped') {
+    return stopKind;
   }
 
   const hasCriticalConnection =
     !station.connection ||
     !station.rioLink ||
-    (!station.radioConnectedToAp && !station.linkActive) ||
-    station.isEStopped ||
-    station.isAStopped;
+    (!station.radioConnectedToAp && !station.linkActive);
   const hasCriticalPerformance =
     station.brownout ||
     (station.battery > 0 && station.battery < 8.5) ||
@@ -634,13 +695,14 @@ function getRowMode(station) {
 
 function toRow(station) {
   const blockingText = getBlockingText(station);
+  const status = getStatusInfo(station);
   const mode = getRowMode(station);
 
   return {
     team: station.teamNumber > 0 ? String(station.teamNumber) : '----',
     station: formatStationLabel(station.station),
     mode,
-    status: getStatusLabel(station),
+    status,
     ds: getDsSignal(station),
     radio: getRadioSignal(station),
     rio: getRioSignal(station),
@@ -655,7 +717,8 @@ function toRow(station) {
     },
     trip: `${Math.round(station.averageTripTime)} ms`,
     pkts: String(Math.round(station.lostPackets)),
-    blockingText,
+    blockingText: mode === 'blocking' ? blockingText : '',
+    secondaryText: mode === 'estopped' ? blockingText : '',
   };
 }
 
