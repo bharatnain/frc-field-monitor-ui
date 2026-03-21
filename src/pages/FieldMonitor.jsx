@@ -40,13 +40,14 @@ const panelTheme = (alliance) =>
 
 const issueLabel = (mode) => {
   if (mode === 'estopped') return 'E-STOP';
+  if (mode === 'bypassed') return 'BYPASS';
   if (mode === 'astopped') return 'A-STOP';
   if (mode === 'critical') return 'CRITICAL';
   if (mode === 'degraded') return 'WARN';
   return '';
 };
 
-const isEmergencyStopMode = (mode) => mode === 'estopped';
+const isEmergencyStopMode = (mode) => mode === 'estopped' || mode === 'bypassed';
 const isAStopMode = (mode) => mode === 'astopped';
 
 const stateTone = (status, theme) => {
@@ -301,17 +302,17 @@ function ConnectionChevron({ state = 'good' }) {
 function TopBarItem({ label, value, align = 'left' }) {
   const alignmentClass =
     align === 'center'
-      ? 'text-center'
+      ? 'justify-center text-center'
       : align === 'right'
-        ? 'text-right'
-        : 'text-left';
+        ? 'justify-end text-right'
+        : 'justify-start text-left';
 
   return (
-    <div className={`min-w-0 ${alignmentClass}`}>
-      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+    <div className={`flex min-w-0 items-baseline gap-2 ${alignmentClass}`}>
+      <div className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500">
         {label}
       </div>
-      <div className="mt-1 truncate text-[18px] font-bold leading-tight text-zinc-900">{value}</div>
+      <div className="min-w-0 truncate text-[16px] font-bold leading-none text-zinc-900">{value}</div>
     </div>
   );
 }
@@ -385,8 +386,8 @@ export default function FieldMonitor() {
         }}
       />
 
-      <div className="shrink-0 px-3 pb-1.5 pt-3">
-        <div className="grid gap-3 rounded-2xl bg-white px-4 py-2.5 shadow-sm ring-1 ring-zinc-200 md:grid-cols-3">
+      <div className="shrink-0 px-3 pb-1 pt-2">
+        <div className="grid gap-1.5 rounded-2xl bg-white px-3 py-1.5 shadow-sm ring-1 ring-zinc-200 md:grid-cols-3">
           <TopBarItem
             label="Match Number"
             value={matchStatus.matchNumber > 0 ? `M${matchStatus.matchNumber}` : 'No match yet'}
@@ -419,13 +420,14 @@ export default function FieldMonitor() {
                 theme={theme}
                 className={gutterClass}
               />
-              <div className={`grid min-h-0 flex-1 grid-rows-3 gap-2.5 pb-3 pt-4 ${panelPadding}`}>
+              <div className={`grid min-h-0 flex-1 grid-rows-3 gap-2 pb-2 pt-3 ${panelPadding}`}>
                 {panel.rows.map((row) => {
                   const isBlocking = row.mode === 'blocking';
                   const isEmergencyStop = isEmergencyStopMode(row.mode);
                   const isAStop = isAStopMode(row.mode);
                   const isCritical = row.mode === 'critical';
                   const isDegraded = row.mode === 'degraded';
+                  const isBypassed = row.mode === 'bypassed';
 
                   return (
                     <div
@@ -458,7 +460,7 @@ export default function FieldMonitor() {
                           {row.mode !== 'blocking' && <IssueBadge mode={row.mode} />}
                         </div>
 
-                        {!isBlocking && (
+                        {!isBlocking && !isBypassed && (
                           <div
                             className={`flex h-[40px] min-w-[132px] items-center justify-center rounded-xl px-3.5 text-[18px] font-bold uppercase tracking-wide ring-2 ${stateTone(row.status, theme)}`}
                           >

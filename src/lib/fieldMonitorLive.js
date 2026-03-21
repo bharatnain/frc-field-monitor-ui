@@ -512,6 +512,10 @@ function getStopKind(station) {
     return 'estopped';
   }
 
+  if (station.isBypassed) {
+    return 'bypassed';
+  }
+
   if (station.isAStopped || station.monitorStatus === MonitorStatusType.AStopped) {
     return 'astopped';
   }
@@ -530,6 +534,17 @@ function getStatusInfo(station) {
       tone: 'danger',
       headline: 'Robot cannot operate',
       detail: 'E-stopped by referee or team',
+    };
+  }
+
+  if (stopKind === 'bypassed') {
+    return {
+      kind: stopKind,
+      label: 'BYPASSED',
+      shortLabel: 'BYPASS',
+      tone: 'danger',
+      headline: 'Robot will not run',
+      detail: 'Bypassed before the match',
     };
   }
 
@@ -650,7 +665,7 @@ function getRioSignal(station) {
 
 function getRowMode(station) {
   const stopKind = getStopKind(station);
-  if (stopKind === 'estopped') {
+  if (stopKind === 'estopped' || stopKind === 'bypassed') {
     return stopKind;
   }
 
@@ -718,7 +733,7 @@ function toRow(station) {
     trip: `${Math.round(station.averageTripTime)} ms`,
     pkts: String(Math.round(station.lostPackets)),
     blockingText: mode === 'blocking' ? blockingText : '',
-    secondaryText: mode === 'estopped' ? blockingText : '',
+    secondaryText: mode === 'estopped' || mode === 'bypassed' ? blockingText : '',
   };
 }
 
