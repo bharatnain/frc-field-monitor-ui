@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { useSearchParams } from 'react-router-dom';
 import {
@@ -218,6 +219,27 @@ const issueBandClass = (mode) => {
   return '';
 };
 
+const formatReplayClock = (ms = 0) => {
+  const totalTenths = Math.max(0, Math.round(ms / 100));
+  const minutes = Math.floor(totalTenths / 600);
+  const seconds = Math.floor((totalTenths % 600) / 10);
+  const tenths = totalTenths % 10;
+  return `${minutes}:${String(seconds).padStart(2, '0')}.${tenths}`;
+};
+
+const isEditableTarget = (target) => {
+  if (!(target instanceof HTMLElement)) {
+    return false;
+  }
+
+  if (target.isContentEditable) {
+    return true;
+  }
+
+  const editableRoot = target.closest('input, textarea, select, [contenteditable="true"], [role="textbox"]');
+  return Boolean(editableRoot);
+};
+
 function ConnectionTile({ kind, state, detail, label }) {
   const theme = connectionTheme(state);
   const isRadio = kind === 'radio';
@@ -265,160 +287,331 @@ function ConnectionChevron({ state = 'good' }) {
   );
 }
 
+function TopBarItem({ label, value, align = 'left' }) {
+  const alignmentClass =
+    align === 'center'
+      ? 'text-center'
+      : align === 'right'
+        ? 'text-right'
+        : 'text-left';
+
+  return (
+    <div className={`min-w-0 ${alignmentClass}`}>
+      <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-zinc-500">
+        {label}
+      </div>
+      <div className="mt-1 truncate text-[18px] font-bold leading-tight text-zinc-900">{value}</div>
+    </div>
+  );
+}
+
 export default function DistanceFirstConcept() {
   const [searchParams] = useSearchParams();
   const redOnRight = searchParams.get('redonright') !== 'false';
-  const { alliancePanels: distancePanels } = useFieldMonitorLiveData({ redOnRight });
+  const replayFileInputRef = useRef(null);
+  const [isReplayErrorDismissed, setIsReplayErrorDismissed] = useState(false);
+  const { alliancePanels: distancePanels, matchStatus, aheadBehind, sourceMode, replay, error } =
+    useFieldMonitorLiveData({
+    redOnRight,
+  });
+  const replayError = replay.error || (sourceMode === 'replay' ? error : '');
+  const showReplayError = Boolean(replayError) && !isReplayErrorDismissed;
+  const showReplayOverlay = sourceMode === 'replay' || showReplayError;
+
+  useEffect(() => {
+    const handleKeyDown = (event) => {
+      if (!event.altKey || event.code !== 'KeyL' || event.defaultPrevented || isEditableTarget(event.target)) {
+        return;
+      }
+
+      event.preventDefault();
+      setIsReplayErrorDismissed(false);
+      replayFileInputRef.current?.click();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
 
   return (
-    <div className="flex h-dvh bg-zinc-100 text-zinc-900">
-      {distancePanels.map((panel) => {
-        const theme = panelTheme(panel.alliance);
-        const isRed = panel.alliance === 'red';
-        return (
-          <div key={`distance-${panel.alliance}`} className="flex min-w-0 flex-1">
-            {isRed && <div className={`w-5 shrink-0 ${theme.bar}`} />}
-            <div className="grid min-h-0 flex-1 grid-rows-3 gap-3 p-3">
-            {panel.rows.map((row) => {
-              const isBlocking = row.mode === 'blocking';
-              const isCritical = row.mode === 'critical';
-              const isDegraded = row.mode === 'degraded';
+    <div className="relative flex h-dvh flex-col bg-zinc-100 text-zinc-900">
+      <input
+        ref={replayFileInputRef}
+        type="file"
+        accept="application/json,.json"
+        className="hidden"
+        onChange={async (event) => {
+          const file = event.target.files?.[0];
+          setIsReplayErrorDismissed(false);
+          if (file) {
+            await replay.loadReplayFile(file);
+          }
+          event.target.value = '';
+        }}
+      />
 
-              return (
-                <div
-                  key={`distance-${panel.alliance}-${row.team}-${row.station}`}
-                  className={`relative grid min-h-0 overflow-hidden rounded-2xl bg-white ${
-                    isBlocking ? 'grid-rows-[auto_minmax(0,1fr)]' : 'grid-rows-[auto_minmax(0,1fr)_70px]'
-                  } ${
-                    isBlocking
-                      ? 'ring-[4px] ring-amber-700 shadow-sm'
-                      : isCritical
-                        ? 'ring-[4px] ring-amber-600 shadow-sm'
-                        : isDegraded
-                          ? 'ring-2 ring-amber-400'
-                          : 'ring-1 ring-zinc-200'
-                  }`}
-                >
-                  {row.mode !== 'normal' && (
-                    <div className={`absolute inset-x-0 top-0 h-2 rounded-t-2xl ${issueBandClass(row.mode)}`} />
-                  )}
-                  <div className="flex min-h-0 items-start justify-between gap-3 px-5 pb-1.5 pt-2.5">
-                      <div className="flex min-w-0 items-center gap-2.5">
-                        <div className="text-[40px] font-bold leading-none tracking-tight">
-                          {row.team}
+      <div className="shrink-0 px-3 pb-1.5 pt-3">
+        <div className="grid gap-3 rounded-2xl bg-white px-4 py-2.5 shadow-sm ring-1 ring-zinc-200 md:grid-cols-3">
+          <TopBarItem
+            label="Match Number"
+            value={matchStatus.matchNumber > 0 ? `M${matchStatus.matchNumber}` : 'No match yet'}
+          />
+          <TopBarItem
+            label="Match Status"
+            value={matchStatus.matchStateMessage}
+            align="center"
+          />
+          <TopBarItem
+            label="Time Behind"
+            value={aheadBehind || 'On schedule'}
+            align="right"
+          />
+        </div>
+      </div>
+
+      <div className="flex min-h-0 flex-1">
+        {distancePanels.map((panel) => {
+          const theme = panelTheme(panel.alliance);
+          const isRed = panel.alliance === 'red';
+          return (
+            <div key={`distance-${panel.alliance}`} className="flex min-w-0 flex-1">
+              {isRed && <div className={`w-5 shrink-0 ${theme.bar}`} />}
+              <div className="grid min-h-0 flex-1 grid-rows-3 gap-2.5 p-3 pt-1">
+                {panel.rows.map((row) => {
+                  const isBlocking = row.mode === 'blocking';
+                  const isCritical = row.mode === 'critical';
+                  const isDegraded = row.mode === 'degraded';
+
+                  return (
+                    <div
+                      key={`distance-${panel.alliance}-${row.team}-${row.station}`}
+                      className={`relative grid min-h-0 overflow-hidden rounded-2xl bg-white ${
+                        isBlocking ? 'grid-rows-[auto_minmax(0,1fr)]' : 'grid-rows-[auto_minmax(0,1fr)_64px]'
+                      } ${
+                        isBlocking
+                          ? 'ring-[4px] ring-amber-700 shadow-sm'
+                          : isCritical
+                            ? 'ring-[4px] ring-amber-600 shadow-sm'
+                            : isDegraded
+                              ? 'ring-2 ring-amber-400'
+                              : 'ring-1 ring-zinc-200'
+                      }`}
+                    >
+                      {row.mode !== 'normal' && (
+                        <div className={`absolute inset-x-0 top-0 h-2 rounded-t-2xl ${issueBandClass(row.mode)}`} />
+                      )}
+                      <div className="flex min-h-0 items-start justify-between gap-3 px-5 pb-1 pt-2">
+                        <div className="flex min-w-0 items-center gap-2.5">
+                          <div className="text-[40px] font-bold leading-none tracking-tight">
+                            {row.team}
+                          </div>
+                          <div className={`rounded-md bg-zinc-50 px-2 py-1 text-[12px] font-bold uppercase tracking-wide ring-1 ring-zinc-200 ${theme.accent}`}>
+                            {row.station}
+                          </div>
+                          {row.mode !== 'blocking' && <IssueBadge mode={row.mode} />}
                         </div>
-                        <div className={`rounded-md bg-zinc-50 px-2 py-1 text-[12px] font-bold uppercase tracking-wide ring-1 ring-zinc-200 ${theme.accent}`}>
-                          {row.station}
-                        </div>
-                        {row.mode !== 'blocking' && <IssueBadge mode={row.mode} />}
+
+                        {!isBlocking && (
+                          <div
+                            className={`flex h-[40px] min-w-[132px] items-center justify-center rounded-xl px-3.5 text-[18px] font-bold uppercase tracking-wide ring-2 ${stateTone(row.status || '', theme)}`}
+                          >
+                            {shortState(row.status || '')}
+                          </div>
+                        )}
+                      </div>
+
+                      <div className={`min-h-0 px-5 ${isBlocking ? 'pb-3' : 'pb-1'}`}>
+                        {isBlocking ? (
+                          <div className="flex h-full min-h-0 items-center justify-center">
+                            <div className="flex min-h-[92px] w-full items-center justify-center rounded-xl border-[3px] border-dashed border-amber-700 bg-amber-50 px-6 py-5 text-[26px] font-bold tracking-wide text-amber-950">
+                              <FontAwesomeIcon icon={faTriangleExclamation} className="mr-3 h-7 w-7 text-amber-700" />
+                              {row.blockingText}
+                            </div>
+                          </div>
+                        ) : (
+                          <div
+                            className="grid h-full min-h-0 grid-cols-[1fr_28px_1fr_28px_1fr] items-stretch gap-2 pb-px"
+                          >
+                            <ConnectionTile
+                              kind="ds"
+                              label={row.ds?.label || 'DS'}
+                              state={row.ds?.state || 'good'}
+                              detail={row.ds?.detail || ''}
+                            />
+                            <ConnectionChevron state={row.ds?.state || 'good'} />
+                            <ConnectionTile
+                              kind="radio"
+                              label={row.radio?.label || 'RADIO'}
+                              state={row.radio?.state || 'good'}
+                              detail={row.radio?.detail || ''}
+                            />
+                            <ConnectionChevron state={row.radio?.state || 'good'} />
+                            <ConnectionTile
+                              kind="rio"
+                              label={row.rio?.label || 'RIO'}
+                              state={row.rio?.state || 'good'}
+                              detail={row.rio?.detail || ''}
+                            />
+                          </div>
+                        )}
                       </div>
 
                       {!isBlocking && (
-                        <div
-                          className={`flex h-[40px] min-w-[132px] items-center justify-center rounded-xl px-3.5 text-[18px] font-bold uppercase tracking-wide ring-2 ${stateTone(row.status || '', theme)}`}
-                        >
-                          {shortState(row.status || '')}
+                        <div className="px-5 pb-2.5">
+                          <div className="grid h-[64px] grid-cols-[1fr_1.35fr] gap-2 rounded-xl bg-zinc-50/70 px-2 py-1.5">
+                            <div
+                              className={`rounded-xl px-2.5 py-1.5 ${isCritical ? 'bg-amber-50 ring-2 ring-amber-400' : 'bg-white/80'}`}
+                            >
+                              <div className="flex items-center gap-1 text-[10px] font-bold uppercase text-zinc-500">
+                                <FontAwesomeIcon icon={faBatteryHalf} className="h-3 w-3" /> Battery
+                              </div>
+                              <div className="mt-1 flex items-end gap-1.5">
+                                <div className="text-[20px] font-bold leading-none text-zinc-900">
+                                  {row.battery?.value}
+                                </div>
+                                <div className="text-[10px] font-semibold leading-none text-zinc-500">
+                                  Min {row.battery?.min}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-3 items-center gap-1 rounded-xl bg-white/65 px-2 py-1.5">
+                              <div className="min-w-0">
+                                <div className="flex items-center gap-1 text-[9px] font-bold uppercase text-zinc-500">
+                                  <FontAwesomeIcon icon={faRightLeft} className="h-3 w-3" /> BW
+                                </div>
+                                <div className="mt-0.5 text-[13px] font-bold leading-none text-zinc-900">
+                                  {row.bwu?.value}
+                                </div>
+                                <div className="mt-0.5 truncate text-[8px] font-semibold leading-none text-zinc-500">
+                                  {row.bwu?.tx}/{row.bwu?.rx}
+                                </div>
+                              </div>
+
+                              <div className="text-center">
+                                <div className="flex items-center justify-center gap-1 text-[9px] font-bold uppercase text-zinc-500">
+                                  <FontAwesomeIcon icon={faRoute} className="h-3 w-3" /> Trip
+                                </div>
+                                <div className="mt-0.5 text-[13px] font-bold leading-none text-zinc-900">
+                                  {row.trip}
+                                </div>
+                              </div>
+
+                              <div className="text-center">
+                                <div className="flex items-center justify-center gap-1 text-[9px] font-bold uppercase text-zinc-500">
+                                  <FontAwesomeIcon icon={faXmark} className="h-3 w-3" /> Loss
+                                </div>
+                                <div className="mt-0.5 text-[13px] font-bold leading-none text-zinc-900">
+                                  {row.pkts}
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         </div>
                       )}
                     </div>
-
-                    <div className={`min-h-0 px-5 ${isBlocking ? 'pb-3' : 'pb-1'}`}>
-                      {isBlocking ? (
-                        <div className="flex h-full min-h-0 items-center justify-center">
-                          <div className="flex min-h-[92px] w-full items-center justify-center rounded-xl border-[3px] border-dashed border-amber-700 bg-amber-50 px-6 py-5 text-[26px] font-bold tracking-wide text-amber-950">
-                            <FontAwesomeIcon icon={faTriangleExclamation} className="mr-3 h-7 w-7 text-amber-700" />
-                            {row.blockingText}
-                          </div>
-                        </div>
-                      ) : (
-                        <div
-                          className="grid h-full min-h-0 grid-cols-[1fr_28px_1fr_28px_1fr] items-stretch gap-2 pb-px"
-                        >
-                          <ConnectionTile
-                            kind="ds"
-                            label={row.ds?.label || 'DS'}
-                            state={row.ds?.state || 'good'}
-                            detail={row.ds?.detail || ''}
-                          />
-                          <ConnectionChevron state={row.ds?.state || 'good'} />
-                          <ConnectionTile
-                            kind="radio"
-                            label={row.radio?.label || 'RADIO'}
-                            state={row.radio?.state || 'good'}
-                            detail={row.radio?.detail || ''}
-                          />
-                          <ConnectionChevron state={row.radio?.state || 'good'} />
-                          <ConnectionTile
-                            kind="rio"
-                            label={row.rio?.label || 'RIO'}
-                            state={row.rio?.state || 'good'}
-                            detail={row.rio?.detail || ''}
-                          />
-                        </div>
-                      )}
-                    </div>
-
-                    {!isBlocking && (
-                      <div className="px-5 pb-3">
-                        <div className="grid h-[68px] grid-cols-[1fr_1.35fr] gap-2 rounded-xl bg-zinc-50/70 px-2 py-1.5">
-                          <div
-                            className={`rounded-xl px-2.5 py-1.5 ${isCritical ? 'bg-amber-50 ring-2 ring-amber-400' : 'bg-white/80'}`}
-                          >
-                            <div className="flex items-center gap-1 text-[10px] font-bold uppercase text-zinc-500">
-                              <FontAwesomeIcon icon={faBatteryHalf} className="h-3 w-3" /> Battery
-                            </div>
-                            <div className="mt-1 flex items-end gap-1.5">
-                              <div className="text-[20px] font-bold leading-none text-zinc-900">
-                                {row.battery?.value}
-                              </div>
-                              <div className="text-[10px] font-semibold leading-none text-zinc-500">
-                                Min {row.battery?.min}
-                              </div>
-                            </div>
-                          </div>
-
-                          <div className="grid grid-cols-3 items-center gap-1 rounded-xl bg-white/65 px-2 py-1.5">
-                            <div className="min-w-0">
-                              <div className="flex items-center gap-1 text-[9px] font-bold uppercase text-zinc-500">
-                                <FontAwesomeIcon icon={faRightLeft} className="h-3 w-3" /> BW
-                              </div>
-                              <div className="mt-0.5 text-[13px] font-bold leading-none text-zinc-900">
-                                {row.bwu?.value}
-                              </div>
-                              <div className="mt-0.5 truncate text-[8px] font-semibold leading-none text-zinc-500">
-                                {row.bwu?.tx}/{row.bwu?.rx}
-                              </div>
-                            </div>
-
-                            <div className="text-center">
-                              <div className="flex items-center justify-center gap-1 text-[9px] font-bold uppercase text-zinc-500">
-                                <FontAwesomeIcon icon={faRoute} className="h-3 w-3" /> Trip
-                              </div>
-                              <div className="mt-0.5 text-[13px] font-bold leading-none text-zinc-900">
-                                {row.trip}
-                              </div>
-                            </div>
-
-                            <div className="text-center">
-                              <div className="flex items-center justify-center gap-1 text-[9px] font-bold uppercase text-zinc-500">
-                                <FontAwesomeIcon icon={faXmark} className="h-3 w-3" /> Loss
-                              </div>
-                              <div className="mt-0.5 text-[13px] font-bold leading-none text-zinc-900">
-                                {row.pkts}
-                              </div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                </div>
-              );
-            })}
+                  );
+                })}
+              </div>
+              {!isRed && <div className={`w-5 shrink-0 ${theme.bar}`} />}
             </div>
-            {!isRed && <div className={`w-5 shrink-0 ${theme.bar}`} />}
+          );
+        })}
+      </div>
+
+      {showReplayOverlay ? (
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-4">
+          <div
+            className="pointer-events-auto w-full max-w-3xl rounded-2xl border border-white/20 bg-zinc-950/72 px-4 py-3 text-white shadow-2xl backdrop-blur-md"
+            style={{ backgroundColor: 'rgba(24, 24, 27, 0.92)' }}
+          >
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-black uppercase tracking-[0.18em] ${
+                      sourceMode === 'replay'
+                        ? 'bg-blue-500/20 text-blue-100 ring-1 ring-blue-300/30'
+                        : 'bg-amber-500/20 text-amber-50 ring-1 ring-amber-300/30'
+                    }`}
+                  >
+                    {sourceMode === 'replay' ? 'Replay active' : 'Replay load failed'}
+                  </span>
+                  {replay.fileName ? (
+                    <span className="truncate text-sm font-semibold text-white/90">{replay.fileName}</span>
+                  ) : (
+                    <span className="text-sm text-white/70">Press Alt+L to load replay JSON</span>
+                  )}
+                </div>
+                <div className="mt-1 text-sm text-white/75">
+                  {showReplayError ? (
+                    <span aria-live="polite">{replayError}</span>
+                  ) : (
+                    <>
+                      Replay time {formatReplayClock(replay.currentTimeMs)} /{' '}
+                      {formatReplayClock(replay.durationMs)} with {replay.eventCount} events
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                {sourceMode === 'replay' ? (
+                  <>
+                    <button
+                      type="button"
+                      onClick={() => (replay.isPlaying ? replay.pauseReplay() : replay.resumeReplay())}
+                      className="rounded-xl bg-white/14 px-3 py-2 text-sm font-semibold text-white transition hover:bg-white/22"
+                    >
+                      {replay.isPlaying ? 'Pause' : 'Resume'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => replay.restartReplay()}
+                      className="rounded-xl bg-white/14 px-3 py-2 text-sm font-semibold text-white transition hover:bg-white/22"
+                    >
+                      Restart
+                    </button>
+                    <label className="flex items-center gap-2 rounded-xl bg-white/10 px-3 py-2 text-sm text-white/85">
+                      <span className="font-semibold">Speed</span>
+                      <select
+                        value={String(replay.speed)}
+                        onChange={(event) => replay.setReplaySpeed(Number(event.target.value))}
+                        className="rounded-lg border border-white/15 bg-zinc-900/70 px-2 py-1 text-sm text-white outline-none"
+                      >
+                        {replay.speedOptions.map((speed) => (
+                          <option key={speed} value={speed}>
+                            {speed}x
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button
+                      type="button"
+                      onClick={() => replay.clearReplay()}
+                      className="rounded-xl bg-blue-500/85 px-3 py-2 text-sm font-semibold text-white transition hover:bg-blue-400"
+                    >
+                      Return to live
+                    </button>
+                  </>
+                ) : null}
+
+                {showReplayError ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsReplayErrorDismissed(true)}
+                    className="rounded-xl bg-white/14 px-3 py-2 text-sm font-semibold text-white transition hover:bg-white/22"
+                  >
+                    Dismiss
+                  </button>
+                ) : null}
+              </div>
+            </div>
           </div>
-        );
-      })}
+        </div>
+      ) : null}
     </div>
   );
 }
