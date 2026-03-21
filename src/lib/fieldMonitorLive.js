@@ -86,6 +86,30 @@ const ALL_STATION_SLOTS = [
   { alliance: AllianceType.Red, station: StationType.Station3 },
 ];
 
+export const fieldMonitorTypes = {
+  AllianceType,
+  StationType,
+  MonitorStatusType,
+  BWUtilizationType,
+  RadioConnectionQuality,
+  StationStatusType,
+  MatchStateType,
+};
+
+export function resetFieldMonitorLiveTestState() {
+  activeReplayRecording = null;
+  activeReplayFileName = '';
+}
+
+export function createHubConnection(url) {
+  return new HubConnectionBuilder()
+    .withUrl(url)
+    .withAutomaticReconnect()
+    .configureLogging(LogLevel.Error)
+    .withHubProtocol(new MessagePackHubProtocol())
+    .build();
+}
+
 function getBaseUrl() {
   if (typeof window === 'undefined') {
     return 'http://10.0.100.5';
@@ -110,7 +134,7 @@ function slotKey(alliance, station) {
   return `${alliance}-${station}`;
 }
 
-function createEmptyStation(alliance, station) {
+export function createEmptyStation(alliance, station) {
   return {
     alliance,
     station,
@@ -153,7 +177,7 @@ function getDirectionalRate(raw, primaryShortKey, primaryLongKey, fallbackShortK
   return fallbackValue > 0 ? fallbackValue : 0;
 }
 
-function normalizeStation(raw, minBatteryMap, brownoutLatchMap) {
+export function normalizeStation(raw, minBatteryMap, brownoutLatchMap) {
   const alliance = getValue(raw, 'p1', 'Alliance', AllianceType.None);
   const station = getValue(raw, 'p2', 'Station', StationType.None);
   const key = slotKey(alliance, station);
@@ -201,7 +225,7 @@ function normalizeStation(raw, minBatteryMap, brownoutLatchMap) {
   };
 }
 
-function normalizeMatchStatus(raw) {
+export function normalizeMatchStatus(raw) {
   if (!raw) {
     return {
       matchState: MatchStateType.WaitingForPrestart,
@@ -341,7 +365,7 @@ function formatTimestampForFilename(date) {
   ].join('');
 }
 
-function createRecordingFilename(label, matchStatus, startedAt) {
+export function createRecordingFilename(label, matchStatus, startedAt) {
   const safeLabel = sanitizeFilenamePart(label);
   const safeLevel = sanitizeFilenamePart(matchStatus?.tournamentLevel) || 'unknown';
   const matchNumber = Number(matchStatus?.matchNumber) || 0;
@@ -390,7 +414,7 @@ function createDefaultReplayState() {
   };
 }
 
-function getReplayDurationMs(recording) {
+export function getReplayDurationMs(recording) {
   if (!recording) {
     return 0;
   }
@@ -494,7 +518,7 @@ function createMinBatteryMap(stations) {
   return minBatteryMap;
 }
 
-function parseReplayRecording(text) {
+export function parseReplayRecording(text) {
   const parsed = JSON.parse(text);
 
   if (!parsed || typeof parsed !== 'object') {
@@ -835,7 +859,7 @@ function toRow(station, matchStatus) {
   };
 }
 
-function buildPanels(stations, mirrorLayout, matchStatus) {
+export function buildPanels(stations, mirrorLayout, matchStatus) {
   const grouped = {
     red: [],
     blue: [],
@@ -868,7 +892,7 @@ function buildInitialStations() {
   return ALL_STATION_SLOTS.map(({ alliance, station }) => createEmptyStation(alliance, station));
 }
 
-export function useFieldMonitorLiveData({ mirrorLayout = false } = {}) {
+export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFactory = createHubConnection } = {}) {
   const baseUrl = getBaseUrl();
   const minBatteryRef = useRef(new Map());
   const brownoutLatchRef = useRef(new Map());
@@ -1342,19 +1366,8 @@ export function useFieldMonitorLiveData({ mirrorLayout = false } = {}) {
       return undefined;
     }
 
-    const fieldHub = new HubConnectionBuilder()
-      .withUrl(`${baseUrl}/fieldMonitorHub`)
-      .withAutomaticReconnect()
-      .configureLogging(LogLevel.Error)
-      .withHubProtocol(new MessagePackHubProtocol())
-      .build();
-
-    const infrastructureHub = new HubConnectionBuilder()
-      .withUrl(`${baseUrl}/infrastructureHub`)
-      .withAutomaticReconnect()
-      .configureLogging(LogLevel.Error)
-      .withHubProtocol(new MessagePackHubProtocol())
-      .build();
+    const fieldHub = hubConnectionFactory(`${baseUrl}/fieldMonitorHub`);
+    const infrastructureHub = hubConnectionFactory(`${baseUrl}/infrastructureHub`);
 
     let isMounted = true;
 
@@ -1434,7 +1447,7 @@ export function useFieldMonitorLiveData({ mirrorLayout = false } = {}) {
       fieldHub.stop();
       infrastructureHub.stop();
     };
-  }, [applyAheadBehind, applyMatchStatus, applyStationData, baseUrl, sourceMode]);
+  }, [applyAheadBehind, applyMatchStatus, applyStationData, baseUrl, hubConnectionFactory, sourceMode]);
 
   useEffect(() => {
     if (

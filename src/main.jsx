@@ -5,8 +5,8 @@ import Config from './pages/config';
 import FieldMonitor from './pages/FieldMonitor';
 import './index.css';
 
-createRoot(document.getElementById('root')).render(
-  <StrictMode>
+export function App() {
+  return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<FieldMonitor />} />
@@ -14,5 +14,15 @@ createRoot(document.getElementById('root')).render(
         <Route path="/distance-first" element={<FieldMonitor />} />
       </Routes>
     </BrowserRouter>
-  </StrictMode>
-);
+  );
+}
+
+const rootElement = document.getElementById('root');
+
+if (rootElement) {
+  createRoot(rootElement).render(
+    <StrictMode>
+      <App />
+    </StrictMode>
+  );
+}
