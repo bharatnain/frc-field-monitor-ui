@@ -9,7 +9,8 @@ createRoot(document.getElementById('root')).render(
   <StrictMode>
     <BrowserRouter>
       <Routes>
-        <Route path="/" element={<FieldMonitorMockups />} />
+        <Route path="/" element={<DistanceFirstConcept />} />
+        <Route path="/concepts" element={<FieldMonitorMockups />} />
         <Route path="/distance-first" element={<DistanceFirstConcept />} />
       </Routes>
     </BrowserRouter>

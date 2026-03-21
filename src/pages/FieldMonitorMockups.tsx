@@ -614,7 +614,7 @@ export default function FieldMonitorMockups() {
 
         <div className="mt-8 rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-zinc-200">
           <Link
-            to={`/distance-first?redonright=${redOnRight}`}
+            to={`/?redonright=${redOnRight}`}
             className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline"
           >
             Distance first concept →
