@@ -494,7 +494,7 @@ export default function FieldMonitor() {
 
                       {!isBlocking && (
                         <div className="px-5 pb-2.5">
-                          <div className="grid h-[64px] grid-cols-[1fr_1.35fr] gap-2 rounded-xl bg-zinc-50/70 px-2 py-1.5">
+                          <div className="grid h-[64px] grid-cols-[1fr_1.35fr] gap-2 rounded-xl bg-zinc-50/70 py-1.5">
                             <div
                               className={`rounded-xl px-2.5 py-1.5 ${isCritical ? 'bg-amber-50 ring-2 ring-amber-400' : 'bg-white/80'}`}
                             >
