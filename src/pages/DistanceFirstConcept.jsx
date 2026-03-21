@@ -16,14 +16,22 @@ import { useFieldMonitorLiveData } from '../lib/fieldMonitorLive';
 const panelTheme = (alliance) =>
   alliance === 'red'
     ? {
-        bar: 'bg-red-600',
-        accent: 'text-red-700',
+        backplate: 'bg-gradient-to-b from-red-100 via-red-100 to-red-50',
+        frame: 'ring-red-200',
+        gutter: 'bg-red-600',
+        sideWash: 'from-red-300/55 via-red-100/15 to-transparent',
+        accent: 'text-red-800',
+        stationBadge: 'bg-red-100 text-red-900 ring-red-300',
         stateAuto: 'bg-violet-50 text-violet-800 ring-violet-200',
         stateTele: 'bg-emerald-50 text-emerald-800 ring-emerald-200',
       }
     : {
-        bar: 'bg-blue-600',
-        accent: 'text-blue-700',
+        backplate: 'bg-gradient-to-b from-blue-100 via-blue-100 to-blue-50',
+        frame: 'ring-blue-200',
+        gutter: 'bg-blue-600',
+        sideWash: 'from-blue-300/55 via-blue-100/15 to-transparent',
+        accent: 'text-blue-800',
+        stationBadge: 'bg-blue-100 text-blue-900 ring-blue-300',
         stateAuto: 'bg-violet-50 text-violet-800 ring-violet-200',
         stateTele: 'bg-emerald-50 text-emerald-800 ring-emerald-200',
       };
@@ -372,13 +380,21 @@ export default function DistanceFirstConcept() {
       </div>
 
       <div className="flex min-h-0 flex-1">
-        {distancePanels.map((panel) => {
+        {distancePanels.map((panel, index) => {
           const theme = panelTheme(panel.alliance);
-          const isRed = panel.alliance === 'red';
+          const panelSide = index === 0 ? 'left' : 'right';
+          const gutterClass = panelSide === 'left' ? 'left-1.5' : 'right-1.5';
+          const washClass = panelSide === 'left' ? 'left-5 bg-gradient-to-r' : 'right-5 bg-gradient-to-l';
+          const panelPadding = panelSide === 'left' ? 'pl-5 pr-3' : 'pl-3 pr-5';
           return (
-            <div key={`distance-${panel.alliance}`} className="flex min-w-0 flex-1">
-              {isRed && <div className={`w-5 shrink-0 ${theme.bar}`} />}
-              <div className="grid min-h-0 flex-1 grid-rows-3 gap-2.5 p-3 pt-1">
+            <div key={`distance-${panel.alliance}`} className="relative flex min-w-0 flex-1 px-1.5 pb-1">
+              <div className={`pointer-events-none absolute inset-1.5 rounded-[28px] ${theme.backplate}`} />
+              <div className={`pointer-events-none absolute inset-1.5 rounded-[28px] ring-2 ${theme.frame}`} />
+              <div
+                className={`pointer-events-none absolute bottom-5 top-5 w-24 ${washClass} ${theme.sideWash}`}
+              />
+              <div className={`pointer-events-none absolute inset-y-2.5 w-4 rounded-full ${gutterClass} ${theme.gutter}`} />
+              <div className={`grid min-h-0 flex-1 grid-rows-3 gap-2.5 pb-3 pt-1 ${panelPadding}`}>
                 {panel.rows.map((row) => {
                   const isBlocking = row.mode === 'blocking';
                   const isCritical = row.mode === 'critical';
@@ -407,7 +423,9 @@ export default function DistanceFirstConcept() {
                           <div className="text-[40px] font-bold leading-none tracking-tight">
                             {row.team}
                           </div>
-                          <div className={`rounded-md bg-zinc-50 px-2 py-1 text-[12px] font-bold uppercase tracking-wide ring-1 ring-zinc-200 ${theme.accent}`}>
+                          <div
+                            className={`rounded-md px-2 py-1 text-[12px] font-bold uppercase tracking-wide ring-1 ${theme.stationBadge}`}
+                          >
                             {row.station}
                           </div>
                           {row.mode !== 'blocking' && <IssueBadge mode={row.mode} />}
@@ -515,7 +533,6 @@ export default function DistanceFirstConcept() {
                   );
                 })}
               </div>
-              {!isRed && <div className={`w-5 shrink-0 ${theme.bar}`} />}
             </div>
           );
         })}
