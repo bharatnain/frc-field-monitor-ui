@@ -19,6 +19,7 @@ const panelTheme = (alliance) =>
         backplate: 'bg-white',
         gutter:
           'bg-gradient-to-b from-red-800 via-red-600 to-red-500 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.4),0_0_30px_rgba(239,68,68,0.28)]',
+        panelGlow: 'ring-1 ring-red-200/80 shadow-[0_0_0_1px_rgba(248,113,113,0.12)]',
         stationBadge: 'bg-white text-zinc-700 ring-zinc-300',
         stateAuto: 'bg-violet-50 text-violet-800 ring-violet-200',
         stateTele: 'bg-emerald-50 text-emerald-800 ring-emerald-200',
@@ -27,6 +28,7 @@ const panelTheme = (alliance) =>
         backplate: 'bg-white',
         gutter:
           'bg-gradient-to-b from-blue-800 via-blue-600 to-blue-500 shadow-[inset_0_0_0_1px_rgba(255,255,255,0.4),0_0_30px_rgba(59,130,246,0.28)]',
+        panelGlow: 'ring-1 ring-blue-200/80 shadow-[0_0_0_1px_rgba(96,165,250,0.12)]',
         stationBadge: 'bg-white text-zinc-700 ring-zinc-300',
         stateAuto: 'bg-violet-50 text-violet-800 ring-violet-200',
         stateTele: 'bg-emerald-50 text-emerald-800 ring-emerald-200',
@@ -405,7 +407,9 @@ export default function FieldMonitor() {
           const panelPadding = panelSide === 'left' ? 'pl-5 pr-3' : 'pl-3 pr-5';
           return (
             <div key={`distance-${panel.alliance}`} className="relative flex min-w-0 flex-1 px-1.5 pb-1">
-              <div className={`pointer-events-none absolute inset-1.5 rounded-[28px] ${theme.backplate}`} />
+              <div
+                className={`pointer-events-none absolute inset-1.5 rounded-[28px] ${theme.backplate} ${theme.panelGlow}`}
+              />
               <AllianceRail
                 theme={theme}
                 className={gutterClass}
