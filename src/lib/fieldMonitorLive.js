@@ -633,7 +633,7 @@ function toRow(station) {
   };
 }
 
-function buildPanels(stations, redOnRight) {
+function buildPanels(stations, mirrorLayout) {
   const grouped = {
     red: [],
     blue: [],
@@ -649,7 +649,11 @@ function buildPanels(stations, redOnRight) {
   grouped.red.sort((a, b) => a.station - b.station);
   grouped.blue.sort((a, b) => a.station - b.station);
 
-  const orderedKeys = redOnRight ? ['blue', 'red'] : ['red', 'blue'];
+  if (mirrorLayout) {
+    grouped.red.reverse();
+  }
+
+  const orderedKeys = mirrorLayout ? ['blue', 'red'] : ['red', 'blue'];
 
   return orderedKeys.map((alliance) => ({
     alliance,
@@ -662,7 +666,7 @@ function buildInitialStations() {
   return ALL_STATION_SLOTS.map(({ alliance, station }) => createEmptyStation(alliance, station));
 }
 
-export function useFieldMonitorLiveData({ redOnRight = true } = {}) {
+export function useFieldMonitorLiveData({ mirrorLayout = false } = {}) {
   const baseUrl = getBaseUrl();
   const minBatteryRef = useRef(new Map());
   const currentMatchRef = useRef(null);
@@ -850,7 +854,7 @@ export function useFieldMonitorLiveData({ redOnRight = true } = {}) {
         capturedAt: recordingStateRef.current.startedAtIso,
         stoppedAt: stoppedAt.toISOString(),
         durationMs: stoppedAt.getTime() - recordingStateRef.current.startedAtMs,
-        redOnRight,
+        mirrorLayout,
         label: recordingStateRef.current.label,
       },
       initialState: recordingStateRef.current.initialState,
@@ -1251,7 +1255,7 @@ export function useFieldMonitorLiveData({ redOnRight = true } = {}) {
     };
   }, [clearReplayTimer, replayRecording, replayState.isPlaying, replayState.speed, scheduleReplay, sourceMode]);
 
-  const alliancePanels = useMemo(() => buildPanels(stations, redOnRight), [redOnRight, stations]);
+  const alliancePanels = useMemo(() => buildPanels(stations, mirrorLayout), [mirrorLayout, stations]);
 
   return {
     sourceMode,

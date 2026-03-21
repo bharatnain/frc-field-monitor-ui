@@ -335,13 +335,13 @@ function StationBadge({ station, theme }) {
 
 export default function FieldMonitor() {
   const [searchParams] = useSearchParams();
-  const redOnRight = searchParams.get('redonright') !== 'false';
+  const mirrorLayout = searchParams.get('mirror') === 'true';
   const replayFileInputRef = useRef(null);
   const [isReplayErrorDismissed, setIsReplayErrorDismissed] = useState(false);
   const { alliancePanels: distancePanels, matchStatus, aheadBehind, sourceMode, replay, error } =
     useFieldMonitorLiveData({
-    redOnRight,
-  });
+      mirrorLayout,
+    });
   const replayError = replay.error || (sourceMode === 'replay' ? error : '');
   const showReplayError = Boolean(replayError) && !isReplayErrorDismissed;
   const showReplayOverlay = sourceMode === 'replay' || showReplayError;

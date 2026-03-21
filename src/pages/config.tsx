@@ -5,10 +5,10 @@ import { useFieldMonitorLiveData } from '../lib/fieldMonitorLive';
 export default function Config() {
   const [searchParams] = useSearchParams();
   const [recordingLabel, setRecordingLabel] = React.useState('');
-  const redOnRight = searchParams.get('redonright') !== 'false';
+  const mirrorLayout = searchParams.get('mirror') === 'true';
   const { sourceMode, alliancePanels, matchStatus, aheadBehind, error, isConnected, hasLiveData, recorder, replay } =
     useFieldMonitorLiveData({
-      redOnRight,
+      mirrorLayout,
     });
 
 
@@ -19,8 +19,8 @@ export default function Config() {
           <h1 className="text-2xl font-semibold tracking-tight">FIRST Field Monitor Config</h1>
           <p className="mt-1 text-sm text-zinc-600">
             {sourceMode === 'replay'
-              ? 'A saved match recording is driving the configuration preview below. The layout side order follows the `redonright` query param.'
-              : 'Live FMS data is driving the configuration preview below. The layout side order follows the `redonright` query param.'}
+              ? 'A saved match recording is driving the configuration preview below. The layout side order follows the `mirror` query param.'
+              : 'Live FMS data is driving the configuration preview below. The layout side order follows the `mirror` query param.'}
           </p>
         </div>
 
@@ -184,7 +184,7 @@ export default function Config() {
 
         <div className="mt-8 rounded-xl bg-white px-4 py-3 shadow-sm ring-1 ring-zinc-200">
           <Link
-            to={`/?redonright=${redOnRight}`}
+            to={`/?mirror=${mirrorLayout}`}
             className="text-sm font-semibold text-blue-600 hover:text-blue-800 hover:underline"
           >
             Open default field monitor →
