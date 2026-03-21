@@ -275,6 +275,32 @@ function cloneRecordingPayload(payload) {
   return JSON.parse(JSON.stringify(payload));
 }
 
+function createUnknownAheadBehindState() {
+  return {
+    isKnown: false,
+    text: '',
+  };
+}
+
+function createKnownAheadBehindState(text = '') {
+  return {
+    isKnown: true,
+    text: typeof text === 'string' ? text : '',
+  };
+}
+
+function coerceAheadBehindSnapshot(rawValue, rawKnown) {
+  if (typeof rawKnown === 'boolean') {
+    return rawKnown ? createKnownAheadBehindState(rawValue || '') : createUnknownAheadBehindState();
+  }
+
+  if (typeof rawValue === 'string' && rawValue.length > 0) {
+    return createKnownAheadBehindState(rawValue);
+  }
+
+  return createUnknownAheadBehindState();
+}
+
 function sanitizeFilenamePart(value) {
   return String(value || '')
     .trim()
@@ -687,7 +713,7 @@ export function useFieldMonitorLiveData({ mirrorLayout = false } = {}) {
   });
   const [stations, setStations] = useState(buildInitialStations);
   const [matchStatus, setMatchStatus] = useState(normalizeMatchStatus());
-  const [aheadBehind, setAheadBehind] = useState('');
+  const [aheadBehind, setAheadBehind] = useState(createUnknownAheadBehindState);
   const [error, setError] = useState('');
   const [isFieldHubConnected, setIsFieldHubConnected] = useState(false);
   const [isInfrastructureHubConnected, setIsInfrastructureHubConnected] = useState(false);
@@ -740,7 +766,9 @@ export function useFieldMonitorLiveData({ mirrorLayout = false } = {}) {
     currentMatchRef.current = recording?.initialState?.currentMatch ?? null;
     setStations(snapshotStations);
     setMatchStatus(coerceMatchStatusSnapshot(recording?.initialState?.matchStatus));
-    setAheadBehind(recording?.initialState?.aheadBehind || '');
+    setAheadBehind(
+      coerceAheadBehindSnapshot(recording?.initialState?.aheadBehind, recording?.initialState?.aheadBehindKnown)
+    );
     setError('');
     setIsFieldHubConnected(false);
     setIsInfrastructureHubConnected(false);
@@ -809,7 +837,7 @@ export function useFieldMonitorLiveData({ mirrorLayout = false } = {}) {
         recordIncomingEvent('infrastructureHub', 'ScheduleAheadBehindChanged', data || '');
       }
 
-      setAheadBehind(data || '');
+      setAheadBehind(createKnownAheadBehindState(data || ''));
     },
     [recordIncomingEvent]
   );
@@ -826,7 +854,8 @@ export function useFieldMonitorLiveData({ mirrorLayout = false } = {}) {
         currentMatch: cloneRecordingPayload(currentMatchRef.current),
         matchStatus: cloneRecordingPayload(matchStatus),
         stations: cloneRecordingPayload(stations),
-        aheadBehind,
+        aheadBehind: aheadBehind.text,
+        aheadBehindKnown: aheadBehind.isKnown,
       },
       events: [],
     };
@@ -1085,7 +1114,7 @@ export function useFieldMonitorLiveData({ mirrorLayout = false } = {}) {
     setSourceMode('live');
     setStations(buildInitialStations());
     setMatchStatus(normalizeMatchStatus());
-    setAheadBehind('');
+    setAheadBehind(createUnknownAheadBehindState());
     setError('');
     setIsFieldHubConnected(false);
     setIsInfrastructureHubConnected(false);
@@ -1256,12 +1285,15 @@ export function useFieldMonitorLiveData({ mirrorLayout = false } = {}) {
   }, [clearReplayTimer, replayRecording, replayState.isPlaying, replayState.speed, scheduleReplay, sourceMode]);
 
   const alliancePanels = useMemo(() => buildPanels(stations, mirrorLayout), [mirrorLayout, stations]);
+  const scheduleStatus = aheadBehind.isKnown ? aheadBehind.text || 'On schedule' : 'Unknown';
 
   return {
     sourceMode,
     alliancePanels,
     matchStatus,
-    aheadBehind,
+    aheadBehind: aheadBehind.text,
+    isAheadBehindKnown: aheadBehind.isKnown,
+    scheduleStatus,
     error,
     isConnected: sourceMode === 'live' && isFieldHubConnected && isInfrastructureHubConnected,
     hasLiveData: stations.some((station) => station.teamNumber > 0),

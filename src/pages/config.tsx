@@ -6,7 +6,7 @@ export default function Config() {
   const [searchParams] = useSearchParams();
   const [recordingLabel, setRecordingLabel] = React.useState('');
   const mirrorLayout = searchParams.get('mirror') === 'true';
-  const { sourceMode, alliancePanels, matchStatus, aheadBehind, error, isConnected, hasLiveData, recorder, replay } =
+  const { sourceMode, alliancePanels, matchStatus, scheduleStatus, error, isConnected, hasLiveData, recorder, replay } =
     useFieldMonitorLiveData({
       mirrorLayout,
     });
@@ -41,7 +41,7 @@ export default function Config() {
             <div className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Match</div>
             <div className="mt-1 text-sm font-semibold text-zinc-900">
               {matchStatus.matchNumber > 0 ? `M${matchStatus.matchNumber}` : 'No match yet'}
-              {aheadBehind ? ` · ${aheadBehind}` : ''}
+              {` · ${scheduleStatus}`}
             </div>
             <div className="mt-1 text-sm text-zinc-600">{matchStatus.matchStateMessage}</div>
           </div>

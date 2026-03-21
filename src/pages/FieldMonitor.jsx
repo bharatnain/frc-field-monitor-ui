@@ -338,7 +338,7 @@ export default function FieldMonitor() {
   const mirrorLayout = searchParams.get('mirror') === 'true';
   const replayFileInputRef = useRef(null);
   const [isReplayErrorDismissed, setIsReplayErrorDismissed] = useState(false);
-  const { alliancePanels: distancePanels, matchStatus, aheadBehind, sourceMode, replay, error } =
+  const { alliancePanels: distancePanels, matchStatus, scheduleStatus, sourceMode, replay, error } =
     useFieldMonitorLiveData({
       mirrorLayout,
     });
@@ -392,8 +392,8 @@ export default function FieldMonitor() {
             align="center"
           />
           <TopBarItem
-            label="Time Behind"
-            value={aheadBehind || 'On schedule'}
+            label="Schedule Status"
+            value={scheduleStatus}
             align="right"
           />
         </div>
