@@ -101,7 +101,7 @@ export default function FieldMonitor() {
       />
 
       <div className="shrink-0 px-3 pb-1 pt-2 [@media(min-width:1200px)_and_(max-height:860px)]:px-2.5 [@media(min-width:1200px)_and_(max-height:860px)]:pt-1.5 [@media(min-width:1200px)_and_(max-height:720px)]:px-2 [@media(min-width:1200px)_and_(max-height:720px)]:pt-1">
-        <div className="grid gap-1.5 rounded-2xl bg-white px-3 py-1.5 shadow-sm ring-1 ring-zinc-200 md:grid-cols-3 [@media(min-width:1200px)_and_(max-height:860px)]:gap-1 [@media(min-width:1200px)_and_(max-height:860px)]:px-2.5 [@media(min-width:1200px)_and_(max-height:860px)]:py-1 [@media(min-width:1200px)_and_(max-height:720px)]:px-2 [@media(min-width:1200px)_and_(max-height:720px)]:py-0.5">
+        <div className="grid gap-1.5 rounded-[28px] bg-white px-3 py-1.5 shadow-sm ring-1 ring-zinc-200 md:grid-cols-3 [@media(min-width:1200px)_and_(max-height:860px)]:gap-1 [@media(min-width:1200px)_and_(max-height:860px)]:px-2.5 [@media(min-width:1200px)_and_(max-height:860px)]:py-1 [@media(min-width:1200px)_and_(max-height:720px)]:px-2 [@media(min-width:1200px)_and_(max-height:720px)]:py-0.5">
           <TopBarItem
             label="Match Number"
             value={matchStatus.matchNumber > 0 ? `M${matchStatus.matchNumber}` : 'No match yet'}
@@ -153,7 +153,7 @@ export default function FieldMonitor() {
         <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-4">
           <div
             data-testid="replay-overlay-panel"
-            className="pointer-events-auto max-h-[45vh] w-full max-w-3xl overflow-y-auto rounded-2xl border border-white/20 bg-zinc-950/72 px-4 py-3 text-white shadow-2xl backdrop-blur-md md:max-h-none md:overflow-visible"
+            className="pointer-events-auto max-h-[45vh] w-full max-w-3xl overflow-y-auto rounded-[28px] border border-white/20 bg-zinc-950/72 px-4 py-3 text-white shadow-2xl backdrop-blur-md md:max-h-none md:overflow-visible"
             style={{ backgroundColor: 'rgba(24, 24, 27, 0.92)' }}
           >
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
