@@ -94,7 +94,7 @@ describe('fieldMonitorLive helpers', () => {
     expect(latest.brownoutLatched).toBe(false);
   });
 
-  it('orders alliance panels and mirrors the red side when requested', () => {
+  it('swaps the default alliance sides and lets mirror restore the opposite layout', () => {
     const stations = [
       createStation(AllianceType.Red, StationType.Station2, { teamNumber: 222 }),
       createStation(AllianceType.Blue, StationType.Station3, { teamNumber: 333 }),
@@ -112,12 +112,12 @@ describe('fieldMonitorLive helpers', () => {
     });
 
     const defaultPanels = buildPanels(stations, false, matchStatus);
-    expect(defaultPanels.map((panel) => panel.alliance)).toEqual(['red', 'blue']);
-    expect(defaultPanels[0].rows.map((row) => row.station)).toEqual(['Stn 1', 'Stn 2', 'Stn 3']);
+    expect(defaultPanels.map((panel) => panel.alliance)).toEqual(['blue', 'red']);
+    expect(defaultPanels[1].rows.map((row) => row.station)).toEqual(['Stn 3', 'Stn 2', 'Stn 1']);
 
     const mirroredPanels = buildPanels(stations, true, matchStatus);
-    expect(mirroredPanels.map((panel) => panel.alliance)).toEqual(['blue', 'red']);
-    expect(mirroredPanels[1].rows.map((row) => row.station)).toEqual(['Stn 3', 'Stn 2', 'Stn 1']);
+    expect(mirroredPanels.map((panel) => panel.alliance)).toEqual(['red', 'blue']);
+    expect(mirroredPanels[0].rows.map((row) => row.station)).toEqual(['Stn 1', 'Stn 2', 'Stn 3']);
   });
 
   it('parses replay recordings and derives duration from metadata or the last event', () => {

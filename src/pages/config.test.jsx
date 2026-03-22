@@ -52,8 +52,8 @@ function createHookState(overrides = {}) {
   return {
     sourceMode: 'live',
     alliancePanels: [
-      { alliance: 'red', title: 'Red Alliance', rows: [] },
       { alliance: 'blue', title: 'Blue Alliance', rows: [] },
+      { alliance: 'red', title: 'Red Alliance', rows: [] },
     ],
     matchStatus: {
       matchNumber: 42,
