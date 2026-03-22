@@ -613,7 +613,7 @@ export default function TeamStatusCard({ alliance, row }) {
           <>
             <div
               data-testid="mobile-footer-summary"
-              className={`grid grid-cols-[minmax(0,0.92fr)_minmax(0,1.08fr)] gap-0.5 rounded-lg bg-zinc-50/70 py-1 [@media(max-width:380px)]:gap-px [@media(max-width:380px)]:py-0.5 sm:hidden ${
+              className={`grid grid-cols-[minmax(0,1fr)_10px_minmax(0,1fr)_10px_minmax(0,1fr)] gap-0.5 rounded-lg bg-zinc-50/70 py-1 [@media(max-width:380px)]:grid-cols-[minmax(0,1fr)_8px_minmax(0,1fr)_8px_minmax(0,1fr)] [@media(max-width:380px)]:gap-px [@media(max-width:380px)]:py-0.5 sm:hidden ${
                 isNormal ? 'min-[381px]:max-sm:gap-px min-[381px]:max-sm:py-px' : 'py-px'
               }`}
             >
@@ -642,7 +642,7 @@ export default function TeamStatusCard({ alliance, row }) {
 
               <div
                 data-testid="mobile-row-summary"
-                className="rounded-lg bg-white/65 px-1 py-1 [@media(max-width:380px)]:px-0.5 [@media(max-width:380px)]:py-0.5"
+                className="col-[3/6] rounded-lg bg-white/65 px-1 py-1 [@media(max-width:380px)]:px-0.5 [@media(max-width:380px)]:py-0.5"
               >
                 <div className="flex items-center justify-between gap-1">
                   <div className="flex items-center gap-0.5 text-[7px] font-bold uppercase text-zinc-500 [@media(max-width:380px)]:text-[6px]">
@@ -661,7 +661,7 @@ export default function TeamStatusCard({ alliance, row }) {
               </div>
             </div>
 
-            <div className="hidden sm:grid sm:grid-cols-[1fr_1.35fr] sm:gap-2 sm:rounded-xl sm:bg-zinc-50/70 sm:py-1.5 [@media(min-width:1200px)_and_(max-height:860px)]:gap-1 [@media(min-width:1200px)_and_(max-height:860px)]:py-0.5 [@media(min-width:1200px)_and_(max-height:860px)]:sm:min-h-[48px] [@media(min-width:1200px)_and_(max-height:720px)]:gap-0.5 [@media(min-width:1200px)_and_(max-height:720px)]:sm:min-h-[40px] sm:min-h-[64px]">
+            <div className="hidden sm:grid sm:grid-cols-[minmax(0,1fr)_22px_minmax(0,1fr)_22px_minmax(0,1fr)] sm:gap-2 sm:rounded-xl sm:bg-zinc-50/70 sm:py-1.5 [@media(min-width:1200px)_and_(max-height:860px)]:gap-1 [@media(min-width:1200px)_and_(max-height:860px)]:py-0.5 [@media(min-width:1200px)_and_(max-height:860px)]:sm:min-h-[48px] [@media(min-width:1200px)_and_(max-height:720px)]:gap-0.5 [@media(min-width:1200px)_and_(max-height:720px)]:sm:min-h-[40px] sm:min-h-[64px]">
               <div
                 className={`rounded-xl px-2 py-1 [@media(min-width:1200px)_and_(max-height:860px)]:px-2 [@media(min-width:1200px)_and_(max-height:860px)]:py-1 [@media(min-width:1200px)_and_(max-height:720px)]:px-1.5 [@media(min-width:1200px)_and_(max-height:720px)]:py-0.5 ${batteryToneClass(row.battery, isAStop)}`}
               >
@@ -689,7 +689,7 @@ export default function TeamStatusCard({ alliance, row }) {
 
               <div
                 data-testid="row-metrics-grid"
-                className="grid grid-cols-2 items-center gap-x-1 gap-y-0.5 rounded-xl bg-white/65 px-1.5 py-1 [@media(min-width:440px)]:grid-cols-3 [@media(min-width:1200px)_and_(max-height:860px)]:px-1.5 [@media(min-width:1200px)_and_(max-height:860px)]:py-1 [@media(min-width:1200px)_and_(max-height:720px)]:px-1 [@media(min-width:1200px)_and_(max-height:720px)]:py-0.5"
+                className="grid grid-cols-2 items-center gap-x-1 gap-y-0.5 rounded-xl bg-white/65 px-1.5 py-1 sm:col-[3/6] [@media(min-width:440px)]:grid-cols-3 [@media(min-width:1200px)_and_(max-height:860px)]:px-1.5 [@media(min-width:1200px)_and_(max-height:860px)]:py-1 [@media(min-width:1200px)_and_(max-height:720px)]:px-1 [@media(min-width:1200px)_and_(max-height:720px)]:py-0.5"
               >
                 <div className="min-w-0 col-span-2 [@media(min-width:440px)]:col-span-1">
                   <div className="flex items-center gap-1 text-[8px] font-bold uppercase text-zinc-500 [@media(min-width:1200px)_and_(max-height:860px)]:text-[8px] [@media(min-width:1200px)_and_(max-height:720px)]:gap-0.5 [@media(min-width:1200px)_and_(max-height:720px)]:text-[7px]">

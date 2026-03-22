@@ -298,15 +298,21 @@ describe('FieldMonitor', () => {
     );
     expect(rowHeader).toHaveClass('pt-1', 'min-[381px]:max-sm:pt-0.5', '[@media(max-width:380px)]:pt-0.5');
     expect(mobileConnectionLayout).toHaveClass('min-[381px]:max-sm:gap-0.5', '[@media(max-width:380px)]:pb-0');
-    expect(mobileFooterSummary).toHaveClass('min-[381px]:max-sm:gap-px', 'min-[381px]:max-sm:py-px');
+    expect(mobileFooterSummary).toHaveClass(
+      'grid-cols-[minmax(0,1fr)_10px_minmax(0,1fr)_10px_minmax(0,1fr)]',
+      '[@media(max-width:380px)]:grid-cols-[minmax(0,1fr)_8px_minmax(0,1fr)_8px_minmax(0,1fr)]',
+      'min-[381px]:max-sm:gap-px',
+      'min-[381px]:max-sm:py-px'
+    );
     expect(mobileSummaries).toHaveLength(2);
     expect(footerGrid).toHaveClass(
       'hidden',
       'sm:grid',
-      'sm:grid-cols-[1fr_1.35fr]'
+      'sm:grid-cols-[minmax(0,1fr)_22px_minmax(0,1fr)_22px_minmax(0,1fr)]'
     );
     expect(metricsGrid).toHaveClass(
       'grid-cols-2',
+      'sm:col-[3/6]',
       '[@media(min-width:440px)]:grid-cols-3'
     );
   });
