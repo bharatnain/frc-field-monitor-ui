@@ -81,12 +81,19 @@ function renderFieldMonitor(initialEntry = '/') {
 }
 
 describe('FieldMonitor', () => {
+  const originalVisualViewport = window.visualViewport;
+
   beforeEach(() => {
     mockUseFieldMonitorLiveData.mockReturnValue(createHookState());
   });
 
   afterEach(() => {
     vi.clearAllMocks();
+    Object.defineProperty(window, 'visualViewport', {
+      configurable: true,
+      writable: true,
+      value: originalVisualViewport,
+    });
   });
 
   it('renders the main top bar and forwards mirrorLayout from the query string', () => {
@@ -98,6 +105,45 @@ describe('FieldMonitor', () => {
     expect(screen.getByText('254')).toBeInTheDocument();
     expect(screen.getByText('1114')).toBeInTheDocument();
     expect(mockUseFieldMonitorLiveData).toHaveBeenCalledWith({ mirrorLayout: true });
+  });
+
+  it('sizes the shell to the visible viewport and updates when that viewport changes', () => {
+    const addEventListener = vi.fn();
+    const removeEventListener = vi.fn();
+
+    Object.defineProperty(window, 'visualViewport', {
+      configurable: true,
+      writable: true,
+      value: {
+        height: 700,
+        addEventListener,
+        removeEventListener,
+      },
+    });
+
+    const { container, unmount } = renderFieldMonitor('/');
+    const shell = container.firstChild;
+
+    expect(shell).toHaveStyle({ minHeight: '700px', height: '700px' });
+    expect(addEventListener).toHaveBeenCalledWith('resize', expect.any(Function));
+
+    Object.defineProperty(window, 'visualViewport', {
+      configurable: true,
+      writable: true,
+      value: {
+        height: 640,
+        addEventListener,
+        removeEventListener,
+      },
+    });
+
+    fireEvent(window, new Event('resize'));
+
+    expect(shell).toHaveStyle({ minHeight: '640px', height: '640px' });
+
+    unmount();
+
+    expect(removeEventListener).toHaveBeenCalledWith('resize', expect.any(Function));
   });
 
   it('opens the replay file picker with Alt+L unless the event originates from an editable element', () => {
@@ -191,24 +237,73 @@ describe('FieldMonitor', () => {
 
     renderFieldMonitor('/');
 
-    expect(screen.getByTestId('field-monitor-content')).toHaveClass('pb-40', 'sm:pb-32');
+    expect(screen.getByTestId('field-monitor-content')).toHaveClass(
+      'pb-[calc(8rem+env(safe-area-inset-bottom))]',
+      'sm:pb-32'
+    );
     expect(screen.getByTestId('replay-overlay-panel')).toHaveClass(
       'max-h-[45vh]',
       'overflow-y-auto',
+      'px-3',
+      'py-2.5',
+      'sm:px-4',
+      'sm:py-3',
       'md:max-h-none',
       'md:overflow-visible'
     );
   });
 
-  it('keeps the row internals configured for stacked mobile layouts', () => {
-    renderFieldMonitor('/');
+  it('uses a compact mobile top bar and row layout before desktop breakpoints', () => {
+    const { container } = renderFieldMonitor('/');
 
     const [connectionLayout] = screen.getAllByTestId('connection-layout');
+    const [mobileConnectionLayout] = screen.getAllByTestId('mobile-connection-layout');
+    const mobileConnectionChips = screen.getAllByTestId('mobile-connection-chip');
+    const mobileSummaries = screen.getAllByTestId('mobile-row-summary');
     const [metricsGrid] = screen.getAllByTestId('row-metrics-grid');
+    const topBar = screen.getByTestId('field-monitor-topbar');
+    const [rowHeader] = screen.getAllByTestId('row-header');
+    const [rowHeaderPrimary] = screen.getAllByTestId('row-header-primary');
+    const [mobileFooterSummary] = screen.getAllByTestId('mobile-footer-summary');
+    const firstRowCard = container.querySelector('[data-testid="connection-layout"]')?.closest('.relative');
+    const footerGrid = metricsGrid.parentElement;
 
+    expect(mobileConnectionLayout).toHaveClass(
+      'grid-cols-[minmax(0,1fr)_10px_minmax(0,1fr)_10px_minmax(0,1fr)]',
+      '[@media(max-width:380px)]:grid-cols-[minmax(0,1fr)_8px_minmax(0,1fr)_8px_minmax(0,1fr)]',
+      'sm:hidden'
+    );
+    expect(mobileConnectionChips).toHaveLength(6);
     expect(connectionLayout).toHaveClass(
-      'grid-cols-1',
-      'sm:grid-cols-[minmax(0,1fr)_22px_minmax(0,1fr)_22px_minmax(0,1fr)]'
+      'hidden',
+      'sm:grid',
+      'grid-cols-[minmax(0,1fr)_22px_minmax(0,1fr)_22px_minmax(0,1fr)]'
+    );
+    expect(topBar).toHaveClass(
+      'grid-cols-2',
+      '[@media(max-width:380px)]:px-1.5',
+      '[@media(max-width:380px)]:py-0.5',
+      'md:grid-cols-3'
+    );
+    expect(topBar.lastElementChild).toHaveClass('col-span-2', 'md:col-span-1');
+    expect(rowHeader).toHaveClass('flex-nowrap', 'sm:flex-wrap');
+    expect(rowHeaderPrimary).toHaveClass('flex-1', 'flex-nowrap', 'sm:flex-wrap');
+    expect(firstRowCard).toHaveClass(
+      'min-h-0',
+      'content-start',
+      'grid-rows-[auto_auto_auto]',
+      'sm:grid-rows-[auto_minmax(0,1fr)_auto]',
+      'sm:min-h-[220px]',
+      'sm:content-stretch'
+    );
+    expect(rowHeader).toHaveClass('pt-1', 'min-[381px]:max-sm:pt-0.5', '[@media(max-width:380px)]:pt-0.5');
+    expect(mobileConnectionLayout).toHaveClass('min-[381px]:max-sm:gap-0.5', '[@media(max-width:380px)]:pb-0');
+    expect(mobileFooterSummary).toHaveClass('min-[381px]:max-sm:gap-px', 'min-[381px]:max-sm:py-px');
+    expect(mobileSummaries).toHaveLength(2);
+    expect(footerGrid).toHaveClass(
+      'hidden',
+      'sm:grid',
+      'sm:grid-cols-[1fr_1.35fr]'
     );
     expect(metricsGrid).toHaveClass(
       'grid-cols-2',
@@ -216,24 +311,54 @@ describe('FieldMonitor', () => {
     );
   });
 
-  it('adds short-height wide-desktop guards so connection tiles keep enough room for icons', () => {
+  it('stretches desktop alliance panels and row cards to fill the available column height', () => {
+    const { container } = renderFieldMonitor('/');
+    const [panelGrid] = screen.getAllByTestId('alliance-panel-grid');
+    const firstRowCard = container.querySelector('[data-testid="connection-layout"]')?.closest('.relative');
+
+    expect(panelGrid).toHaveClass('[@media(min-width:1200px)]:h-full', '[@media(min-width:1200px)]:grid-rows-3');
+    expect(firstRowCard).toHaveClass('[@media(min-width:1200px)]:h-full');
+  });
+
+  it('keeps the whitespace-only compaction scoped to mobile framing and chrome', () => {
+    const { container } = renderFieldMonitor('/');
+    const [panelGrid] = screen.getAllByTestId('alliance-panel-grid');
+    const firstPanel = panelGrid.parentElement;
+    const firstRowCard = container.querySelector('[data-testid="connection-layout"]')?.closest('.relative');
+
+    expect(firstPanel).toHaveClass('p-[3px]', '[@media(max-width:380px)]:p-[2px]');
+    expect(panelGrid).toHaveClass('gap-1', 'p-1', '[@media(max-width:380px)]:gap-0.5', '[@media(max-width:380px)]:p-0.5');
+    expect(firstRowCard).toHaveClass('rounded-[18px]', '[@media(max-width:380px)]:rounded-[16px]', 'sm:rounded-2xl');
+  });
+
+  it('keeps desktop fill while making short-height guards compress inside the card', () => {
     renderFieldMonitor('/');
 
     const [connectionLayout] = screen.getAllByTestId('connection-layout');
+    const [metricsGrid] = screen.getAllByTestId('row-metrics-grid');
     const connectionSection = connectionLayout.parentElement;
     const rowCard = connectionSection?.parentElement;
+    const footerGrid = metricsGrid.parentElement;
 
     expect(connectionLayout).toHaveClass(
       '[@media(min-width:1200px)_and_(max-height:860px)]:gap-1.5',
       '[@media(min-width:1200px)_and_(max-height:720px)]:gap-1'
     );
-    expect(connectionSection).toHaveClass(
+    expect(connectionSection).not.toHaveClass(
       '[@media(min-width:1200px)_and_(max-height:860px)]:min-h-[94px]',
       '[@media(min-width:1200px)_and_(max-height:720px)]:min-h-[78px]'
     );
     expect(rowCard).toHaveClass(
-      '[@media(min-width:1200px)_and_(max-height:860px)]:min-h-[188px]',
-      '[@media(min-width:1200px)_and_(max-height:720px)]:min-h-[162px]'
+      '[@media(min-width:1200px)_and_(max-height:860px)]:min-h-[172px]',
+      '[@media(min-width:1200px)_and_(max-height:720px)]:min-h-[148px]',
+      '[@media(min-width:1200px)]:grid-rows-[auto_minmax(0,1fr)_minmax(64px,auto)]',
+      '[@media(min-width:1200px)_and_(max-height:860px)]:grid-rows-[auto_minmax(0,1fr)_minmax(52px,auto)]',
+      '[@media(min-width:1200px)_and_(max-height:720px)]:grid-rows-[auto_minmax(0,1fr)_minmax(44px,auto)]'
+    );
+    expect(footerGrid).toHaveClass(
+      'sm:min-h-[64px]',
+      '[@media(min-width:1200px)_and_(max-height:860px)]:sm:min-h-[48px]',
+      '[@media(min-width:1200px)_and_(max-height:720px)]:sm:min-h-[40px]'
     );
   });
 
@@ -250,7 +375,40 @@ describe('FieldMonitor', () => {
     renderFieldMonitor('/');
 
     const issueBand = screen.getByTestId('issue-band');
-    expect(issueBand).toHaveClass('inset-x-0', 'top-0', 'rounded-t-2xl');
+    expect(issueBand).toHaveClass(
+      'inset-x-0',
+      'top-0',
+      'h-1',
+      'rounded-t-[18px]',
+      '[@media(max-width:380px)]:rounded-t-[16px]',
+      'sm:h-1.5',
+      'sm:rounded-t-2xl'
+    );
+  });
+
+  it('keeps issue rows from using the extra healthy-row mobile compaction classes', () => {
+    mockUseFieldMonitorLiveData.mockReturnValue(
+      createHookState({
+        alliancePanels: [
+          { alliance: 'red', title: 'Red Alliance', rows: [createRow({ mode: 'critical' })] },
+          { alliance: 'blue', title: 'Blue Alliance', rows: [createRow({ team: '1114' })] },
+        ],
+      })
+    );
+
+    const { container } = renderFieldMonitor('/');
+    const rowCard = container.querySelector('[data-testid="connection-layout"]')?.closest('.relative');
+    const [rowHeader] = screen.getAllByTestId('row-header');
+    const [mobileConnectionLayout] = screen.getAllByTestId('mobile-connection-layout');
+    const [mobileFooterSummary] = screen.getAllByTestId('mobile-footer-summary');
+
+    expect(rowCard).toHaveClass('min-h-0', 'content-start');
+    expect(rowHeader).not.toHaveClass('min-[381px]:max-sm:pt-0.5');
+    expect(rowHeader).toHaveClass('pt-1');
+    expect(mobileConnectionLayout).not.toHaveClass('min-[381px]:max-sm:gap-0.5');
+    expect(mobileConnectionLayout).toHaveClass('pb-0');
+    expect(mobileFooterSummary).not.toHaveClass('min-[381px]:max-sm:py-0.5');
+    expect(mobileFooterSummary).toHaveClass('py-px');
   });
 
   it('allows replay load errors to be dismissed locally', async () => {

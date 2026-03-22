@@ -35,20 +35,24 @@ const isEditableTarget = (target) => {
   return Boolean(editableRoot);
 };
 
-function TopBarItem({ label, value, align = 'left' }) {
+function TopBarItem({ label, value, align = 'left', className = '' }) {
   const alignmentClass =
     align === 'center'
-      ? 'justify-center text-center'
+      ? 'items-center justify-center text-center'
       : align === 'right'
-        ? 'justify-end text-right'
-        : 'justify-start text-left';
+        ? 'items-end justify-end text-right'
+        : 'items-start justify-start text-left';
 
   return (
-    <div className={`flex min-w-0 items-baseline gap-2 [@media(min-width:1200px)_and_(max-height:860px)]:gap-1.5 [@media(min-width:1200px)_and_(max-height:720px)]:gap-1 ${alignmentClass}`}>
-      <div className="shrink-0 text-[10px] font-semibold uppercase tracking-[0.12em] text-zinc-500 [@media(min-width:1200px)_and_(max-height:860px)]:text-[9px] [@media(min-width:1200px)_and_(max-height:720px)]:text-[8px]">
+    <div
+      className={`flex min-w-0 flex-col gap-0 sm:flex-row sm:items-baseline sm:gap-2 [@media(min-width:1200px)_and_(max-height:860px)]:gap-1.5 [@media(min-width:1200px)_and_(max-height:720px)]:gap-1 ${alignmentClass} ${className}`}
+    >
+      <div className="shrink-0 text-[8px] font-semibold uppercase tracking-[0.08em] text-zinc-500 [@media(max-width:380px)]:text-[7px] sm:text-[10px] [@media(min-width:1200px)_and_(max-height:860px)]:text-[9px] [@media(min-width:1200px)_and_(max-height:720px)]:text-[8px]">
         {label}
       </div>
-      <div className="min-w-0 truncate text-[16px] font-bold leading-none text-zinc-900 [@media(min-width:1200px)_and_(max-height:860px)]:text-[14px] [@media(min-width:1200px)_and_(max-height:720px)]:text-[12px]">{value}</div>
+      <div className="min-w-0 max-w-full whitespace-normal break-words text-[13px] font-bold leading-[1.05] text-zinc-900 [@media(max-width:380px)]:text-[12px] sm:truncate sm:whitespace-nowrap sm:text-[16px] sm:leading-none [@media(min-width:1200px)_and_(max-height:860px)]:text-[14px] [@media(min-width:1200px)_and_(max-height:720px)]:text-[12px]">
+        {value}
+      </div>
     </div>
   );
 }
@@ -58,6 +62,9 @@ export default function FieldMonitor() {
   const mirrorLayout = searchParams.get('mirror') === 'true';
   const replayFileInputRef = useRef(null);
   const [isReplayErrorDismissed, setIsReplayErrorDismissed] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState(() =>
+    typeof window === 'undefined' ? null : window.visualViewport?.height ?? window.innerHeight
+  );
   const { alliancePanels: distancePanels, matchStatus, scheduleStatus, sourceMode, replay, error } =
     useFieldMonitorLiveData({
       mirrorLayout,
@@ -83,8 +90,38 @@ export default function FieldMonitor() {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const updateViewportHeight = () => {
+      setViewportHeight(window.visualViewport?.height ?? window.innerHeight);
+    };
+
+    updateViewportHeight();
+
+    window.addEventListener('resize', updateViewportHeight);
+    window.visualViewport?.addEventListener('resize', updateViewportHeight);
+
+    return () => {
+      window.removeEventListener('resize', updateViewportHeight);
+      window.visualViewport?.removeEventListener('resize', updateViewportHeight);
+    };
+  }, []);
+
   return (
-    <div className="relative flex h-dvh flex-col bg-zinc-100 text-zinc-900">
+    <div
+      className="relative flex min-h-screen flex-col bg-zinc-100 text-zinc-900"
+      style={
+        viewportHeight === null
+          ? undefined
+          : {
+              minHeight: `${viewportHeight}px`,
+              height: `${viewportHeight}px`,
+            }
+      }
+    >
       <input
         ref={replayFileInputRef}
         type="file"
@@ -101,7 +138,10 @@ export default function FieldMonitor() {
       />
 
       <div className="shrink-0 px-3 pb-1 pt-2 [@media(min-width:1200px)_and_(max-height:860px)]:px-2.5 [@media(min-width:1200px)_and_(max-height:860px)]:pt-1.5 [@media(min-width:1200px)_and_(max-height:720px)]:px-2 [@media(min-width:1200px)_and_(max-height:720px)]:pt-1">
-        <div className="grid gap-1.5 rounded-[28px] bg-white px-3 py-1.5 shadow-sm ring-1 ring-zinc-200 md:grid-cols-3 [@media(min-width:1200px)_and_(max-height:860px)]:gap-1 [@media(min-width:1200px)_and_(max-height:860px)]:px-2.5 [@media(min-width:1200px)_and_(max-height:860px)]:py-1 [@media(min-width:1200px)_and_(max-height:720px)]:px-2 [@media(min-width:1200px)_and_(max-height:720px)]:py-0.5">
+        <div
+          data-testid="field-monitor-topbar"
+          className="grid grid-cols-2 gap-0.5 rounded-[22px] bg-white px-2 py-0.5 shadow-sm ring-1 ring-zinc-200 [@media(max-width:380px)]:gap-0 [@media(max-width:380px)]:px-1.5 [@media(max-width:380px)]:py-0.5 md:grid-cols-3 [@media(min-width:1200px)_and_(max-height:860px)]:gap-1 [@media(min-width:1200px)_and_(max-height:860px)]:px-2.5 [@media(min-width:1200px)_and_(max-height:860px)]:py-1 [@media(min-width:1200px)_and_(max-height:720px)]:px-2 [@media(min-width:1200px)_and_(max-height:720px)]:py-0.5"
+        >
           <TopBarItem
             label="Match Number"
             value={matchStatus.matchNumber > 0 ? `M${matchStatus.matchNumber}` : 'No match yet'}
@@ -109,12 +149,13 @@ export default function FieldMonitor() {
           <TopBarItem
             label="Match Status"
             value={matchStatus.matchStateMessage}
-            align="center"
+            align="right"
           />
           <TopBarItem
             label="Schedule Status"
             value={scheduleStatus}
-            align="right"
+            align="center"
+            className="col-span-2 md:col-span-1 md:justify-end md:text-right"
           />
         </div>
       </div>
@@ -122,7 +163,7 @@ export default function FieldMonitor() {
       <div
         data-testid="field-monitor-content"
         className={`flex min-h-0 flex-1 flex-col overflow-y-auto [@media(min-width:1200px)]:flex-row ${
-          showReplayOverlay ? 'pb-40 sm:pb-32' : ''
+          showReplayOverlay ? 'pb-[calc(8rem+env(safe-area-inset-bottom))] sm:pb-32' : ''
         }`}
       >
         {distancePanels.map((panel) => {
@@ -130,12 +171,15 @@ export default function FieldMonitor() {
           return (
             <div
               key={`distance-${panel.alliance}`}
-              className="relative flex w-full min-w-0 flex-none p-1.5 [@media(min-width:1200px)]:flex-1 [@media(min-width:1200px)_and_(max-height:860px)]:p-1 [@media(min-width:1200px)_and_(max-height:720px)]:p-0.5"
+              className="relative flex w-full min-w-0 flex-none p-[3px] [@media(max-width:380px)]:p-[2px] [@media(min-width:1200px)]:flex-1 [@media(min-width:1200px)_and_(max-height:860px)]:p-1 [@media(min-width:1200px)_and_(max-height:720px)]:p-0.5"
             >
               <div
-                className={`pointer-events-none absolute inset-1.5 rounded-[28px] ${theme.backplate} ${theme.panelGlow}`}
+                className={`pointer-events-none absolute inset-[3px] rounded-[20px] [@media(max-width:380px)]:inset-[2px] [@media(max-width:380px)]:rounded-[18px] sm:inset-1.5 sm:rounded-[28px] ${theme.backplate} ${theme.panelGlow}`}
               />
-              <div className="grid min-h-0 flex-1 auto-rows-max gap-2 p-2.5 [@media(min-width:1200px)]:grid-rows-3 [@media(min-width:1200px)_and_(max-height:860px)]:grid-rows-none [@media(min-width:1200px)_and_(max-height:860px)]:gap-2 [@media(min-width:1200px)_and_(max-height:860px)]:p-2 [@media(min-width:1200px)_and_(max-height:720px)]:gap-1.5 [@media(min-width:1200px)_and_(max-height:720px)]:p-1.5">
+              <div
+                data-testid="alliance-panel-grid"
+                className="grid min-h-0 flex-1 auto-rows-max gap-1 p-1 [@media(max-width:380px)]:gap-0.5 [@media(max-width:380px)]:p-0.5 sm:gap-2 sm:p-2.5 [@media(min-width:1200px)]:h-full [@media(min-width:1200px)]:grid-rows-3 [@media(min-width:1200px)_and_(max-height:860px)]:gap-2 [@media(min-width:1200px)_and_(max-height:860px)]:p-2 [@media(min-width:1200px)_and_(max-height:720px)]:gap-1.5 [@media(min-width:1200px)_and_(max-height:720px)]:p-1.5"
+              >
                 {panel.rows.map((row) => (
                   <TeamStatusCard
                     key={`distance-${panel.alliance}-${row.team}-${row.station}`}
@@ -150,10 +194,10 @@ export default function FieldMonitor() {
       </div>
 
       {showReplayOverlay ? (
-        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-4">
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex justify-center px-4 pb-[calc(1rem+env(safe-area-inset-bottom))]">
           <div
             data-testid="replay-overlay-panel"
-            className="pointer-events-auto max-h-[45vh] w-full max-w-3xl overflow-y-auto rounded-[28px] border border-white/20 bg-zinc-950/72 px-4 py-3 text-white shadow-2xl backdrop-blur-md md:max-h-none md:overflow-visible"
+            className="pointer-events-auto max-h-[45vh] w-full max-w-3xl overflow-y-auto rounded-[28px] border border-white/20 bg-zinc-950/72 px-3 py-2.5 text-white shadow-2xl backdrop-blur-md sm:px-4 sm:py-3 md:max-h-none md:overflow-visible"
             style={{ backgroundColor: 'rgba(24, 24, 27, 0.92)' }}
           >
             <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
