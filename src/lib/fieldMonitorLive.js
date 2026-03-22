@@ -361,6 +361,7 @@ function createUnknownCycleCadenceState() {
     currentMatchKey: '',
     currentMatchNumber: 0,
     currentPlayNumber: 0,
+    currentCycleTrust: 'unknown',
   };
 }
 
@@ -388,19 +389,27 @@ function formatRunningCycle(ms) {
 
 function buildCycleCadence(state, currentObservedMs) {
   const lastCycleMs = Number.isFinite(state?.lastCycleMs) && state.lastCycleMs >= 0 ? state.lastCycleMs : null;
+  const currentCycleTrust = state?.currentCycleTrust || 'unknown';
   const currentCycleStartMs =
     Number.isFinite(state?.currentCycleStartMs) && state.currentCycleStartMs >= 0 ? state.currentCycleStartMs : null;
   const clockMs = Number.isFinite(currentObservedMs) ? currentObservedMs : null;
   const currentCycleMs =
-    currentCycleStartMs == null || clockMs == null ? null : Math.max(0, clockMs - currentCycleStartMs);
+    currentCycleTrust !== 'observed' || currentCycleStartMs == null || clockMs == null
+      ? null
+      : Math.max(0, clockMs - currentCycleStartMs);
   const lastCycleLabel = lastCycleMs == null ? '' : formatCompletedCycle(lastCycleMs);
   const currentCycleLabel = currentCycleMs == null ? '' : formatRunningCycle(currentCycleMs);
+  const isCurrentCycleInProgress = currentCycleTrust === 'observed' || currentCycleTrust === 'inferred';
 
   let summary = 'Waiting for next start';
-  if (lastCycleLabel && currentCycleLabel) {
+  if (lastCycleLabel && currentCycleTrust === 'observed' && currentCycleLabel) {
     summary = `${lastCycleLabel} last | ${currentCycleLabel} run`;
-  } else if (currentCycleLabel) {
+  } else if (lastCycleLabel && currentCycleTrust === 'inferred') {
+    summary = `${lastCycleLabel} last | in progress`;
+  } else if (currentCycleTrust === 'observed' && currentCycleLabel) {
     summary = `${currentCycleLabel} running`;
+  } else if (currentCycleTrust === 'inferred') {
+    summary = 'in progress';
   } else if (lastCycleLabel) {
     summary = `${lastCycleLabel} last`;
   }
@@ -412,7 +421,9 @@ function buildCycleCadence(state, currentObservedMs) {
     currentCycleLabel,
     summary,
     isKnown: lastCycleMs != null,
-    isCurrentCycleActive: currentCycleMs != null,
+    isCurrentCycleActive: isCurrentCycleInProgress,
+    currentCycleTrust,
+    isStartObserved: currentCycleTrust === 'observed',
     currentAnchorMatch: state?.currentMatchKey || '',
     currentAnchorMatchNumber: Number(state?.currentMatchNumber) || 0,
     currentAnchorPlayNumber: Number(state?.currentPlayNumber) || 0,
@@ -431,6 +442,7 @@ function deriveNextCycleCadenceState(currentState, previousMatchStatus, nextMatc
 
   const previousMatchKey = createCycleMatchKey(previousMatchStatus);
   const wasAlreadyInThisAuto =
+    currentState?.currentCycleTrust === 'observed' &&
     Number(previousMatchStatus?.matchState) === MatchStateType.MatchAuto && previousMatchKey === nextMatchKey;
 
   if (wasAlreadyInThisAuto) {
@@ -450,6 +462,24 @@ function deriveNextCycleCadenceState(currentState, previousMatchStatus, nextMatc
     currentMatchKey: nextMatchKey,
     currentMatchNumber: Number(nextMatchStatus.matchNumber) || 0,
     currentPlayNumber: Number(nextMatchStatus.playNumber) || 0,
+    currentCycleTrust: 'observed',
+  };
+}
+
+function reconcileCycleCadenceState(currentState, fetchedMatchStatus) {
+  const fetchedMatchKey = createCycleMatchKey(fetchedMatchStatus);
+
+  if (!fetchedMatchKey || !currentState?.currentMatchKey || fetchedMatchKey === currentState.currentMatchKey) {
+    return currentState;
+  }
+
+  return {
+    ...currentState,
+    currentCycleStartMs: null,
+    currentMatchKey: fetchedMatchKey,
+    currentMatchNumber: Number(fetchedMatchStatus?.matchNumber) || 0,
+    currentPlayNumber: Number(fetchedMatchStatus?.playNumber) || 0,
+    currentCycleTrust: 'inferred',
   };
 }
 
@@ -1007,6 +1037,7 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
   const minBatteryRef = useRef(new Map());
   const brownoutLatchRef = useRef(new Map());
   const currentMatchRef = useRef(null);
+  const isMountedRef = useRef(true);
   const matchStatusRef = useRef(normalizeMatchStatus());
   const recordingStateRef = useRef({
     isRecording: false,
@@ -1026,12 +1057,14 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
   const [stations, setStations] = useState(buildInitialStations);
   const [matchStatus, setMatchStatus] = useState(normalizeMatchStatus());
   const [aheadBehind, setAheadBehind] = useState(createUnknownAheadBehindState);
+  const cycleCadenceStateRef = useRef(createUnknownCycleCadenceState());
   const [cycleCadenceState, setCycleCadenceState] = useState(createUnknownCycleCadenceState);
   const [cycleClockMs, setCycleClockMs] = useState(null);
   const [error, setError] = useState('');
   const [isFieldHubConnected, setIsFieldHubConnected] = useState(false);
   const [isInfrastructureHubConnected, setIsInfrastructureHubConnected] = useState(false);
   const [sourceMode, setSourceMode] = useState(() => (activeReplayRecording ? 'replay' : 'live'));
+  const sourceModeRef = useRef(sourceMode);
   const [replayRecording, setReplayRecording] = useState(() => activeReplayRecording);
   const [replayState, setReplayState] = useState(() => {
     if (!activeReplayRecording) {
@@ -1057,6 +1090,17 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
     lastEventCount: 0,
   });
 
+  useEffect(() => {
+    sourceModeRef.current = sourceMode;
+  }, [sourceMode]);
+
+  useEffect(
+    () => () => {
+      isMountedRef.current = false;
+    },
+    []
+  );
+
   const clearReplayTimer = useCallback(() => {
     if (replayRuntimeRef.current.timeoutId) {
       window.clearTimeout(replayRuntimeRef.current.timeoutId);
@@ -1081,6 +1125,7 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
     brownoutLatchRef.current = new Map();
     currentMatchRef.current = recording?.initialState?.currentMatch ?? null;
     matchStatusRef.current = snapshotMatchStatus;
+    cycleCadenceStateRef.current = createUnknownCycleCadenceState();
     setStations(snapshotStations);
     setMatchStatus(snapshotMatchStatus);
     setAheadBehind(
@@ -1149,13 +1194,71 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
       }
 
       matchStatusRef.current = nextStatus;
-      setCycleCadenceState((current) =>
-        deriveNextCycleCadenceState(current, previousStatus, nextStatus, nextObservedAtMs)
+      const nextCycleState = deriveNextCycleCadenceState(
+        cycleCadenceStateRef.current,
+        previousStatus,
+        nextStatus,
+        nextObservedAtMs
       );
-      setCycleClockMs(nextObservedAtMs);
+      cycleCadenceStateRef.current = nextCycleState;
+      setCycleCadenceState(nextCycleState);
+      setCycleClockMs(nextCycleState.currentCycleTrust === 'observed' ? nextObservedAtMs : null);
       setMatchStatus(nextStatus);
     },
     [recordIncomingEvent]
+  );
+
+  const refreshCurrentMatchContext = useCallback(
+    async ({ shouldReconcileCycle = false, observedAtMs = null } = {}) => {
+      try {
+        const response = await fetch(
+          buildFieldMonitorUrl(baseUrl, '/api/v1.0/fieldMonitor/get/GetCurrentMatchAndPlayNumber')
+        );
+        if (!response.ok) {
+          throw new Error(`Current match request failed with ${response.status}`);
+        }
+
+        const data = await response.json();
+        if (!isMountedRef.current || sourceModeRef.current !== 'live') {
+          return null;
+        }
+
+        currentMatchRef.current = data;
+        const nextMatchStatus = {
+          ...matchStatusRef.current,
+          matchNumber: Number(data.item2) || matchStatusRef.current.matchNumber,
+          playNumber: Number(data.item3) || matchStatusRef.current.playNumber,
+          tournamentLevel: data.item1 || matchStatusRef.current.tournamentLevel,
+        };
+
+        matchStatusRef.current = nextMatchStatus;
+        setMatchStatus((current) => ({
+          ...current,
+          matchNumber: nextMatchStatus.matchNumber,
+          playNumber: nextMatchStatus.playNumber,
+          tournamentLevel: nextMatchStatus.tournamentLevel,
+        }));
+
+        const nextCycleState = shouldReconcileCycle
+          ? reconcileCycleCadenceState(cycleCadenceStateRef.current, nextMatchStatus)
+          : cycleCadenceStateRef.current;
+
+        if (nextCycleState !== cycleCadenceStateRef.current) {
+          cycleCadenceStateRef.current = nextCycleState;
+          setCycleCadenceState(nextCycleState);
+        }
+
+        const nextObservedAtMs = Number.isFinite(observedAtMs) ? observedAtMs : Date.now();
+        setCycleClockMs(nextCycleState.currentCycleTrust === 'observed' ? nextObservedAtMs : null);
+        return data;
+      } catch (fetchError) {
+        if (isMountedRef.current && sourceModeRef.current === 'live') {
+          setError(fetchError instanceof Error ? fetchError.message : 'Unable to fetch current match');
+        }
+        return null;
+      }
+    },
+    [baseUrl]
   );
 
   const applyAheadBehind = useCallback(
@@ -1437,6 +1540,7 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
     minBatteryRef.current.clear();
     currentMatchRef.current = null;
     matchStatusRef.current = normalizeMatchStatus();
+    cycleCadenceStateRef.current = createUnknownCycleCadenceState();
     setReplayRecording(null);
     setReplayState(createDefaultReplayState());
     setSourceMode('live');
@@ -1455,46 +1559,10 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
       return undefined;
     }
 
-    let isCancelled = false;
+    void refreshCurrentMatchContext();
 
-    async function fetchCurrentMatch() {
-      try {
-        const response = await fetch(
-          buildFieldMonitorUrl(baseUrl, '/api/v1.0/fieldMonitor/get/GetCurrentMatchAndPlayNumber')
-        );
-        if (!response.ok) {
-          throw new Error(`Current match request failed with ${response.status}`);
-        }
-
-        const data = await response.json();
-        if (isCancelled) return;
-        currentMatchRef.current = data;
-
-        setMatchStatus((current) => ({
-          ...current,
-          matchNumber: Number(data.item2) || current.matchNumber,
-          playNumber: Number(data.item3) || current.playNumber,
-          tournamentLevel: data.item1 || current.tournamentLevel,
-        }));
-        matchStatusRef.current = {
-          ...matchStatusRef.current,
-          matchNumber: Number(data.item2) || matchStatusRef.current.matchNumber,
-          playNumber: Number(data.item3) || matchStatusRef.current.playNumber,
-          tournamentLevel: data.item1 || matchStatusRef.current.tournamentLevel,
-        };
-      } catch (fetchError) {
-        if (!isCancelled) {
-          setError(fetchError instanceof Error ? fetchError.message : 'Unable to fetch current match');
-        }
-      }
-    }
-
-    fetchCurrentMatch();
-
-    return () => {
-      isCancelled = true;
-    };
-  }, [baseUrl, sourceMode]);
+    return undefined;
+  }, [refreshCurrentMatchContext, sourceMode]);
 
   useEffect(() => {
     if (sourceMode !== 'live') {
@@ -1535,6 +1603,7 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
     infrastructureHub.onreconnected(() => {
       if (isMounted) {
         setIsInfrastructureHubConnected(true);
+        void refreshCurrentMatchContext({ shouldReconcileCycle: true, observedAtMs: Date.now() });
       }
     });
 
@@ -1582,7 +1651,39 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
       fieldHub.stop();
       infrastructureHub.stop();
     };
-  }, [applyAheadBehind, applyMatchStatus, applyStationData, baseUrl, hubConnectionFactory, sourceMode]);
+  }, [
+    applyAheadBehind,
+    applyMatchStatus,
+    applyStationData,
+    baseUrl,
+    hubConnectionFactory,
+    refreshCurrentMatchContext,
+    sourceMode,
+  ]);
+
+  useEffect(() => {
+    if (sourceMode !== 'live' || typeof document === 'undefined' || typeof window === 'undefined') {
+      return undefined;
+    }
+
+    const refreshForResume = () => {
+      void refreshCurrentMatchContext({ shouldReconcileCycle: true, observedAtMs: Date.now() });
+    };
+
+    const handleVisibilityChange = () => {
+      if (!document.hidden) {
+        refreshForResume();
+      }
+    };
+
+    window.addEventListener('focus', refreshForResume);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', refreshForResume);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    };
+  }, [refreshCurrentMatchContext, sourceMode]);
 
   useEffect(() => {
     if (
