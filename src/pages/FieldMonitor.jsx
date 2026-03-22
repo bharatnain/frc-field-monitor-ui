@@ -41,11 +41,11 @@ function TopBarStat({ label, value, align = 'left', className = '', valueClassNa
 
   return (
     <div className={`flex min-w-0 flex-col gap-0.5 ${textAlignmentClass} ${className}`}>
-      <div className="min-w-0 text-[7px] font-semibold uppercase leading-none tracking-[0.12em] text-zinc-500 [@media(max-width:380px)]:text-[6px] sm:text-[9px] [@media(min-width:1200px)_and_(max-height:860px)]:text-[8px] [@media(min-width:1200px)_and_(max-height:720px)]:text-[7px]">
+      <div className="min-w-0 text-[7px] font-semibold uppercase leading-none tracking-[0.12em] text-zinc-500 [@media(max-width:380px)]:text-[6px] sm:text-[9px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[8px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[7px]">
         {label}
       </div>
       <div
-        className={`min-w-0 truncate text-[11px] font-bold leading-none tracking-[-0.02em] text-zinc-900 [@media(max-width:380px)]:text-[10px] sm:text-[15px] [@media(min-width:1200px)_and_(max-height:860px)]:text-[13px] [@media(min-width:1200px)_and_(max-height:720px)]:text-[11px] ${valueClassName}`}
+        className={`min-w-0 truncate text-[11px] font-bold leading-none tracking-[-0.02em] text-zinc-900 [@media(max-width:380px)]:text-[10px] sm:text-[15px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[13px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[11px] ${valueClassName}`}
       >
         {value}
       </div>
@@ -133,10 +133,10 @@ export default function FieldMonitor() {
         }}
       />
 
-      <div className="shrink-0 px-3 pb-1 pt-2 [@media(min-width:1200px)_and_(max-height:860px)]:px-2.5 [@media(min-width:1200px)_and_(max-height:860px)]:pt-1.5 [@media(min-width:1200px)_and_(max-height:720px)]:px-2 [@media(min-width:1200px)_and_(max-height:720px)]:pt-1">
+      <div className="shrink-0 px-3 pb-1 pt-2 lg:px-4 lg:pb-1.5 lg:pt-2.5 [@media(min-width:1024px)_and_(max-height:860px)]:px-2.5 [@media(min-width:1024px)_and_(max-height:860px)]:pt-1.5 [@media(min-width:1024px)_and_(max-height:720px)]:px-2 [@media(min-width:1024px)_and_(max-height:720px)]:pt-1">
         <div
           data-testid="field-monitor-topbar"
-          className="rounded-[22px] bg-white px-3 py-1.5 shadow-sm ring-1 ring-zinc-200 [@media(max-width:380px)]:px-2 [@media(max-width:380px)]:py-1.5 [@media(min-width:1200px)_and_(max-height:860px)]:px-2.5 [@media(min-width:1200px)_and_(max-height:860px)]:py-1 [@media(min-width:1200px)_and_(max-height:720px)]:px-2 [@media(min-width:1200px)_and_(max-height:720px)]:py-0.5"
+          className="rounded-[22px] bg-white px-3 py-1.5 shadow-sm ring-1 ring-zinc-200 [@media(max-width:380px)]:px-2 [@media(max-width:380px)]:py-1.5 lg:px-4 lg:py-2 [@media(min-width:1024px)_and_(max-height:860px)]:px-2.5 [@media(min-width:1024px)_and_(max-height:860px)]:py-1 [@media(min-width:1024px)_and_(max-height:720px)]:px-2 [@media(min-width:1024px)_and_(max-height:720px)]:py-0.5"
         >
           <div className="flex items-start justify-between gap-3 [@media(max-width:380px)]:gap-2 sm:grid sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.25fr)_minmax(0,0.85fr)] sm:items-end sm:gap-3">
             <TopBarStat
@@ -149,7 +149,7 @@ export default function FieldMonitor() {
               value={matchStatus.matchStateMessage}
               align="right"
               className="max-w-[58%] flex-1 sm:max-w-none sm:flex-none sm:items-center sm:text-center"
-              valueClassName="text-[10px] [@media(max-width:380px)]:text-[9px] sm:text-[14px] [@media(min-width:1200px)_and_(max-height:860px)]:text-[12px] [@media(min-width:1200px)_and_(max-height:720px)]:text-[10px]"
+              valueClassName="text-[10px] [@media(max-width:380px)]:text-[9px] sm:text-[14px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[12px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[10px]"
             />
             <div className="hidden min-w-0 sm:flex sm:min-w-0 sm:items-start sm:justify-end sm:gap-3">
               <TopBarStat
@@ -157,14 +157,14 @@ export default function FieldMonitor() {
                 value={scheduleStatus}
                 align="right"
                 className="min-w-0 flex-1"
-                valueClassName="text-[10px] [@media(max-width:380px)]:text-[9px] sm:text-[13px] [@media(min-width:1200px)_and_(max-height:860px)]:text-[11px] [@media(min-width:1200px)_and_(max-height:720px)]:text-[10px]"
+                valueClassName="text-[10px] [@media(max-width:380px)]:text-[9px] sm:text-[13px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[11px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[10px]"
               />
               <TopBarStat
                 label="Cycle"
                 value={cycleCadence.summary}
                 align="right"
                 className="min-w-0 flex-1"
-                valueClassName="text-[9px] [@media(max-width:380px)]:text-[8px] sm:text-[12px] [@media(min-width:1200px)_and_(max-height:860px)]:text-[11px] [@media(min-width:1200px)_and_(max-height:720px)]:text-[9px]"
+                valueClassName="text-[9px] [@media(max-width:380px)]:text-[8px] sm:text-[12px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[11px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[9px]"
               />
             </div>
           </div>
@@ -174,14 +174,14 @@ export default function FieldMonitor() {
                 label="Schedule Status"
                 value={scheduleStatus}
                 className="min-w-0 flex-1"
-                valueClassName="text-[10px] [@media(max-width:380px)]:text-[9px] sm:text-[14px] [@media(min-width:1200px)_and_(max-height:860px)]:text-[12px] [@media(min-width:1200px)_and_(max-height:720px)]:text-[10px]"
+                valueClassName="text-[10px] [@media(max-width:380px)]:text-[9px] sm:text-[14px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[12px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[10px]"
               />
               <TopBarStat
                 label="Cycle"
                 value={cycleCadence.summary}
                 align="right"
                 className="min-w-0 flex-1"
-                valueClassName="text-[9px] [@media(max-width:380px)]:text-[8px] sm:text-[14px] [@media(min-width:1200px)_and_(max-height:860px)]:text-[12px] [@media(min-width:1200px)_and_(max-height:720px)]:text-[10px]"
+                valueClassName="text-[9px] [@media(max-width:380px)]:text-[8px] sm:text-[14px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[12px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[10px]"
               />
             </div>
           </div>
@@ -190,7 +190,7 @@ export default function FieldMonitor() {
 
       <div
         data-testid="field-monitor-content"
-        className={`flex min-h-0 flex-1 flex-col overflow-y-auto [@media(min-width:1200px)]:flex-row ${
+        className={`flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row ${
           showReplayOverlay ? 'pb-[calc(8rem+env(safe-area-inset-bottom))] sm:pb-32' : ''
         }`}
       >
@@ -199,14 +199,14 @@ export default function FieldMonitor() {
           return (
             <div
               key={`distance-${panel.alliance}`}
-              className="relative flex w-full min-w-0 flex-none p-[3px] [@media(max-width:380px)]:p-[2px] [@media(min-width:1200px)]:flex-1 [@media(min-width:1200px)_and_(max-height:860px)]:p-1 [@media(min-width:1200px)_and_(max-height:720px)]:p-0.5"
+              className="relative flex w-full min-w-0 flex-none p-[3px] [@media(max-width:380px)]:p-[2px] lg:flex-1 [@media(min-width:1024px)_and_(max-height:860px)]:p-1 [@media(min-width:1024px)_and_(max-height:720px)]:p-0.5"
             >
               <div
                 className={`pointer-events-none absolute inset-[3px] rounded-[20px] [@media(max-width:380px)]:inset-[2px] [@media(max-width:380px)]:rounded-[18px] sm:inset-1.5 sm:rounded-[28px] ${theme.backplate} ${theme.panelGlow}`}
               />
               <div
                 data-testid="alliance-panel-grid"
-                className="grid min-h-0 flex-1 auto-rows-max gap-1 p-1 [@media(max-width:380px)]:gap-0.5 [@media(max-width:380px)]:p-0.5 sm:gap-2 sm:p-2.5 [@media(min-width:1200px)]:h-full [@media(min-width:1200px)]:grid-rows-3 [@media(min-width:1200px)_and_(max-height:860px)]:gap-2 [@media(min-width:1200px)_and_(max-height:860px)]:p-2 [@media(min-width:1200px)_and_(max-height:720px)]:gap-1.5 [@media(min-width:1200px)_and_(max-height:720px)]:p-1.5"
+                className="grid min-h-0 flex-1 auto-rows-max gap-1 p-1 [@media(max-width:380px)]:gap-0.5 [@media(max-width:380px)]:p-0.5 sm:gap-2 sm:p-2.5 lg:h-full lg:grid-rows-3 [@media(min-width:1024px)_and_(max-height:860px)]:gap-2 [@media(min-width:1024px)_and_(max-height:860px)]:p-2 [@media(min-width:1024px)_and_(max-height:720px)]:gap-1.5 [@media(min-width:1024px)_and_(max-height:720px)]:p-1.5"
               >
                 {panel.rows.map((row) => (
                   <TeamStatusCard

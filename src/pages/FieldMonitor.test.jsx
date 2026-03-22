@@ -284,12 +284,12 @@ describe('FieldMonitor', () => {
     expect(mobileConnectionLayout).toHaveClass(
       'grid-cols-[minmax(0,1fr)_10px_minmax(0,1fr)_10px_minmax(0,1fr)]',
       '[@media(max-width:380px)]:grid-cols-[minmax(0,1fr)_8px_minmax(0,1fr)_8px_minmax(0,1fr)]',
-      'sm:hidden'
+      'lg:hidden'
     );
     expect(mobileConnectionChips).toHaveLength(6);
     expect(connectionLayout).toHaveClass(
       'hidden',
-      'sm:grid',
+      'lg:grid',
       'grid-cols-[minmax(0,1fr)_22px_minmax(0,1fr)_22px_minmax(0,1fr)]'
     );
     expect(topBar).toHaveClass('px-3', 'py-1.5', '[@media(max-width:380px)]:px-2', '[@media(max-width:380px)]:py-1.5');
@@ -300,9 +300,9 @@ describe('FieldMonitor', () => {
       'min-h-0',
       'content-start',
       'grid-rows-[auto_auto_auto]',
-      'sm:grid-rows-[auto_minmax(0,1fr)_auto]',
-      'sm:min-h-[220px]',
-      'sm:content-stretch'
+      'md:grid-rows-[auto_minmax(0,1fr)_auto]',
+      'md:min-h-[180px]',
+      'md:content-stretch'
     );
     expect(rowHeader).toHaveClass('pt-1', 'min-[381px]:max-sm:pt-0.5', '[@media(max-width:380px)]:pt-0.5');
     expect(mobileConnectionLayout).toHaveClass('min-[381px]:max-sm:gap-0.5', '[@media(max-width:380px)]:pb-0');
@@ -315,12 +315,12 @@ describe('FieldMonitor', () => {
     expect(mobileSummaries).toHaveLength(2);
     expect(footerGrid).toHaveClass(
       'hidden',
-      'sm:grid',
-      'sm:grid-cols-[minmax(0,1fr)_22px_minmax(0,1fr)_22px_minmax(0,1fr)]'
+      'lg:grid',
+      'lg:grid-cols-[minmax(0,1fr)_22px_minmax(0,1fr)_22px_minmax(0,1fr)]'
     );
     expect(metricsGrid).toHaveClass(
       'grid-cols-2',
-      'sm:col-[3/6]',
+      'lg:col-[3/6]',
       '[@media(min-width:440px)]:grid-cols-3'
     );
   });
@@ -330,8 +330,8 @@ describe('FieldMonitor', () => {
     const [panelGrid] = screen.getAllByTestId('alliance-panel-grid');
     const firstRowCard = container.querySelector('[data-testid="connection-layout"]')?.closest('.relative');
 
-    expect(panelGrid).toHaveClass('[@media(min-width:1200px)]:h-full', '[@media(min-width:1200px)]:grid-rows-3');
-    expect(firstRowCard).toHaveClass('[@media(min-width:1200px)]:h-full');
+    expect(panelGrid).toHaveClass('lg:h-full', 'lg:grid-rows-3');
+    expect(firstRowCard).toHaveClass('lg:h-full');
   });
 
   it('keeps the whitespace-only compaction scoped to mobile framing and chrome', () => {
@@ -355,24 +355,24 @@ describe('FieldMonitor', () => {
     const footerGrid = metricsGrid.parentElement;
 
     expect(connectionLayout).toHaveClass(
-      '[@media(min-width:1200px)_and_(max-height:860px)]:gap-1.5',
-      '[@media(min-width:1200px)_and_(max-height:720px)]:gap-1'
+      '[@media(min-width:1024px)_and_(max-height:860px)]:gap-1.5',
+      '[@media(min-width:1024px)_and_(max-height:720px)]:gap-1'
     );
     expect(connectionSection).not.toHaveClass(
-      '[@media(min-width:1200px)_and_(max-height:860px)]:min-h-[94px]',
-      '[@media(min-width:1200px)_and_(max-height:720px)]:min-h-[78px]'
+      '[@media(min-width:1024px)_and_(max-height:860px)]:min-h-[94px]',
+      '[@media(min-width:1024px)_and_(max-height:720px)]:min-h-[78px]'
     );
     expect(rowCard).toHaveClass(
-      '[@media(min-width:1200px)_and_(max-height:860px)]:min-h-[172px]',
-      '[@media(min-width:1200px)_and_(max-height:720px)]:min-h-[148px]',
-      '[@media(min-width:1200px)]:grid-rows-[auto_minmax(0,1fr)_minmax(64px,auto)]',
-      '[@media(min-width:1200px)_and_(max-height:860px)]:grid-rows-[auto_minmax(0,1fr)_minmax(52px,auto)]',
-      '[@media(min-width:1200px)_and_(max-height:720px)]:grid-rows-[auto_minmax(0,1fr)_minmax(44px,auto)]'
+      '[@media(min-width:1024px)_and_(max-height:860px)]:min-h-[172px]',
+      '[@media(min-width:1024px)_and_(max-height:720px)]:min-h-[148px]',
+      'lg:grid-rows-[auto_minmax(0,1fr)_minmax(64px,auto)]',
+      '[@media(min-width:1024px)_and_(max-height:860px)]:grid-rows-[auto_minmax(0,1fr)_minmax(52px,auto)]',
+      '[@media(min-width:1024px)_and_(max-height:720px)]:grid-rows-[auto_minmax(0,1fr)_minmax(44px,auto)]'
     );
     expect(footerGrid).toHaveClass(
-      'sm:min-h-[64px]',
-      '[@media(min-width:1200px)_and_(max-height:860px)]:sm:min-h-[48px]',
-      '[@media(min-width:1200px)_and_(max-height:720px)]:sm:min-h-[40px]'
+      'lg:min-h-[64px]',
+      '[@media(min-width:1024px)_and_(max-height:860px)]:lg:min-h-[48px]',
+      '[@media(min-width:1024px)_and_(max-height:720px)]:lg:min-h-[40px]'
     );
   });
 
