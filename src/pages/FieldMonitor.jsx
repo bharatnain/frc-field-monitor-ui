@@ -61,7 +61,7 @@ export default function FieldMonitor() {
   const [viewportHeight, setViewportHeight] = useState(() =>
     typeof window === 'undefined' ? null : window.visualViewport?.height ?? window.innerHeight
   );
-  const { alliancePanels: distancePanels, matchStatus, scheduleStatus, sourceMode, replay, error } =
+  const { alliancePanels: distancePanels, matchStatus, scheduleStatus, cycleCadence, sourceMode, replay, error } =
     useFieldMonitorLiveData({
       mirrorLayout,
     });
@@ -151,21 +151,39 @@ export default function FieldMonitor() {
               className="max-w-[58%] flex-1 sm:max-w-none sm:flex-none sm:items-center sm:text-center"
               valueClassName="text-[10px] [@media(max-width:380px)]:text-[9px] sm:text-[14px] [@media(min-width:1200px)_and_(max-height:860px)]:text-[12px] [@media(min-width:1200px)_and_(max-height:720px)]:text-[10px]"
             />
-            <TopBarStat
-              label="Schedule Status"
-              value={scheduleStatus}
-              align="right"
-              className="hidden sm:flex"
-              valueClassName="text-[10px] [@media(max-width:380px)]:text-[9px] sm:text-[14px] [@media(min-width:1200px)_and_(max-height:860px)]:text-[12px] [@media(min-width:1200px)_and_(max-height:720px)]:text-[10px]"
-            />
+            <div className="hidden min-w-0 sm:flex sm:min-w-0 sm:items-start sm:justify-end sm:gap-3">
+              <TopBarStat
+                label="Schedule Status"
+                value={scheduleStatus}
+                align="right"
+                className="min-w-0 flex-1"
+                valueClassName="text-[10px] [@media(max-width:380px)]:text-[9px] sm:text-[13px] [@media(min-width:1200px)_and_(max-height:860px)]:text-[11px] [@media(min-width:1200px)_and_(max-height:720px)]:text-[10px]"
+              />
+              <TopBarStat
+                label="Cycle"
+                value={cycleCadence.summary}
+                align="right"
+                className="min-w-0 flex-1"
+                valueClassName="text-[9px] [@media(max-width:380px)]:text-[8px] sm:text-[12px] [@media(min-width:1200px)_and_(max-height:860px)]:text-[11px] [@media(min-width:1200px)_and_(max-height:720px)]:text-[9px]"
+              />
+            </div>
           </div>
           <div className="mt-1 border-t border-zinc-100 pt-1 sm:hidden">
-            <TopBarStat
-              label="Schedule Status"
-              value={scheduleStatus}
-              align="center"
-              valueClassName="text-[10px] [@media(max-width:380px)]:text-[9px] sm:text-[14px] [@media(min-width:1200px)_and_(max-height:860px)]:text-[12px] [@media(min-width:1200px)_and_(max-height:720px)]:text-[10px]"
-            />
+            <div className="flex items-start justify-between gap-3 [@media(max-width:380px)]:gap-2">
+              <TopBarStat
+                label="Schedule Status"
+                value={scheduleStatus}
+                className="min-w-0 flex-1"
+                valueClassName="text-[10px] [@media(max-width:380px)]:text-[9px] sm:text-[14px] [@media(min-width:1200px)_and_(max-height:860px)]:text-[12px] [@media(min-width:1200px)_and_(max-height:720px)]:text-[10px]"
+              />
+              <TopBarStat
+                label="Cycle"
+                value={cycleCadence.summary}
+                align="right"
+                className="min-w-0 flex-1"
+                valueClassName="text-[9px] [@media(max-width:380px)]:text-[8px] sm:text-[14px] [@media(min-width:1200px)_and_(max-height:860px)]:text-[12px] [@media(min-width:1200px)_and_(max-height:720px)]:text-[10px]"
+              />
+            </div>
           </div>
         </div>
       </div>

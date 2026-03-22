@@ -12,6 +12,7 @@ This repo also includes a small Node proxy for environments where the upstream f
 ## What It Does
 
 - Renders all 6 stations in a live red-vs-blue alliance layout.
+- Shows top-bar match context including `Match Number`, `Match Status`, `Schedule Status`, and a neutral `Cycle` cadence summary.
 - Keeps the diagnostic chain explicit as `DS -> Radio -> RIO`.
 - Surfaces blocking states such as `TEAM MISMATCH` and `MOVE TO ...`.
 - Shows robot mode, battery, bandwidth, trip time, and packet loss at the same time.
@@ -99,11 +100,41 @@ The proxy serves the built app from `dist` and forwards these live endpoints:
 
 If `VITE_FIELD_MONITOR_BASE_URL` is not set, the client falls back to same-origin URLs. That makes proxy mode work naturally when the app is served by the internal Node server.
 
+Important operational note:
+
+- `npm run dev` serves the latest source changes on the Vite dev server, typically `:5173`.
+- `npm start` serves the built app from `dist` through the proxy, typically `:3000`.
+- If you change the UI and want to see those updates in proxy mode, run `npm run build` again before restarting `npm start`.
+
 ## Live And Replay Workflow
 
 ### Live Monitor
 
 The main monitor is optimized for fullscreen field use in both `16:9` and `4:3`. It keeps team number and station location prominent while making exceptions stand out more than healthy rows.
+
+### Top Bar
+
+The field monitor top bar summarizes match-level context that helps the FTA scan the field state before looking down into individual stations.
+
+It currently shows:
+
+- `Match Number` for the currently active match
+- `Match Status` from FMS match-state transitions
+- `Schedule Status` from FMS ahead/behind text when available
+- `Cycle` as a neutral cadence indicator
+
+The `Cycle` indicator is intentionally descriptive rather than judgmental:
+
+- Before enough data exists: `Waiting for next start`
+- During a running cycle: `0:37 running`
+- After at least one completed cycle: `8m last | 0:12 run`
+
+Cycle timing is derived from the time between distinct `MatchAuto` starts. The completed cycle is shown in a compact minute-based form, while the running cycle includes seconds.
+
+The top bar is also responsive:
+
+- On wider layouts, `Schedule Status` and `Cycle` share the right side of the top row.
+- On smaller layouts, they move into the second line of the same top bar.
 
 ### Mirror Layout
 
@@ -121,8 +152,12 @@ You can load a saved recording from `/config` or directly from the main monitor.
 - Restart
 - Playback speed control
 - Return to live mode
+- A replay clock in `M:SS.t` format
+- Loading directly from the main monitor with `Alt+L`
+- A fixed bottom replay overlay on the main monitor while replay is active
+- Local replay load error handling with a dismiss action when a replay file cannot be opened
 
-On the main monitor, `Alt+L` opens the replay file picker.
+On the main monitor, `Alt+L` opens the replay file picker. While replay is active, the field monitor adds bottom padding so the replay controls do not cover the station grid.
 
 ## Scripts
 
@@ -185,7 +220,7 @@ server/
 
 ## Architecture Notes
 
-- `src/lib/fieldMonitorLive.js` owns the live SignalR connections, data normalization, panel building, recording, and replay runtime.
+- `src/lib/fieldMonitorLive.js` owns the live SignalR connections, data normalization, panel building, top-bar cycle cadence state, recording, and replay runtime.
 - `src/pages/FieldMonitor.jsx` is the primary operational screen.
 - `src/pages/config.tsx` exposes recorder and replay controls against the same underlying data model.
 - `server/index.js` serves production builds and proxies live field traffic when direct browser access is unavailable.

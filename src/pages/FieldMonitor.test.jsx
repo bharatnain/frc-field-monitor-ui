@@ -57,14 +57,26 @@ function createHookState(overrides = {}) {
 
   return {
     alliancePanels: [
-      { alliance: 'red', title: 'Red Alliance', rows: [createRow()] },
       { alliance: 'blue', title: 'Blue Alliance', rows: [createRow({ team: '1114' })] },
+      { alliance: 'red', title: 'Red Alliance', rows: [createRow()] },
     ],
     matchStatus: {
       matchNumber: 42,
       matchStateMessage: 'Teleop',
     },
     scheduleStatus: 'On schedule',
+    cycleCadence: {
+      lastCycleMs: null,
+      currentCycleMs: null,
+      lastCycleLabel: '',
+      currentCycleLabel: '',
+      summary: 'Waiting for next start',
+      isKnown: false,
+      isCurrentCycleActive: false,
+      currentAnchorMatch: '',
+      currentAnchorMatchNumber: 0,
+      currentAnchorPlayNumber: 0,
+    },
     sourceMode: 'live',
     error: '',
     ...overrides,
@@ -101,7 +113,9 @@ describe('FieldMonitor', () => {
 
     expect(screen.getByText('Match Number')).toBeInTheDocument();
     expect(screen.getByText('M42')).toBeInTheDocument();
-    expect(screen.getByText('Schedule Status')).toBeInTheDocument();
+    expect(screen.getAllByText('Schedule Status')).toHaveLength(2);
+    expect(screen.getAllByText('Cycle')).toHaveLength(2);
+    expect(screen.getAllByText('Waiting for next start')).toHaveLength(2);
     expect(screen.getByText('254')).toBeInTheDocument();
     expect(screen.getByText('1114')).toBeInTheDocument();
     expect(mockUseFieldMonitorLiveData).toHaveBeenCalledWith({ mirrorLayout: true });
@@ -279,13 +293,8 @@ describe('FieldMonitor', () => {
       'sm:grid',
       'grid-cols-[minmax(0,1fr)_22px_minmax(0,1fr)_22px_minmax(0,1fr)]'
     );
-    expect(topBar).toHaveClass(
-      'grid-cols-2',
-      '[@media(max-width:380px)]:px-1.5',
-      '[@media(max-width:380px)]:py-0.5',
-      'md:grid-cols-3'
-    );
-    expect(topBar.lastElementChild).toHaveClass('col-span-2', 'md:col-span-1');
+    expect(topBar).toHaveClass('px-3', 'py-1.5', '[@media(max-width:380px)]:px-2', '[@media(max-width:380px)]:py-1.5');
+    expect(topBar.lastElementChild).toHaveClass('mt-1', 'border-t', 'border-zinc-100', 'pt-1', 'sm:hidden');
     expect(rowHeader).toHaveClass('flex-nowrap', 'sm:flex-wrap');
     expect(rowHeaderPrimary).toHaveClass('flex-1', 'flex-nowrap', 'sm:flex-wrap');
     expect(firstRowCard).toHaveClass(

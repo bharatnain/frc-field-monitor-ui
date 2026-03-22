@@ -66,6 +66,40 @@ the UI may expose this with a mirror layout toggle or query param such as mirror
 
 when mirrored, the red alliance panel should also reverse its station card order so the displayed driver stations still read 1 2 3 from the perspective of someone standing behind the driver station wall
 
+Global header context
+
+Above the six team rows, the screen can include a compact global header for match level context.
+
+This header is not meant to replace row triage. It gives the FTA quick orientation before they scan into team level exceptions.
+
+Header elements
+
+Match Number
+
+Match Status
+
+Schedule Status
+
+Cycle
+
+Cycle meaning
+
+Cycle is a neutral cadence indicator, not a judgment or an attempt to define the one correct turnaround time for an event.
+
+It should help the FTA understand match start to match start tempo using objective FMS state transitions.
+
+The preferred anchor is time between distinct MatchAuto starts for consecutive matches.
+
+This allows the display to show
+
+running cycle time with seconds, such as 4:12 running
+
+most recent completed cycle in compact form, such as 8m last
+
+combined summary when both are known, such as 8m last | 0:15 run
+
+If a completed cycle does not yet exist, neutral waiting text is acceptable.
+
 Core data model
 
 Each row is fundamentally
@@ -942,7 +976,7 @@ no trend graphs were assumed
 
 updates every 0.5 seconds via SignalR
 
-implemented in Angular
+implemented in React with Vite
 
 flexible layout is important
 

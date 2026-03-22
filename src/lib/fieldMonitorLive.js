@@ -354,6 +354,105 @@ function coerceAheadBehindSnapshot(rawValue, rawKnown) {
   return createUnknownAheadBehindState();
 }
 
+function createUnknownCycleCadenceState() {
+  return {
+    lastCycleMs: null,
+    currentCycleStartMs: null,
+    currentMatchKey: '',
+    currentMatchNumber: 0,
+    currentPlayNumber: 0,
+  };
+}
+
+function createCycleMatchKey(matchStatus) {
+  const matchNumber = Number(matchStatus?.matchNumber) || 0;
+
+  if (matchNumber <= 0) {
+    return '';
+  }
+
+  return `${matchNumber}:${Number(matchStatus?.playNumber) || 0}`;
+}
+
+function formatCompletedCycle(ms) {
+  const totalMinutes = Math.round((Number(ms) || 0) / 60000);
+  return totalMinutes > 0 ? `${totalMinutes}m` : '<1m';
+}
+
+function formatRunningCycle(ms) {
+  const totalSeconds = Math.max(0, Math.floor((Number(ms) || 0) / 1000));
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
+}
+
+function buildCycleCadence(state, currentObservedMs) {
+  const lastCycleMs = Number.isFinite(state?.lastCycleMs) && state.lastCycleMs >= 0 ? state.lastCycleMs : null;
+  const currentCycleStartMs =
+    Number.isFinite(state?.currentCycleStartMs) && state.currentCycleStartMs >= 0 ? state.currentCycleStartMs : null;
+  const clockMs = Number.isFinite(currentObservedMs) ? currentObservedMs : null;
+  const currentCycleMs =
+    currentCycleStartMs == null || clockMs == null ? null : Math.max(0, clockMs - currentCycleStartMs);
+  const lastCycleLabel = lastCycleMs == null ? '' : formatCompletedCycle(lastCycleMs);
+  const currentCycleLabel = currentCycleMs == null ? '' : formatRunningCycle(currentCycleMs);
+
+  let summary = 'Waiting for next start';
+  if (lastCycleLabel && currentCycleLabel) {
+    summary = `${lastCycleLabel} last | ${currentCycleLabel} run`;
+  } else if (currentCycleLabel) {
+    summary = `${currentCycleLabel} running`;
+  } else if (lastCycleLabel) {
+    summary = `${lastCycleLabel} last`;
+  }
+
+  return {
+    lastCycleMs,
+    currentCycleMs,
+    lastCycleLabel,
+    currentCycleLabel,
+    summary,
+    isKnown: lastCycleMs != null,
+    isCurrentCycleActive: currentCycleMs != null,
+    currentAnchorMatch: state?.currentMatchKey || '',
+    currentAnchorMatchNumber: Number(state?.currentMatchNumber) || 0,
+    currentAnchorPlayNumber: Number(state?.currentPlayNumber) || 0,
+  };
+}
+
+function deriveNextCycleCadenceState(currentState, previousMatchStatus, nextMatchStatus, observedAtMs) {
+  if (Number(nextMatchStatus?.matchState) !== MatchStateType.MatchAuto) {
+    return currentState;
+  }
+
+  const nextMatchKey = createCycleMatchKey(nextMatchStatus);
+  if (!nextMatchKey) {
+    return currentState;
+  }
+
+  const previousMatchKey = createCycleMatchKey(previousMatchStatus);
+  const wasAlreadyInThisAuto =
+    Number(previousMatchStatus?.matchState) === MatchStateType.MatchAuto && previousMatchKey === nextMatchKey;
+
+  if (wasAlreadyInThisAuto) {
+    return currentState;
+  }
+
+  const nextObservedAtMs = Number.isFinite(observedAtMs) ? observedAtMs : 0;
+  const hasPreviousCycleAnchor =
+    Number.isFinite(currentState?.currentCycleStartMs) &&
+    currentState.currentCycleStartMs >= 0 &&
+    currentState.currentMatchKey &&
+    currentState.currentMatchKey !== nextMatchKey;
+
+  return {
+    lastCycleMs: hasPreviousCycleAnchor ? Math.max(0, nextObservedAtMs - currentState.currentCycleStartMs) : currentState.lastCycleMs,
+    currentCycleStartMs: nextObservedAtMs,
+    currentMatchKey: nextMatchKey,
+    currentMatchNumber: Number(nextMatchStatus.matchNumber) || 0,
+    currentPlayNumber: Number(nextMatchStatus.playNumber) || 0,
+  };
+}
+
 function sanitizeFilenamePart(value) {
   return String(value || '')
     .trim()
@@ -886,11 +985,11 @@ export function buildPanels(stations, mirrorLayout, matchStatus) {
   grouped.red.sort((a, b) => a.station - b.station);
   grouped.blue.sort((a, b) => a.station - b.station);
 
-  if (mirrorLayout) {
+  if (!mirrorLayout) {
     grouped.red.reverse();
   }
 
-  const orderedKeys = mirrorLayout ? ['blue', 'red'] : ['red', 'blue'];
+  const orderedKeys = mirrorLayout ? ['red', 'blue'] : ['blue', 'red'];
 
   return orderedKeys.map((alliance) => ({
     alliance,
@@ -908,6 +1007,7 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
   const minBatteryRef = useRef(new Map());
   const brownoutLatchRef = useRef(new Map());
   const currentMatchRef = useRef(null);
+  const matchStatusRef = useRef(normalizeMatchStatus());
   const recordingStateRef = useRef({
     isRecording: false,
     startedAtMs: 0,
@@ -926,6 +1026,8 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
   const [stations, setStations] = useState(buildInitialStations);
   const [matchStatus, setMatchStatus] = useState(normalizeMatchStatus());
   const [aheadBehind, setAheadBehind] = useState(createUnknownAheadBehindState);
+  const [cycleCadenceState, setCycleCadenceState] = useState(createUnknownCycleCadenceState);
+  const [cycleClockMs, setCycleClockMs] = useState(null);
   const [error, setError] = useState('');
   const [isFieldHubConnected, setIsFieldHubConnected] = useState(false);
   const [isInfrastructureHubConnected, setIsInfrastructureHubConnected] = useState(false);
@@ -974,14 +1076,18 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
 
   const applyReplaySnapshot = useCallback((recording) => {
     const snapshotStations = buildStationsFromSnapshot(recording?.initialState?.stations);
+    const snapshotMatchStatus = coerceMatchStatusSnapshot(recording?.initialState?.matchStatus);
     minBatteryRef.current = createMinBatteryMap(snapshotStations);
     brownoutLatchRef.current = new Map();
     currentMatchRef.current = recording?.initialState?.currentMatch ?? null;
+    matchStatusRef.current = snapshotMatchStatus;
     setStations(snapshotStations);
-    setMatchStatus(coerceMatchStatusSnapshot(recording?.initialState?.matchStatus));
+    setMatchStatus(snapshotMatchStatus);
     setAheadBehind(
       coerceAheadBehindSnapshot(recording?.initialState?.aheadBehind, recording?.initialState?.aheadBehindKnown)
     );
+    setCycleCadenceState(createUnknownCycleCadenceState());
+    setCycleClockMs(null);
     setError('');
     setIsFieldHubConnected(false);
     setIsInfrastructureHubConnected(false);
@@ -1026,12 +1132,14 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
   );
 
   const applyMatchStatus = useCallback(
-    (data, { shouldRecord = false } = {}) => {
+    (data, { shouldRecord = false, observedAtMs = null } = {}) => {
       if (shouldRecord) {
         recordIncomingEvent('infrastructureHub', 'matchStatusInfoChanged', data);
       }
 
+      const previousStatus = matchStatusRef.current;
       const nextStatus = normalizeMatchStatus(data);
+      const nextObservedAtMs = Number.isFinite(observedAtMs) ? observedAtMs : Date.now();
       if (
         nextStatus.matchState === MatchStateType.WaitingForPrestart ||
         nextStatus.matchState === MatchStateType.MatchAuto
@@ -1040,6 +1148,11 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
         brownoutLatchRef.current.clear();
       }
 
+      matchStatusRef.current = nextStatus;
+      setCycleCadenceState((current) =>
+        deriveNextCycleCadenceState(current, previousStatus, nextStatus, nextObservedAtMs)
+      );
+      setCycleClockMs(nextObservedAtMs);
       setMatchStatus(nextStatus);
     },
     [recordIncomingEvent]
@@ -1162,7 +1275,7 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
       }
 
       if (entry.source === 'infrastructureHub' && entry.event === 'matchStatusInfoChanged') {
-        applyMatchStatus(entry.payload, { shouldRecord: false });
+        applyMatchStatus(entry.payload, { shouldRecord: false, observedAtMs: Number(entry.t) || 0 });
         return;
       }
 
@@ -1323,12 +1436,15 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
     };
     minBatteryRef.current.clear();
     currentMatchRef.current = null;
+    matchStatusRef.current = normalizeMatchStatus();
     setReplayRecording(null);
     setReplayState(createDefaultReplayState());
     setSourceMode('live');
     setStations(buildInitialStations());
     setMatchStatus(normalizeMatchStatus());
     setAheadBehind(createUnknownAheadBehindState());
+    setCycleCadenceState(createUnknownCycleCadenceState());
+    setCycleClockMs(null);
     setError('');
     setIsFieldHubConnected(false);
     setIsInfrastructureHubConnected(false);
@@ -1360,6 +1476,12 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
           playNumber: Number(data.item3) || current.playNumber,
           tournamentLevel: data.item1 || current.tournamentLevel,
         }));
+        matchStatusRef.current = {
+          ...matchStatusRef.current,
+          matchNumber: Number(data.item2) || matchStatusRef.current.matchNumber,
+          playNumber: Number(data.item3) || matchStatusRef.current.playNumber,
+          tournamentLevel: data.item1 || matchStatusRef.current.tournamentLevel,
+        };
       } catch (fetchError) {
         if (!isCancelled) {
           setError(fetchError instanceof Error ? fetchError.message : 'Unable to fetch current match');
@@ -1392,7 +1514,7 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
 
     function handleMatchStatus(data) {
       if (isMounted) {
-        applyMatchStatus(data, { shouldRecord: true });
+        applyMatchStatus(data, { shouldRecord: true, observedAtMs: Date.now() });
       }
     }
 
@@ -1489,11 +1611,64 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
     };
   }, [clearReplayTimer, replayRecording, replayState.isPlaying, replayState.speed, scheduleReplay, sourceMode]);
 
+  useEffect(() => {
+    if (!Number.isFinite(cycleCadenceState.currentCycleStartMs) || cycleCadenceState.currentCycleStartMs < 0) {
+      setCycleClockMs(null);
+      return undefined;
+    }
+
+    const readClockMs = () => {
+      if (sourceMode === 'replay') {
+        if (!replayState.isPlaying) {
+          return replayState.currentTimeMs;
+        }
+
+        return Math.min(getCurrentReplayPositionMs(), replayState.durationMs);
+      }
+
+      return Date.now();
+    };
+
+    const updateClock = () => {
+      setCycleClockMs(readClockMs());
+    };
+
+    updateClock();
+
+    if (sourceMode === 'replay' && !replayState.isPlaying) {
+      return undefined;
+    }
+
+    const intervalId = window.setInterval(updateClock, 1000);
+    return () => {
+      window.clearInterval(intervalId);
+    };
+  }, [
+    cycleCadenceState.currentCycleStartMs,
+    getCurrentReplayPositionMs,
+    replayState.currentTimeMs,
+    replayState.durationMs,
+    replayState.isPlaying,
+    sourceMode,
+  ]);
+
   const alliancePanels = useMemo(
     () => buildPanels(stations, mirrorLayout, matchStatus),
     [matchStatus, mirrorLayout, stations]
   );
   const scheduleStatus = aheadBehind.isKnown ? aheadBehind.text || 'On schedule' : 'Unknown';
+  const cycleCadence = useMemo(
+    () =>
+      buildCycleCadence(
+        cycleCadenceState,
+        Number.isFinite(cycleClockMs)
+          ? cycleClockMs
+          : sourceMode === 'replay'
+            ? replayState.currentTimeMs
+            : Date.now()
+      ),
+    [cycleCadenceState, cycleClockMs, replayState.currentTimeMs, sourceMode]
+  );
 
   return {
     sourceMode,
@@ -1502,6 +1677,7 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
     aheadBehind: aheadBehind.text,
     isAheadBehindKnown: aheadBehind.isKnown,
     scheduleStatus,
+    cycleCadence,
     error,
     isConnected: sourceMode === 'live' && isFieldHubConnected && isInfrastructureHubConnected,
     hasLiveData: stations.some((station) => station.teamNumber > 0),

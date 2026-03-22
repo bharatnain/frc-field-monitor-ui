@@ -63,6 +63,7 @@ describe('useFieldMonitorLiveData', () => {
 
   afterEach(() => {
     resetFieldMonitorLiveTestState();
+    vi.useRealTimers();
     if (originalBaseUrl === undefined) {
       delete import.meta.env.VITE_FIELD_MONITOR_BASE_URL;
       return;
@@ -111,7 +112,9 @@ describe('useFieldMonitorLiveData', () => {
 
     expect(result.current.scheduleStatus).toBe('Ahead by 1');
     expect(result.current.matchStatus.matchNumber).toBe(42);
-    expect(result.current.alliancePanels[0].rows[0]).toMatchObject({
+    expect(result.current.alliancePanels.map((panel) => panel.alliance)).toEqual(['blue', 'red']);
+    expect(result.current.alliancePanels[1].rows.map((row) => row.station)).toEqual(['Stn 3', 'Stn 2', 'Stn 1']);
+    expect(result.current.alliancePanels[1].rows[2]).toMatchObject({
       team: '254',
       station: 'Stn 1',
     });
@@ -239,6 +242,77 @@ describe('useFieldMonitorLiveData', () => {
     expect(recording.meta.label).toBe('qm-42');
     expect(recording.events).toHaveLength(2);
     expect(recording.events[0].event).toBe('fieldMonitorDataChanged');
+  });
+
+  it('tracks completed and running cycle cadence from distinct match auto starts', async () => {
+    const hubFactory = createFakeHubFactory();
+    const { result } = renderHook(() =>
+      useFieldMonitorLiveData({
+        hubConnectionFactory: hubFactory.factory,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.isConnected).toBe(true);
+    });
+
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2024, 0, 2, 3, 4, 5));
+
+    const infrastructureHub = hubFactory.getHubByName('infrastructureHub');
+
+    act(() => {
+      infrastructureHub.emit('matchStatusInfoChanged', {
+        MatchState: MatchStateType.MatchAuto,
+        MatchNumber: 42,
+        PlayNumber: 1,
+        TournamentLevel: 'Qualification',
+      });
+    });
+
+    expect(result.current.cycleCadence.currentCycleLabel).toBe('0:00');
+    expect(result.current.cycleCadence.summary).toBe('0:00 running');
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(4000);
+    });
+
+    expect(result.current.cycleCadence.currentCycleLabel).toBe('0:04');
+
+    act(() => {
+      infrastructureHub.emit('matchStatusInfoChanged', {
+        MatchState: MatchStateType.MatchAuto,
+        MatchNumber: 42,
+        PlayNumber: 1,
+        TournamentLevel: 'Qualification',
+      });
+    });
+
+    expect(result.current.cycleCadence.lastCycleMs).toBeNull();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(61 * 1000);
+    });
+
+    act(() => {
+      infrastructureHub.emit('matchStatusInfoChanged', {
+        MatchState: MatchStateType.MatchAuto,
+        MatchNumber: 43,
+        PlayNumber: 1,
+        TournamentLevel: 'Qualification',
+      });
+    });
+
+    expect(result.current.cycleCadence.lastCycleMs).toBe(65 * 1000);
+    expect(result.current.cycleCadence.lastCycleLabel).toBe('1m');
+    expect(result.current.cycleCadence.currentCycleLabel).toBe('0:00');
+    expect(result.current.cycleCadence.summary).toBe('1m last | 0:00 run');
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(5000);
+    });
+
+    expect(result.current.cycleCadence.currentCycleLabel).toBe('0:05');
   });
 
   it('loads replay files, advances through events with fake timers, and returns to live mode', async () => {

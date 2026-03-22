@@ -34,6 +34,35 @@ The screen should help the FTA quickly decide when to:
 - Alliance sides may be swappable in implementation, but the split itself is essential
 - If the UI exposes a mirrored layout, such as `mirror=true`, it should also reverse the Red alliance card order so driver stations still read **1, 2, 3** from behind the driver station wall
 
+## Global Header Context
+The screen also includes a compact global header above the six team rows.
+
+This header provides match-level context that helps the FTA interpret what they are seeing in the rows without turning the screen into a schedule dashboard.
+
+The header should show:
+
+- `Match Number`
+- `Match Status`
+- `Schedule Status`
+- `Cycle`
+
+### Cycle
+`Cycle` is a neutral cadence indicator, not a judgment or target.
+
+It exists to help the FTA track how the event is moving from one actual match start to the next.
+
+Operationally, it should be based on the time between observed `MatchAuto` starts for consecutive matches.
+
+The display can show:
+
+- A currently running cycle with seconds, such as `4:12 running`
+- The most recent completed cycle in a compact form, such as `8m last`
+- A combined summary when both exist, such as `8m last | 0:15 run`
+
+Before enough data exists, it can show neutral text such as `Waiting for next start`.
+
+This is useful field context, but it should not imply that the software knows the one correct cycle time for a specific event.
+
 ## Core Mental Model
 Each row represents:
 
@@ -444,7 +473,7 @@ It is the best concept for far-distance operational scanning.
 - Do not invent new backend robot states
 - Assume no trend graphs
 - Data updates every `0.5s` via SignalR
-- Implementation target is Angular
+- Implementation target is React with Vite
 - Layout should remain flexible
 - Mobile adaptation may happen later, but was not part of this design effort
 
