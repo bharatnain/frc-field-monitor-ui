@@ -97,7 +97,7 @@ Allowed states:
 - Autonomous Enabled
 - Autonomous Disabled
 
-This state must always be visible, but it should not be visually confused with connection or hardware status.
+This state should stay visible during normal diagnostics, but it should not be visually confused with connection or hardware status. Stop or override modes may communicate that state through their issue badge instead of a separate status pill.
 
 ### 3. Performance Metrics
 These are the live robot-health metrics in priority order:
@@ -216,7 +216,7 @@ Important operational notes:
 
 - A healthy battery is around the low-to-mid `13V` range
 - The robot performs poorly below `6V`
-- Treat `8V` and below as bad
+- Treat `7V` and below as bad
 - Low battery is one of the most important in-match intervention signals
 
 ### BWU

@@ -19,14 +19,13 @@ function createRow(overrides = {}) {
     status: { label: 'Teleop Enabled', shortLabel: 'TELEOP', tone: 'tele' },
     isPostMatchMuted: false,
     ds: { label: 'DS', state: 'good', detail: 'Connected' },
-    radio: { label: 'Radio', state: 'good', detail: '4 bars' },
+    radio: { label: 'Radio', state: 'good', detail: '4 bars', bars: 4, connectedToAp: true, linkActive: true },
     rio: { label: 'RIO', state: 'good', detail: 'Connected' },
     battery: { value: '12.4V', min: '12.4', tone: 'normal', action: '', detail: 'Stable' },
     bwu: { value: '4.8 Mbps', tx: '1.9', rx: '2.9' },
     trip: '7 ms',
     pkts: '1',
     blockingText: '',
-    secondaryText: '',
     ...overrides,
   };
 }
@@ -343,7 +342,7 @@ describe('FieldMonitor', () => {
 
     expect(firstPanel).toHaveClass('p-[3px]', '[@media(max-width:380px)]:p-[2px]');
     expect(panelGrid).toHaveClass('gap-1', 'p-1', '[@media(max-width:380px)]:gap-0.5', '[@media(max-width:380px)]:p-0.5');
-    expect(firstRowCard).toHaveClass('rounded-[18px]', '[@media(max-width:380px)]:rounded-[16px]', 'sm:rounded-2xl');
+    expect(firstRowCard).toHaveClass('rounded-[16px]', '[@media(max-width:380px)]:rounded-[16px]', 'sm:rounded-[18px]');
   });
 
   it('keeps desktop fill while making short-height guards compress inside the card', () => {
@@ -394,10 +393,10 @@ describe('FieldMonitor', () => {
       'inset-x-0',
       'top-0',
       'h-1',
-      'rounded-t-[18px]',
+      'rounded-t-[16px]',
       '[@media(max-width:380px)]:rounded-t-[16px]',
       'sm:h-1.5',
-      'sm:rounded-t-2xl'
+      'sm:rounded-t-[18px]'
     );
   });
 

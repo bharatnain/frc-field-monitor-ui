@@ -77,13 +77,9 @@ const batteryActionClass = (battery) => {
 };
 
 const stateLabel = (status) => status?.shortLabel || status?.label || '';
-
-const barCountFromDetail = (detail = '') => {
-  if (detail.includes('4')) return 4;
-  if (detail.includes('3')) return 3;
-  if (detail.includes('2')) return 2;
-  if (detail.includes('1')) return 1;
-  return 0;
+const clampRadioBars = (bars) => {
+  if (!Number.isFinite(bars)) return 0;
+  return Math.max(0, Math.min(4, bars));
 };
 
 const connectionTheme = (state) => {
@@ -166,8 +162,8 @@ const mobileChipTone = (state) => {
   };
 };
 
-function SignalBars({ detail, state = 'good', hero = false }) {
-  const count = barCountFromDetail(detail);
+function SignalBars({ bars = 0, state = 'good', hero = false }) {
+  const count = clampRadioBars(bars);
   const theme = connectionTheme(state);
   if (count === 0) {
     return (
@@ -328,7 +324,7 @@ const rowInsetClass = (mode, theme) => {
   return `${theme.defaultRowInset} shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]`;
 };
 
-function ConnectionTile({ kind, state, detail, label }) {
+function ConnectionTile({ kind, state, label, bars = 0 }) {
   const theme = connectionTheme(state);
   const isRadio = kind === 'radio';
   const isDS = kind === 'ds';
@@ -354,7 +350,7 @@ function ConnectionTile({ kind, state, detail, label }) {
           <div
             className={`flex min-h-0 items-center justify-center ${theme.accent} [@media(min-width:1200px)_and_(max-height:860px)]:scale-[0.78] [@media(min-width:1200px)_and_(max-height:720px)]:scale-[0.64]`}
           >
-            <SignalBars detail={detail || ''} state={state} hero />
+            <SignalBars bars={bars} state={state} hero />
           </div>
         </div>
       ) : (
@@ -386,8 +382,8 @@ function ConnectionChevron({ state = 'good' }) {
   );
 }
 
-function MobileSignalBars({ detail, state = 'good' }) {
-  const count = barCountFromDetail(detail);
+function MobileSignalBars({ bars = 0, state = 'good' }) {
+  const count = clampRadioBars(bars);
   const theme = connectionTheme(state);
 
   if (count === 0) {
@@ -407,7 +403,7 @@ function MobileSignalBars({ detail, state = 'good' }) {
   );
 }
 
-function MobileConnectionChip({ kind, label, state, detail }) {
+function MobileConnectionChip({ kind, label, state, bars = 0 }) {
   const tone = mobileChipTone(state);
   const isRadio = kind === 'radio';
   const status = deviceStatusText(kind, state);
@@ -424,7 +420,7 @@ function MobileConnectionChip({ kind, label, state, detail }) {
         </div>
         <div className={`flex items-center gap-0.5 text-[9px] font-black leading-[1.08] [@media(max-width:380px)]:text-[8px] ${tone.value}`}>
           {isRadio ? (
-            <MobileSignalBars detail={detail || ''} state={state} />
+            <MobileSignalBars bars={bars} state={state} />
           ) : (
             <>
               {icon ? <FontAwesomeIcon icon={icon} className="h-2.5 w-2.5 shrink-0" /> : null}
@@ -558,21 +554,19 @@ export default function TeamStatusCard({ alliance, row }) {
                 kind="ds"
                 label={row.ds?.label || 'DS'}
                 state={row.ds?.state || 'good'}
-                detail={row.ds?.detail || ''}
               />
               <MobileChainSeparator state={row.ds?.state || 'good'} />
               <MobileConnectionChip
                 kind="radio"
                 label={row.radio?.label || 'RADIO'}
                 state={row.radio?.state || 'good'}
-                detail={row.radio?.detail || ''}
+                bars={row.radio?.bars ?? 0}
               />
               <MobileChainSeparator state={row.radio?.state || 'good'} />
               <MobileConnectionChip
                 kind="rio"
                 label={row.rio?.label || 'RIO'}
                 state={row.rio?.state || 'good'}
-                detail={row.rio?.detail || ''}
               />
             </div>
             <div
@@ -583,21 +577,19 @@ export default function TeamStatusCard({ alliance, row }) {
                 kind="ds"
                 label={row.ds?.label || 'DS'}
                 state={row.ds?.state || 'good'}
-                detail={row.ds?.detail || ''}
               />
               <ConnectionChevron state={row.ds?.state || 'good'} />
               <ConnectionTile
                 kind="radio"
                 label={row.radio?.label || 'RADIO'}
                 state={row.radio?.state || 'good'}
-                detail={row.radio?.detail || ''}
+                bars={row.radio?.bars ?? 0}
               />
               <ConnectionChevron state={row.radio?.state || 'good'} />
               <ConnectionTile
                 kind="rio"
                 label={row.rio?.label || 'RIO'}
                 state={row.rio?.state || 'good'}
-                detail={row.rio?.detail || ''}
               />
             </div>
           </>

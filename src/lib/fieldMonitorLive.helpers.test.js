@@ -22,6 +22,35 @@ function createStation(alliance, station, overrides = {}) {
   };
 }
 
+function createHealthyRow(overrides = {}, matchStatusOverrides = {}) {
+  const station = createStation(AllianceType.Red, StationType.Station1, {
+    connection: true,
+    dsLinkActive: true,
+    radioLink: true,
+    linkActive: true,
+    rioLink: true,
+    radioConnectedToAp: true,
+    radioConnectionQuality: RadioConnectionQuality.Excellent,
+    battery: 12.4,
+    minBattery: 12.1,
+    averageTripTime: 7,
+    lostPackets: 1,
+    dataRateTotal: 4.8,
+    dataRateToRobot: 1.9,
+    dataRateFromRobot: 2.9,
+    ...overrides,
+  });
+  const matchStatus = normalizeMatchStatus({
+    MatchState: MatchStateType.MatchTeleop,
+    MatchNumber: 1,
+    PlayNumber: 1,
+    TournamentLevel: 'Qualification',
+    ...matchStatusOverrides,
+  });
+
+  return buildPanels([station], true, matchStatus)[0].rows[0];
+}
+
 afterEach(() => {
   resetFieldMonitorLiveTestState();
 });
@@ -236,5 +265,56 @@ describe('fieldMonitorLive helpers', () => {
       dataRateFromRobot: 3.8,
       radioConnectedToAp: true,
     });
+  });
+
+  it('treats battery at 7.0V as a critical row but keeps 7.1V normal', () => {
+    const thresholdRow = createHealthyRow({ battery: 7.0, minBattery: 7.0 });
+    const safeRow = createHealthyRow({ battery: 7.1, minBattery: 7.1 });
+
+    expect(thresholdRow.battery).toMatchObject({
+      value: '7.0V',
+      min: '7.0',
+      tone: 'critical',
+      action: 'LOW BATT',
+    });
+    expect(thresholdRow.mode).toBe('critical');
+    expect(safeRow.battery.tone).toBe('normal');
+    expect(safeRow.mode).toBe('normal');
+  });
+
+  it('exposes explicit radio bars and live link flags in row data', () => {
+    const row = createHealthyRow({ radioConnectionQuality: RadioConnectionQuality.Caution });
+
+    expect(row.radio).toMatchObject({
+      label: 'Radio',
+      state: 'warn',
+      detail: '2 bars',
+      bars: 2,
+      connectedToAp: true,
+      linkActive: true,
+    });
+  });
+
+  it('keeps the radio warning separate when the field sees the radio but the live link is down', () => {
+    const row = createHealthyRow({
+      linkActive: false,
+      radioConnectedToAp: true,
+      radioConnectionQuality: RadioConnectionQuality.Excellent,
+    });
+
+    expect(row.radio).toMatchObject({
+      state: 'warn',
+      detail: '4 bars',
+      bars: 4,
+      connectedToAp: true,
+      linkActive: false,
+    });
+    expect(row.mode).toBe('degraded');
+  });
+
+  it('drops the unused secondaryText field from built rows', () => {
+    const row = createHealthyRow();
+
+    expect(row).not.toHaveProperty('secondaryText');
   });
 });

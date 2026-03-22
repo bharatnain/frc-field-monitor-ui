@@ -816,22 +816,29 @@ function getRadioBars(quality) {
   return 1;
 }
 
+function formatRadioBarsDetail(bars) {
+  return `${bars} bar${bars === 1 ? '' : 's'}`;
+}
+
 function getRadioSignal(station) {
+  const connectedToAp = station.radioConnectedToAp;
+  const linkActive = station.linkActive;
+  const bars = connectedToAp ? getRadioBars(station.radioConnectionQuality) : 0;
+
   if (!station.radioConnectedToAp && !station.linkActive) {
-    return { label: 'Radio', state: 'bad', detail: '0 bars' };
+    return { label: 'Radio', state: 'bad', detail: formatRadioBarsDetail(bars), bars, connectedToAp, linkActive };
   }
 
   if (!station.linkActive && station.radioConnectedToAp) {
-    return { label: 'Radio', state: 'warn', detail: `${getRadioBars(station.radioConnectionQuality)} bars` };
+    return { label: 'Radio', state: 'warn', detail: formatRadioBarsDetail(bars), bars, connectedToAp, linkActive };
   }
 
   if (!station.radioConnectedToAp) {
-    return { label: 'Radio', state: 'bad', detail: '0 bars' };
+    return { label: 'Radio', state: 'bad', detail: formatRadioBarsDetail(bars), bars, connectedToAp, linkActive };
   }
 
-  const bars = getRadioBars(station.radioConnectionQuality);
   const state = bars >= 3 ? 'good' : 'warn';
-  return { label: 'Radio', state, detail: `${bars} bars` };
+  return { label: 'Radio', state, detail: formatRadioBarsDetail(bars), bars, connectedToAp, linkActive };
 }
 
 function getRioSignal(station) {
@@ -887,7 +894,7 @@ function getBatteryInfo(station) {
     };
   }
 
-  if (currentBattery > 0 && currentBattery < 7.0) {
+  if (currentBattery > 0 && currentBattery <= 7.0) {
     return {
       value: formatBattery(currentBattery),
       min: minBattery,
@@ -950,7 +957,7 @@ function getRowMode(station, matchStatus) {
     (!station.connection || !station.rioLink || (!station.radioConnectedToAp && !station.linkActive));
   const hasCriticalPerformance =
     station.brownout ||
-    (station.battery > 0 && station.battery < 7.0);
+    (station.battery > 0 && station.battery <= 7.0);
 
   if (hasCriticalConnection || hasCriticalPerformance) {
     return 'critical';
@@ -995,7 +1002,6 @@ function toRow(station, matchStatus) {
     trip: `${Math.round(station.averageTripTime)} ms`,
     pkts: String(Math.round(station.lostPackets)),
     blockingText: mode === 'blocking' ? blockingText : '',
-    secondaryText: mode === 'estopped' || mode === 'bypassed' ? blockingText : '',
   };
 }
 

@@ -314,7 +314,7 @@ Purpose
 
 communicate what state the robot is in
 
-must be visible
+must be visible during normal diagnostics; stop and override modes may communicate it through their issue badge instead of a separate status pill
 
 does not need the highest priority unless a mismatch is relevant
 
@@ -334,7 +334,7 @@ high end is around 13.x V
 
 robot does not do well below 6 V
 
-assume 8 V and below is bad
+assume 7 V and below is bad
 
 battery low is one of the most important in match intervention signals
 
@@ -492,7 +492,7 @@ Radio missing
 
 RIO missing
 
-Battery at 8 V or below
+Battery at 7 V or below
 
 Behavior
 
