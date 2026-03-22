@@ -9,6 +9,10 @@ vi.mock('./pages/config', () => ({
   default: () => <div>Mock Config Page</div>,
 }));
 
+vi.mock('./pages/TeamCardShowcase', () => ({
+  default: () => <div>Mock Team Card Showcase Page</div>,
+}));
+
 import { App } from './main';
 
 describe('App routing', () => {
@@ -35,5 +39,12 @@ describe('App routing', () => {
     render(<App />);
 
     expect(screen.getByText('Mock Config Page')).toBeInTheDocument();
+  });
+
+  it('renders the showcase page at the showcase route', () => {
+    window.history.pushState({}, '', '/showcase');
+    render(<App />);
+
+    expect(screen.getByText('Mock Team Card Showcase Page')).toBeInTheDocument();
   });
 });
