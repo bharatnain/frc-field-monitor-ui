@@ -35,17 +35,17 @@ const isEditableTarget = (target) => {
   return Boolean(editableRoot);
 };
 
-function TopBarStat({ label, value, align = 'left', className = '', valueClassName = '' }) {
+function TopBarStat({ label, value, align = 'left', className = '', valueClassName = '', wrapValue = false }) {
   const textAlignmentClass =
     align === 'center' ? 'text-center' : align === 'right' ? 'text-right items-end' : 'text-left items-start';
 
   return (
     <div className={`flex min-w-0 flex-col gap-0.5 ${textAlignmentClass} ${className}`}>
-      <div className="min-w-0 text-[7px] font-semibold uppercase leading-none tracking-[0.12em] text-zinc-500 [@media(max-width:380px)]:text-[6px] sm:text-[9px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[8px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[7px]">
+      <div className="min-w-0 text-[8px] font-semibold uppercase leading-none tracking-[0.12em] text-zinc-500 [@media(max-width:380px)]:text-[7px] sm:text-[9px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[8px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[7px]">
         {label}
       </div>
       <div
-        className={`min-w-0 truncate text-[11px] font-bold leading-none tracking-[-0.02em] text-zinc-900 [@media(max-width:380px)]:text-[10px] sm:text-[15px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[13px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[11px] ${valueClassName}`}
+        className={`min-w-0 ${wrapValue ? 'whitespace-normal leading-tight' : 'truncate'} text-[12px] font-bold tracking-[-0.02em] text-zinc-900 [@media(max-width:380px)]:text-[11px] sm:text-[15px] sm:leading-none [@media(min-width:1024px)_and_(max-height:860px)]:text-[13px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[11px] ${valueClassName}`}
       >
         {value}
       </div>
@@ -138,7 +138,7 @@ export default function FieldMonitor() {
           data-testid="field-monitor-topbar"
           className="rounded-[22px] bg-white px-3 py-1.5 shadow-sm ring-1 ring-zinc-200 [@media(max-width:380px)]:px-2 [@media(max-width:380px)]:py-1.5 lg:px-4 lg:py-2 [@media(min-width:1024px)_and_(max-height:860px)]:px-2.5 [@media(min-width:1024px)_and_(max-height:860px)]:py-1 [@media(min-width:1024px)_and_(max-height:720px)]:px-2 [@media(min-width:1024px)_and_(max-height:720px)]:py-0.5"
         >
-          <div className="flex items-start justify-between gap-3 [@media(max-width:380px)]:gap-2 sm:grid sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.25fr)_minmax(0,0.85fr)] sm:items-end sm:gap-3">
+          <div className="flex items-start justify-between gap-2.5 [@media(max-width:380px)]:gap-2 sm:grid sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.25fr)_minmax(0,0.85fr)] sm:items-end sm:gap-3">
             <TopBarStat
               label="Match Number"
               value={matchStatus.matchNumber > 0 ? `M${matchStatus.matchNumber}` : 'No match yet'}
@@ -148,8 +148,9 @@ export default function FieldMonitor() {
               label="Match Status"
               value={matchStatus.matchStateMessage}
               align="right"
-              className="max-w-[58%] flex-1 sm:max-w-none sm:flex-none sm:items-center sm:text-center"
-              valueClassName="text-[10px] [@media(max-width:380px)]:text-[9px] sm:text-[14px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[12px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[10px]"
+              className="max-w-[56%] flex-1 sm:max-w-none sm:flex-none sm:items-center sm:text-center"
+              valueClassName="text-[11px] [@media(max-width:380px)]:text-[10px] sm:text-[14px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[12px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[10px]"
+              wrapValue
             />
             <div className="hidden min-w-0 sm:flex sm:min-w-0 sm:items-start sm:justify-end sm:gap-3">
               <TopBarStat
@@ -168,20 +169,21 @@ export default function FieldMonitor() {
               />
             </div>
           </div>
-          <div className="mt-1 border-t border-zinc-100 pt-1 sm:hidden">
-            <div className="flex items-start justify-between gap-3 [@media(max-width:380px)]:gap-2">
+          <div className="mt-1.5 border-t border-zinc-100 pt-1.5 sm:hidden">
+            <div className="grid grid-cols-2 items-start gap-2 [@media(max-width:380px)]:gap-1.5">
               <TopBarStat
                 label="Schedule Status"
                 value={scheduleStatus}
                 className="min-w-0 flex-1"
-                valueClassName="text-[10px] [@media(max-width:380px)]:text-[9px] sm:text-[14px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[12px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[10px]"
+                valueClassName="text-[11px] [@media(max-width:380px)]:text-[10px] sm:text-[14px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[12px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[10px]"
+                wrapValue
               />
               <TopBarStat
                 label="Cycle"
                 value={cycleCadence.summary}
-                align="right"
                 className="min-w-0 flex-1"
-                valueClassName="text-[9px] [@media(max-width:380px)]:text-[8px] sm:text-[14px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[12px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[10px]"
+                valueClassName="text-[10px] [@media(max-width:380px)]:text-[9px] sm:text-[14px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[12px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[10px]"
+                wrapValue
               />
             </div>
           </div>

@@ -213,7 +213,7 @@ function DeviceStatusBadge({ state, text }) {
 
   return (
     <div
-      className={`inline-flex items-center justify-center gap-1 rounded-full px-1.5 py-0.5 text-[9px] font-black uppercase tracking-[0.12em] sm:px-2.5 sm:py-1 sm:text-[11px] [@media(min-width:1024px)]:text-[12px] [@media(min-width:1024px)_and_(max-height:860px)]:px-1.5 [@media(min-width:1024px)_and_(max-height:860px)]:py-0.5 [@media(min-width:1024px)_and_(max-height:860px)]:text-[10px] [@media(min-width:1024px)_and_(max-height:720px)]:px-1 [@media(min-width:1024px)_and_(max-height:720px)]:text-[9px] ${badgeClass}`}
+      className={`inline-flex items-center justify-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-black uppercase tracking-[0.12em] [@media(max-width:380px)]:text-[9px] sm:px-2.5 sm:py-1 sm:text-[11px] [@media(min-width:1024px)]:text-[12px] [@media(min-width:1024px)_and_(max-height:860px)]:px-1.5 [@media(min-width:1024px)_and_(max-height:860px)]:py-0.5 [@media(min-width:1024px)_and_(max-height:860px)]:text-[10px] [@media(min-width:1024px)_and_(max-height:720px)]:px-1 [@media(min-width:1024px)_and_(max-height:720px)]:text-[9px] ${badgeClass}`}
     >
       {icon && <FontAwesomeIcon icon={icon} className="h-2.5 w-2.5 sm:h-3.5 sm:w-3.5" />}
       <span>{text}</span>
@@ -439,24 +439,30 @@ function MobileChainSeparator({ state = 'good' }) {
   return (
     <div
       aria-hidden="true"
-      className={`flex items-center justify-center text-[9px] font-black leading-none [@media(max-width:380px)]:text-[7px] ${tone.accent}`}
+      className={`flex min-h-[24px] items-center justify-center [@media(max-width:380px)]:min-h-[21px] ${tone.accent}`}
     >
-      &gt;
+      <span className="block -translate-y-px text-[8px] font-black leading-none [@media(max-width:380px)]:text-[7px]">
+        &gt;
+      </span>
     </div>
   );
 }
 
-function MobileSummaryItem({ label, value, strong = false }) {
+function MobileSummaryStat({ label, value, strong = false }) {
   return (
-    <div className="flex min-w-0 items-center gap-0.5">
-      <span className="text-[6px] font-bold uppercase tracking-[0.05em] text-zinc-500 [@media(max-width:380px)]:text-[5px]">
+    <div className="flex min-w-0 items-baseline gap-0.5 tabular-nums">
+      <div className="text-[6px] font-bold uppercase tracking-[0.05em] text-zinc-500 [@media(max-width:380px)]:text-[5px]">
         {label}
-      </span>
-      <span
-        className={`leading-none ${strong ? 'text-[10px] font-bold text-zinc-900 [@media(max-width:380px)]:text-[9px]' : 'text-[7px] font-semibold text-zinc-700 [@media(max-width:380px)]:text-[6px]'}`}
+      </div>
+      <div
+        className={`truncate leading-none ${
+          strong
+            ? 'text-[7px] font-semibold text-zinc-700 [@media(max-width:380px)]:text-[6px]'
+            : 'text-[7px] font-semibold text-zinc-700 [@media(max-width:380px)]:text-[6px]'
+        }`}
       >
         {value}
-      </span>
+      </div>
     </div>
   );
 }
@@ -546,7 +552,7 @@ export default function TeamStatusCard({ alliance, row }) {
           <>
             <div
               data-testid="mobile-connection-layout"
-              className={`grid min-h-0 grid-cols-[minmax(0,1fr)_10px_minmax(0,1fr)_10px_minmax(0,1fr)] items-center gap-1 pb-px [@media(max-width:380px)]:grid-cols-[minmax(0,1fr)_8px_minmax(0,1fr)_8px_minmax(0,1fr)] [@media(max-width:380px)]:gap-0.5 lg:hidden ${
+              className={`grid min-h-0 grid-cols-[minmax(0,1fr)_10px_minmax(0,1fr)_10px_minmax(0,1fr)] items-stretch gap-1 pb-px [@media(max-width:380px)]:grid-cols-[minmax(0,1fr)_8px_minmax(0,1fr)_8px_minmax(0,1fr)] [@media(max-width:380px)]:gap-0.5 lg:hidden ${
                 isNormal ? 'min-[381px]:max-sm:gap-0.5 min-[381px]:max-sm:pb-0 [@media(max-width:380px)]:pb-0' : 'pb-0'
               }`}
             >
@@ -622,7 +628,7 @@ export default function TeamStatusCard({ alliance, row }) {
                     </div>
                   ) : null}
                 </div>
-                <div className="mt-px flex items-end gap-1">
+                <div className="mt-px flex items-baseline gap-1 tabular-nums">
                   <div className="text-[14px] font-bold leading-none text-zinc-900 [@media(max-width:380px)]:text-[13px]">
                     {row.battery?.value}
                   </div>
@@ -636,19 +642,19 @@ export default function TeamStatusCard({ alliance, row }) {
                 data-testid="mobile-row-summary"
                 className="col-[3/6] rounded-lg bg-white/65 px-1 py-1 [@media(max-width:380px)]:px-0.5 [@media(max-width:380px)]:py-0.5"
               >
-                <div className="flex items-center justify-between gap-1">
+                <div className="flex items-baseline justify-between gap-1">
                   <div className="flex items-center gap-0.5 text-[7px] font-bold uppercase text-zinc-500 [@media(max-width:380px)]:text-[6px]">
                     <FontAwesomeIcon icon={faRightLeft} className="h-3 w-3" /> BW
                   </div>
-                  <div className="text-[10px] font-bold leading-none text-zinc-900 [@media(max-width:380px)]:text-[9px]">
+                  <div className="text-[10px] font-bold leading-none tabular-nums text-zinc-900 [@media(max-width:380px)]:text-[9px]">
                     {row.bwu?.value}
                   </div>
                 </div>
-                <div className="mt-px flex flex-wrap items-center gap-x-1.5 gap-y-px [@media(max-width:380px)]:gap-x-1">
-                  <MobileSummaryItem label="Tx" value={row.bwu?.tx} />
-                  <MobileSummaryItem label="Rx" value={row.bwu?.rx} />
-                  <MobileSummaryItem label="Trip" value={row.trip} />
-                  <MobileSummaryItem label="Loss" value={row.pkts} strong />
+                <div className="mt-px flex flex-wrap items-baseline gap-x-1.5 gap-y-px [@media(max-width:380px)]:gap-x-1">
+                  <MobileSummaryStat label="Tx" value={row.bwu?.tx} />
+                  <MobileSummaryStat label="Rx" value={row.bwu?.rx} />
+                  <MobileSummaryStat label="Trip" value={row.trip} />
+                  <MobileSummaryStat label="Loss" value={row.pkts} strong />
                 </div>
               </div>
             </div>
