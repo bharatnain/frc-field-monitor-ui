@@ -489,19 +489,19 @@ export default function TeamStatusCard({ alliance, row }) {
 
   return (
     <div
-      className={`relative grid min-h-0 content-start overflow-hidden rounded-[18px] bg-white [@media(max-width:380px)]:rounded-[16px] sm:min-h-[220px] sm:content-stretch sm:rounded-2xl [@media(min-width:1200px)]:h-full [@media(min-width:1200px)]:min-h-0 [@media(min-width:1200px)_and_(max-height:860px)]:min-h-[172px] [@media(min-width:1200px)_and_(max-height:720px)]:min-h-[148px] ${
+      className={`relative grid min-h-0 content-start overflow-hidden rounded-[16px] bg-white [@media(max-width:380px)]:rounded-[16px] sm:min-h-[220px] sm:content-stretch sm:rounded-[18px] [@media(min-width:1200px)]:h-full [@media(min-width:1200px)]:min-h-0 [@media(min-width:1200px)_and_(max-height:860px)]:min-h-[172px] [@media(min-width:1200px)_and_(max-height:720px)]:min-h-[148px] ${
         isBlocking
           ? 'grid-rows-[auto_minmax(0,1fr)]'
           : 'grid-rows-[auto_auto_auto] sm:grid-rows-[auto_minmax(0,1fr)_auto] [@media(min-width:1200px)]:grid-rows-[auto_minmax(0,1fr)_minmax(64px,auto)] [@media(min-width:1200px)_and_(max-height:860px)]:grid-rows-[auto_minmax(0,1fr)_minmax(52px,auto)] [@media(min-width:1200px)_and_(max-height:720px)]:grid-rows-[auto_minmax(0,1fr)_minmax(44px,auto)]'
       } ${rowShellClass(row.mode, theme)}`}
     >
       <div
-        className={`pointer-events-none absolute inset-[2px] rounded-[10px] border [@media(max-width:380px)]:rounded-[9px] sm:inset-[3px] sm:rounded-[13px] ${rowInsetClass(row.mode, theme)}`}
+        className={`pointer-events-none absolute inset-[2px] rounded-[14px] border [@media(max-width:380px)]:rounded-[12px] sm:inset-[3px] sm:rounded-[15px] ${rowInsetClass(row.mode, theme)}`}
       />
       {row.mode !== 'normal' && (
         <div
           data-testid="issue-band"
-          className={`absolute inset-x-0 top-0 h-1 rounded-t-[18px] [@media(max-width:380px)]:rounded-t-[16px] sm:h-1.5 sm:rounded-t-2xl ${issueBandClass(row.mode)}`}
+          className={`absolute inset-x-0 top-0 h-1 rounded-t-[16px] [@media(max-width:380px)]:rounded-t-[16px] sm:h-1.5 sm:rounded-t-[18px] ${issueBandClass(row.mode)}`}
         />
       )}
       <div
