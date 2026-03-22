@@ -9,6 +9,10 @@ vi.mock('./pages/config', () => ({
   default: () => <div>Mock Config Page</div>,
 }));
 
+vi.mock('./pages/LandingPage', () => ({
+  default: () => <div>Mock Landing Page</div>,
+}));
+
 vi.mock('./pages/TeamCardShowcase', () => ({
   default: () => <div>Mock Team Card Showcase Page</div>,
 }));
@@ -39,6 +43,13 @@ describe('App routing', () => {
     render(<App />);
 
     expect(screen.getByText('Mock Config Page')).toBeInTheDocument();
+  });
+
+  it('renders the landing page at the welcome route', () => {
+    window.history.pushState({}, '', '/welcome');
+    render(<App />);
+
+    expect(screen.getByText('Mock Landing Page')).toBeInTheDocument();
   });
 
   it('renders the showcase page at the showcase route', () => {
