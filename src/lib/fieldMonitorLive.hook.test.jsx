@@ -248,6 +248,96 @@ describe('useFieldMonitorLiveData', () => {
     expect(recording.events[0].event).toBe('fieldMonitorDataChanged');
   });
 
+  it('records fetched current-match context changes so replay keeps match metadata in sync', async () => {
+    const hubFactory = createFakeHubFactory();
+    const createObjectURLSpy = vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:recording');
+    const revokeObjectURLSpy = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
+    const anchorClickSpy = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
+    const { result } = renderHook(() =>
+      useFieldMonitorLiveData({
+        hubConnectionFactory: hubFactory.factory,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.isConnected).toBe(true);
+    });
+
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2024, 0, 2, 3, 4, 5));
+
+    act(() => {
+      result.current.recorder.startRecording('qm-43');
+    });
+
+    globalThis.fetch.mockResolvedValueOnce(
+      createCurrentMatchResponse({
+        tournamentLevel: 'Quarterfinal',
+        matchNumber: 43,
+        playNumber: 2,
+      })
+    );
+
+    vi.setSystemTime(new Date(2024, 0, 2, 3, 4, 6));
+    await act(async () => {
+      window.dispatchEvent(new Event('focus'));
+      await flushPromises();
+      await flushPromises();
+    });
+
+    expect(result.current.matchStatus).toMatchObject({
+      matchNumber: 43,
+      playNumber: 2,
+      tournamentLevel: 'Quarterfinal',
+    });
+
+    act(() => {
+      result.current.recorder.stopRecordingAndDownload();
+    });
+
+    const blob = createObjectURLSpy.mock.calls[0][0];
+    const recording = JSON.parse(await blob.text());
+
+    expect(recording.events).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          source: 'infrastructureApi',
+          event: 'currentMatchContextChanged',
+          payload: {
+            item1: 'Quarterfinal',
+            item2: 43,
+            item3: 2,
+          },
+        }),
+      ])
+    );
+
+    await act(async () => {
+      await result.current.replay.loadReplayFile(createReplayFile(recording));
+      await flushPromises();
+    });
+
+    expect(result.current.sourceMode).toBe('replay');
+    expect(result.current.matchStatus).toMatchObject({
+      matchNumber: 42,
+      playNumber: 1,
+      tournamentLevel: 'Qualification',
+    });
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+      await flushPromises();
+    });
+
+    expect(result.current.matchStatus).toMatchObject({
+      matchNumber: 43,
+      playNumber: 2,
+      tournamentLevel: 'Quarterfinal',
+    });
+    expect(anchorClickSpy).toHaveBeenCalledTimes(1);
+    expect(revokeObjectURLSpy).toHaveBeenCalledWith('blob:recording');
+  });
+
   it('tracks completed and running cycle cadence from distinct match auto starts', async () => {
     const hubFactory = createFakeHubFactory();
     const { result } = renderHook(() =>

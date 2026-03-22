@@ -1214,6 +1214,44 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
     [recordIncomingEvent]
   );
 
+  const applyCurrentMatchContext = useCallback(
+    (data, { shouldRecord = false, shouldReconcileCycle = false, observedAtMs = null } = {}) => {
+      if (shouldRecord) {
+        recordIncomingEvent('infrastructureApi', 'currentMatchContextChanged', data);
+      }
+
+      currentMatchRef.current = data;
+      const nextMatchStatus = {
+        ...matchStatusRef.current,
+        matchNumber: Number(data?.item2) || matchStatusRef.current.matchNumber,
+        playNumber: Number(data?.item3) || matchStatusRef.current.playNumber,
+        tournamentLevel: data?.item1 || matchStatusRef.current.tournamentLevel,
+      };
+
+      matchStatusRef.current = nextMatchStatus;
+      setMatchStatus((current) => ({
+        ...current,
+        matchNumber: nextMatchStatus.matchNumber,
+        playNumber: nextMatchStatus.playNumber,
+        tournamentLevel: nextMatchStatus.tournamentLevel,
+      }));
+
+      const nextCycleState = shouldReconcileCycle
+        ? reconcileCycleCadenceState(cycleCadenceStateRef.current, nextMatchStatus)
+        : cycleCadenceStateRef.current;
+
+      if (nextCycleState !== cycleCadenceStateRef.current) {
+        cycleCadenceStateRef.current = nextCycleState;
+        setCycleCadenceState(nextCycleState);
+      }
+
+      const nextObservedAtMs = Number.isFinite(observedAtMs) ? observedAtMs : Date.now();
+      setCycleClockMs(nextCycleState.currentCycleTrust === 'observed' ? nextObservedAtMs : null);
+      return data;
+    },
+    [recordIncomingEvent]
+  );
+
   const refreshCurrentMatchContext = useCallback(
     async ({ shouldReconcileCycle = false, observedAtMs = null } = {}) => {
       try {
@@ -1229,34 +1267,11 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
           return null;
         }
 
-        currentMatchRef.current = data;
-        const nextMatchStatus = {
-          ...matchStatusRef.current,
-          matchNumber: Number(data.item2) || matchStatusRef.current.matchNumber,
-          playNumber: Number(data.item3) || matchStatusRef.current.playNumber,
-          tournamentLevel: data.item1 || matchStatusRef.current.tournamentLevel,
-        };
-
-        matchStatusRef.current = nextMatchStatus;
-        setMatchStatus((current) => ({
-          ...current,
-          matchNumber: nextMatchStatus.matchNumber,
-          playNumber: nextMatchStatus.playNumber,
-          tournamentLevel: nextMatchStatus.tournamentLevel,
-        }));
-
-        const nextCycleState = shouldReconcileCycle
-          ? reconcileCycleCadenceState(cycleCadenceStateRef.current, nextMatchStatus)
-          : cycleCadenceStateRef.current;
-
-        if (nextCycleState !== cycleCadenceStateRef.current) {
-          cycleCadenceStateRef.current = nextCycleState;
-          setCycleCadenceState(nextCycleState);
-        }
-
-        const nextObservedAtMs = Number.isFinite(observedAtMs) ? observedAtMs : Date.now();
-        setCycleClockMs(nextCycleState.currentCycleTrust === 'observed' ? nextObservedAtMs : null);
-        return data;
+        return applyCurrentMatchContext(data, {
+          shouldRecord: true,
+          shouldReconcileCycle,
+          observedAtMs,
+        });
       } catch (fetchError) {
         if (isMountedRef.current && sourceModeRef.current === 'live') {
           setError(fetchError instanceof Error ? fetchError.message : 'Unable to fetch current match');
@@ -1264,7 +1279,7 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
         return null;
       }
     },
-    [baseUrl]
+    [applyCurrentMatchContext, baseUrl]
   );
 
   const applyAheadBehind = useCallback(
@@ -1390,9 +1405,18 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
 
       if (entry.source === 'infrastructureHub' && entry.event === 'ScheduleAheadBehindChanged') {
         applyAheadBehind(entry.payload, { shouldRecord: false });
+        return;
+      }
+
+      if (entry.source === 'infrastructureApi' && entry.event === 'currentMatchContextChanged') {
+        applyCurrentMatchContext(entry.payload, {
+          shouldRecord: false,
+          shouldReconcileCycle: true,
+          observedAtMs: Number(entry.t) || 0,
+        });
       }
     },
-    [applyAheadBehind, applyMatchStatus, applyStationData]
+    [applyAheadBehind, applyCurrentMatchContext, applyMatchStatus, applyStationData]
   );
 
   const scheduleReplay = useCallback(() => {
