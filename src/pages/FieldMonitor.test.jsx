@@ -113,8 +113,8 @@ describe('FieldMonitor', () => {
     expect(screen.getByText('Match Number')).toBeInTheDocument();
     expect(screen.getByText('M42')).toBeInTheDocument();
     expect(screen.getAllByText('Schedule Status')).toHaveLength(2);
-    expect(screen.getAllByText('Cycle')).toHaveLength(2);
-    expect(screen.getAllByText('Waiting for next start')).toHaveLength(2);
+    expect(screen.getByText('Cycle')).toBeInTheDocument();
+    expect(screen.getByText('Waiting for next start')).toBeInTheDocument();
     expect(screen.getByText('254')).toBeInTheDocument();
     expect(screen.getByText('1114')).toBeInTheDocument();
     expect(mockUseFieldMonitorLiveData).toHaveBeenCalledWith({ mirrorLayout: true });
@@ -293,7 +293,7 @@ describe('FieldMonitor', () => {
       'grid-cols-[minmax(0,1fr)_22px_minmax(0,1fr)_22px_minmax(0,1fr)]'
     );
     expect(topBar).toHaveClass('px-3', 'py-1.5', '[@media(max-width:380px)]:px-2', '[@media(max-width:380px)]:py-1.5');
-    expect(topBar.lastElementChild).toHaveClass('mt-1', 'border-t', 'border-zinc-100', 'pt-1', 'sm:hidden');
+    expect(topBar.lastElementChild).toHaveClass('mt-1.5', 'border-t', 'border-zinc-100', 'pt-1.5', 'sm:hidden');
     expect(rowHeader).toHaveClass('flex-nowrap', 'sm:flex-wrap');
     expect(rowHeaderPrimary).toHaveClass('flex-1', 'flex-nowrap', 'sm:flex-wrap');
     expect(firstRowCard).toHaveClass(

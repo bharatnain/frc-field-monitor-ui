@@ -170,22 +170,13 @@ export default function FieldMonitor() {
             </div>
           </div>
           <div className="mt-1.5 border-t border-zinc-100 pt-1.5 sm:hidden">
-            <div className="grid grid-cols-2 items-start gap-2 [@media(max-width:380px)]:gap-1.5">
-              <TopBarStat
-                label="Schedule Status"
-                value={scheduleStatus}
-                className="min-w-0 flex-1"
-                valueClassName="text-[11px] [@media(max-width:380px)]:text-[10px] sm:text-[14px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[12px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[10px]"
-                wrapValue
-              />
-              <TopBarStat
-                label="Cycle"
-                value={cycleCadence.summary}
-                className="min-w-0 flex-1"
-                valueClassName="text-[10px] [@media(max-width:380px)]:text-[9px] sm:text-[14px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[12px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[10px]"
-                wrapValue
-              />
-            </div>
+            <TopBarStat
+              label="Schedule Status"
+              value={scheduleStatus}
+              className="min-w-0"
+              valueClassName="text-[11px] [@media(max-width:380px)]:text-[10px] sm:text-[14px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[12px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[10px]"
+              wrapValue
+            />
           </div>
         </div>
       </div>
