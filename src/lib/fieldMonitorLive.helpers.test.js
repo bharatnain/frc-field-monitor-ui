@@ -5,9 +5,7 @@ import {
   createRecordingFilename,
   fieldMonitorTypes,
   getReplayDurationMs,
-  normalizeMacAddress,
   normalizeMatchStatus,
-  normalizePreviousMacAddresses,
   normalizeStation,
   parseReplayRecording,
   resetFieldMonitorLiveTestState,
@@ -266,26 +264,7 @@ describe('fieldMonitorLive helpers', () => {
       dataRateToRobot: 2.4,
       dataRateFromRobot: 3.8,
       radioConnectedToAp: true,
-      radioMacAddress: '',
     });
-  });
-
-  it('normalizes previous-match MAC snapshots by alliance/station slot', () => {
-    const previousMacBySlot = normalizePreviousMacAddresses({
-      Red1MacAddress: '48:da:35:b0:96:27',
-      Red2MacAddress: '48-DA-35-B0-38-7F',
-      p6: '48 da 35 b0 a4 47',
-    });
-
-    expect(previousMacBySlot.get(`${AllianceType.Red}-${StationType.Station1}`)).toBe('48DA35B09627');
-    expect(previousMacBySlot.get(`${AllianceType.Red}-${StationType.Station2}`)).toBe('48DA35B0387F');
-    expect(previousMacBySlot.get(`${AllianceType.Blue}-${StationType.Station3}`)).toBe('48DA35B0A447');
-  });
-
-  it('normalizes MAC addresses before comparing radio changes', () => {
-    expect(normalizeMacAddress('48:da:35:b0:96:27')).toBe('48DA35B09627');
-    expect(normalizeMacAddress('48-DA-35-B0-96-27')).toBe('48DA35B09627');
-    expect(normalizeMacAddress(null)).toBe('');
   });
 
   it('treats battery at 7.0V as a critical row but keeps 7.1V normal', () => {
@@ -337,21 +316,5 @@ describe('fieldMonitorLive helpers', () => {
     const row = createHealthyRow();
 
     expect(row).not.toHaveProperty('secondaryText');
-  });
-
-  it('surfaces new radio and WPA advisories in built rows', () => {
-    const row = createHealthyRow({
-      radioMacAddress: '48:DA:35:B0:96:27',
-      previousRadioMacAddress: '48DA35B0387F',
-      hasNewRadio: true,
-      wpaKeyStatus: 2,
-      hasNewWpaFallback: true,
-      hasNewWpa: true,
-    });
-
-    expect(row.advisories).toEqual([
-      { key: 'newRadio', label: 'NEW RADIO', tone: 'warn', icon: 'radio' },
-      { key: 'newWpa', label: 'NEW WPA', tone: 'info', icon: 'key' },
-    ]);
   });
 });

@@ -13,7 +13,6 @@ function createRow(overrides = {}) {
     rio: { label: 'RIO', state: 'good', detail: 'Connected' },
     battery: { value: '12.4V', min: '12.1', tone: 'normal', action: '', detail: 'Stable' },
     bwu: { value: '4.8 Mbps', tx: '1.9', rx: '2.9' },
-    advisories: [],
     trip: '7 ms',
     pkts: '1',
     blockingText: '',
@@ -188,19 +187,6 @@ const showcaseSections = [
           rio: { label: 'RIO', state: 'bad', detail: 'Disconnected' },
           trip: '0 ms',
           pkts: '0',
-        }),
-      },
-      {
-        title: 'Advisory Pair',
-        subtitle: 'New radio and WPA advisories share the header without relying on color alone.',
-        alliance: 'blue',
-        row: createRow({
-          team: '4201',
-          station: 'Stn 3',
-          advisories: [
-            { key: 'newRadio', label: 'NEW RADIO', tone: 'warn', icon: 'radio' },
-            { key: 'newWpa', label: 'NEW WPA', tone: 'info', icon: 'key' },
-          ],
         }),
       },
     ],

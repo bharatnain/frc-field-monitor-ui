@@ -145,78 +145,6 @@ function slotKey(alliance, station) {
   return `${alliance}-${station}`;
 }
 
-export function normalizeMacAddress(value) {
-  if (typeof value !== 'string') {
-    return '';
-  }
-
-  return value.replace(/[^a-fA-F0-9]/g, '').toUpperCase();
-}
-
-export function normalizePreviousMacAddresses(raw) {
-  const previousMacBySlot = new Map();
-
-  [
-    { alliance: AllianceType.Red, station: StationType.Station1, shortKey: 'p1', longKey: 'Red1MacAddress' },
-    { alliance: AllianceType.Red, station: StationType.Station2, shortKey: 'p2', longKey: 'Red2MacAddress' },
-    { alliance: AllianceType.Red, station: StationType.Station3, shortKey: 'p3', longKey: 'Red3MacAddress' },
-    { alliance: AllianceType.Blue, station: StationType.Station1, shortKey: 'p4', longKey: 'Blue1MacAddress' },
-    { alliance: AllianceType.Blue, station: StationType.Station2, shortKey: 'p5', longKey: 'Blue2MacAddress' },
-    { alliance: AllianceType.Blue, station: StationType.Station3, shortKey: 'p6', longKey: 'Blue3MacAddress' },
-  ].forEach(({ alliance, station, shortKey, longKey }) => {
-    const macAddress = normalizeMacAddress(getValue(raw, shortKey, longKey, ''));
-    if (macAddress) {
-      previousMacBySlot.set(slotKey(alliance, station), macAddress);
-    }
-  });
-
-  return previousMacBySlot;
-}
-
-function serializePreviousMacAddresses(previousMacBySlot) {
-  return Object.fromEntries(previousMacBySlot.entries());
-}
-
-function coercePreviousMacSnapshot(rawSnapshot) {
-  const previousMacBySlot = new Map();
-
-  if (!rawSnapshot || typeof rawSnapshot !== 'object') {
-    return previousMacBySlot;
-  }
-
-  Object.entries(rawSnapshot).forEach(([key, value]) => {
-    const macAddress = normalizeMacAddress(value);
-    if (macAddress) {
-      previousMacBySlot.set(key, macAddress);
-    }
-  });
-
-  return previousMacBySlot;
-}
-
-function hasChangedRadioMac(currentMacAddress, previousMacAddress) {
-  const currentMac = normalizeMacAddress(currentMacAddress);
-  const previousMac = normalizeMacAddress(previousMacAddress);
-
-  return Boolean(currentMac && previousMac && currentMac !== previousMac);
-}
-
-function hasNewWpaKey(wpaKeyStatus, fallbackFlag) {
-  void wpaKeyStatus;
-  return Boolean(fallbackFlag);
-}
-
-function applyStationAdvisories(station, previousMacBySlot) {
-  const previousRadioMacAddress = previousMacBySlot.get(slotKey(station.alliance, station.station)) || '';
-
-  return {
-    ...station,
-    previousRadioMacAddress,
-    hasNewRadio: hasChangedRadioMac(station.radioMacAddress, previousRadioMacAddress),
-    hasNewWpa: hasNewWpaKey(station.wpaKeyStatus, station.hasNewWpaFallback),
-  };
-}
-
 export function createEmptyStation(alliance, station) {
   return {
     alliance,
@@ -245,12 +173,6 @@ export function createEmptyStation(alliance, station) {
     moveToStation: '',
     radioConnectionQuality: RadioConnectionQuality.Warning,
     radioConnectedToAp: false,
-    radioMacAddress: '',
-    previousRadioMacAddress: '',
-    hasNewRadio: false,
-    wpaKeyStatus: null,
-    hasNewWpaFallback: false,
-    hasNewWpa: false,
     brownout: false,
     brownoutLatched: false,
   };
@@ -272,9 +194,6 @@ export function normalizeStation(raw, minBatteryMap, brownoutLatchMap) {
   const key = slotKey(alliance, station);
   const battery = Number(getValue(raw, 'pe', 'Battery', 0)) || 0;
   const brownout = Boolean(getValue(raw, 'pgg', 'Brownout', false));
-  const wpaKeyStatusValue = getValue(raw, 'pdd', 'WPAKeyStatus', null);
-  const parsedWpaKeyStatus =
-    wpaKeyStatusValue == null || wpaKeyStatusValue === '' ? null : Number(wpaKeyStatusValue);
 
   const previousMin = minBatteryMap.get(key) ?? 0;
   const nextMin = battery > 0 && (previousMin === 0 || battery < previousMin) ? battery : previousMin;
@@ -314,12 +233,6 @@ export function normalizeStation(raw, minBatteryMap, brownoutLatchMap) {
     radioConnectionQuality:
       Number(getValue(raw, 'pll', 'RadioConnectionQuality', RadioConnectionQuality.Warning)) || 0,
     radioConnectedToAp: Boolean(getValue(raw, 'pmm', 'RadioConnectedToAp', false)),
-    radioMacAddress: getValue(raw, 'pm', 'MacAddress', '') || '',
-    previousRadioMacAddress: '',
-    hasNewRadio: false,
-    wpaKeyStatus: Number.isFinite(parsedWpaKeyStatus) ? parsedWpaKeyStatus : null,
-    hasNewWpaFallback: Boolean(getValue(raw, 'poo', '', false)),
-    hasNewWpa: false,
   };
 }
 
@@ -704,13 +617,6 @@ function coerceStationSnapshot(station) {
       bwUtilization: Number(station.bwUtilization) || BWUtilizationType.Low,
       stationStatus: Number(station.stationStatus) || StationStatusType.Unknown,
       radioConnectionQuality: Number(station.radioConnectionQuality) || RadioConnectionQuality.Warning,
-      radioMacAddress: station.radioMacAddress || '',
-      previousRadioMacAddress: station.previousRadioMacAddress || '',
-      hasNewRadio: Boolean(station.hasNewRadio),
-      wpaKeyStatus:
-        station.wpaKeyStatus == null || station.wpaKeyStatus === '' ? null : Number(station.wpaKeyStatus),
-      hasNewWpaFallback: Boolean(station.hasNewWpaFallback),
-      hasNewWpa: Boolean(station.hasNewWpa),
       brownoutLatched: Boolean(station.brownoutLatched),
     };
   }
@@ -718,7 +624,7 @@ function coerceStationSnapshot(station) {
   return null;
 }
 
-function buildStationsFromSnapshot(stationSnapshot, previousMacBySlot = new Map()) {
+function buildStationsFromSnapshot(stationSnapshot) {
   const stationMap = new Map(
     ALL_STATION_SLOTS.map((slot) => [slotKey(slot.alliance, slot.station), createEmptyStation(slot.alliance, slot.station)])
   );
@@ -729,7 +635,7 @@ function buildStationsFromSnapshot(stationSnapshot, previousMacBySlot = new Map(
       return;
     }
 
-    stationMap.set(slotKey(nextStation.alliance, nextStation.station), applyStationAdvisories(nextStation, previousMacBySlot));
+    stationMap.set(slotKey(nextStation.alliance, nextStation.station), nextStation);
   });
 
   return ALL_STATION_SLOTS.map((slot) => stationMap.get(slotKey(slot.alliance, slot.station)));
@@ -1027,30 +933,6 @@ function isLiveMatchState(matchState) {
   );
 }
 
-function buildAdvisories(station) {
-  const advisories = [];
-
-  if (station.hasNewRadio) {
-    advisories.push({
-      key: 'newRadio',
-      label: 'NEW RADIO',
-      tone: 'warn',
-      icon: 'radio',
-    });
-  }
-
-  if (station.hasNewWpa) {
-    advisories.push({
-      key: 'newWpa',
-      label: 'NEW WPA',
-      tone: 'info',
-      icon: 'key',
-    });
-  }
-
-  return advisories;
-}
-
 function getRowMode(station, matchStatus) {
   const stopKind = getStopKind(station);
   if (stopKind === 'estopped' || stopKind === 'bypassed') {
@@ -1117,7 +999,6 @@ function toRow(station, matchStatus) {
       tx: formatDirectionalTraffic(station.dataRateToRobot),
       rx: formatDirectionalTraffic(station.dataRateFromRobot),
     },
-    advisories: buildAdvisories(station),
     trip: `${Math.round(station.averageTripTime)} ms`,
     pkts: String(Math.round(station.lostPackets)),
     blockingText: mode === 'blocking' ? blockingText : '',
@@ -1161,7 +1042,6 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
   const baseUrl = getBaseUrl();
   const minBatteryRef = useRef(new Map());
   const brownoutLatchRef = useRef(new Map());
-  const previousMacBySlotRef = useRef(new Map());
   const currentMatchRef = useRef(null);
   const isMountedRef = useRef(true);
   const matchStatusRef = useRef(normalizeMatchStatus());
@@ -1245,12 +1125,10 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
   }, [replayState.isPlaying]);
 
   const applyReplaySnapshot = useCallback((recording) => {
-    const snapshotPreviousMacBySlot = coercePreviousMacSnapshot(recording?.initialState?.previousMacBySlot);
-    const snapshotStations = buildStationsFromSnapshot(recording?.initialState?.stations, snapshotPreviousMacBySlot);
+    const snapshotStations = buildStationsFromSnapshot(recording?.initialState?.stations);
     const snapshotMatchStatus = coerceMatchStatusSnapshot(recording?.initialState?.matchStatus);
     minBatteryRef.current = createMinBatteryMap(snapshotStations);
     brownoutLatchRef.current = new Map();
-    previousMacBySlotRef.current = snapshotPreviousMacBySlot;
     currentMatchRef.current = recording?.initialState?.currentMatch ?? null;
     matchStatusRef.current = snapshotMatchStatus;
     cycleCadenceStateRef.current = createUnknownCycleCadenceState();
@@ -1295,29 +1173,11 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
       );
 
       (dataArray || []).forEach((item) => {
-        const station = applyStationAdvisories(
-          normalizeStation(item, minBatteryRef.current, brownoutLatchRef.current),
-          previousMacBySlotRef.current
-        );
+        const station = normalizeStation(item, minBatteryRef.current, brownoutLatchRef.current);
         stationMap.set(slotKey(station.alliance, station.station), station);
       });
 
       setStations(ALL_STATION_SLOTS.map((slot) => stationMap.get(slotKey(slot.alliance, slot.station))));
-    },
-    [recordIncomingEvent]
-  );
-
-  const applyPreviousMacAddresses = useCallback(
-    (data, { shouldRecord = false } = {}) => {
-      if (shouldRecord) {
-        recordIncomingEvent('fieldHub', 'FieldMonitorPreviousMacAddressesChanged', data || {});
-      }
-
-      const nextPreviousMacBySlot = normalizePreviousMacAddresses(data);
-      previousMacBySlotRef.current = nextPreviousMacBySlot;
-      setStations((currentStations) =>
-        currentStations.map((station) => applyStationAdvisories(station, nextPreviousMacBySlot))
-      );
     },
     [recordIncomingEvent]
   );
@@ -1445,7 +1305,6 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
         currentMatch: cloneRecordingPayload(currentMatchRef.current),
         matchStatus: cloneRecordingPayload(matchStatus),
         stations: cloneRecordingPayload(stations),
-        previousMacBySlot: serializePreviousMacAddresses(previousMacBySlotRef.current),
         aheadBehind: aheadBehind.text,
         aheadBehindKnown: aheadBehind.isKnown,
       },
@@ -1539,11 +1398,6 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
         return;
       }
 
-      if (entry.source === 'fieldHub' && entry.event === 'FieldMonitorPreviousMacAddressesChanged') {
-        applyPreviousMacAddresses(entry.payload, { shouldRecord: false });
-        return;
-      }
-
       if (entry.source === 'infrastructureHub' && entry.event === 'matchStatusInfoChanged') {
         applyMatchStatus(entry.payload, { shouldRecord: false, observedAtMs: Number(entry.t) || 0 });
         return;
@@ -1562,7 +1416,7 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
         });
       }
     },
-    [applyAheadBehind, applyCurrentMatchContext, applyMatchStatus, applyPreviousMacAddresses, applyStationData]
+    [applyAheadBehind, applyCurrentMatchContext, applyMatchStatus, applyStationData]
   );
 
   const scheduleReplay = useCallback(() => {
@@ -1714,7 +1568,6 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
       speed: DEFAULT_REPLAY_SPEED,
     };
     minBatteryRef.current.clear();
-    previousMacBySlotRef.current = new Map();
     currentMatchRef.current = null;
     matchStatusRef.current = normalizeMatchStatus();
     cycleCadenceStateRef.current = createUnknownCycleCadenceState();
@@ -1757,12 +1610,6 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
       }
     }
 
-    function handlePreviousMacAddresses(data) {
-      if (isMounted) {
-        applyPreviousMacAddresses(data, { shouldRecord: true });
-      }
-    }
-
     function handleMatchStatus(data) {
       if (isMounted) {
         applyMatchStatus(data, { shouldRecord: true, observedAtMs: Date.now() });
@@ -1770,7 +1617,6 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
     }
 
     fieldHub.on('fieldMonitorDataChanged', handleStationData);
-    fieldHub.on('FieldMonitorPreviousMacAddressesChanged', handlePreviousMacAddresses);
     infrastructureHub.on('matchStatusInfoChanged', handleMatchStatus);
     infrastructureHub.on('ScheduleAheadBehindChanged', (data) => {
       if (isMounted) {
@@ -1838,7 +1684,6 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
   }, [
     applyAheadBehind,
     applyMatchStatus,
-    applyPreviousMacAddresses,
     applyStationData,
     baseUrl,
     hubConnectionFactory,
