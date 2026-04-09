@@ -138,6 +138,37 @@ describe('useFieldMonitorLiveData', () => {
     expect(infrastructureHub.stop).toHaveBeenCalledTimes(1);
   });
 
+  it('derives NEW RADIO from previous-match MAC addresses for the same field slot', async () => {
+    const hubFactory = createFakeHubFactory();
+    const { result } = renderHook(() =>
+      useFieldMonitorLiveData({
+        hubConnectionFactory: hubFactory.factory,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.isConnected).toBe(true);
+    });
+
+    const fieldHub = hubFactory.getHubByName('fieldMonitorHub');
+
+    act(() => {
+      fieldHub.emit('FieldMonitorPreviousMacAddressesChanged', {
+        Red1MacAddress: '48:DA:35:B0:38:7F',
+      });
+      fieldHub.emit(
+        'fieldMonitorDataChanged',
+        [createStationPayload({ MacAddress: '48:DA:35:B0:96:27' })]
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.alliancePanels[1].rows[2].advisories).toEqual([
+        { key: 'newRadio', label: 'NEW RADIO', tone: 'warn', icon: 'radio' },
+      ]);
+    });
+  });
+
   it('defaults live requests to same-origin when no browser base URL is configured', async () => {
     const hubFactory = createFakeHubFactory();
 

@@ -3,6 +3,7 @@ import {
   faTriangleExclamation,
   faGamepad,
   faTowerBroadcast,
+  faKey,
   faMicrochip,
   faBatteryHalf,
   faRightLeft,
@@ -481,6 +482,25 @@ function StationBadge({ station, theme }) {
   );
 }
 
+function AdvisoryBadge({ advisory }) {
+  const isWarn = advisory?.tone === 'warn';
+  const icon = advisory?.icon === 'key' ? faKey : faTowerBroadcast;
+  const badgeClass = isWarn
+    ? 'bg-amber-700 text-white ring-1 ring-amber-800'
+    : 'bg-white text-zinc-900 ring-2 ring-sky-600';
+  const iconClass = isWarn ? 'text-white' : 'text-sky-700';
+
+  return (
+    <div
+      data-testid="row-advisory-badge"
+      className={`inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[9px] font-extrabold uppercase leading-[1.1] tracking-[0.03em] [@media(max-width:380px)]:gap-0.5 [@media(max-width:380px)]:px-0.5 [@media(max-width:380px)]:py-px [@media(max-width:380px)]:text-[8px] sm:px-2.5 sm:py-1 sm:text-[12px] sm:tracking-wide [@media(min-width:1024px)_and_(max-height:860px)]:px-1.5 [@media(min-width:1024px)_and_(max-height:860px)]:py-0.5 [@media(min-width:1024px)_and_(max-height:860px)]:text-[10px] [@media(min-width:1024px)_and_(max-height:720px)]:px-1 [@media(min-width:1024px)_and_(max-height:720px)]:text-[9px] ${badgeClass}`}
+    >
+      <FontAwesomeIcon icon={icon} className={`h-2.5 w-2.5 shrink-0 sm:h-3 sm:w-3 ${iconClass}`} />
+      <span>{advisory.label}</span>
+    </div>
+  );
+}
+
 export default function TeamStatusCard({ alliance, row }) {
   const theme = panelTheme(alliance);
   const isBlocking = row.mode === 'blocking';
@@ -520,6 +540,9 @@ export default function TeamStatusCard({ alliance, row }) {
             {row.team}
           </div>
           <StationBadge station={row.station} theme={theme} />
+          {(row.advisories || []).map((advisory) => (
+            <AdvisoryBadge key={advisory.key} advisory={advisory} />
+          ))}
           {row.mode !== 'blocking' && <IssueBadge mode={row.mode} />}
         </div>
 

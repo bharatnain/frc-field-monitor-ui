@@ -14,6 +14,7 @@ function createRow(overrides = {}) {
     rio: { label: 'RIO', state: 'good', detail: 'Connected' },
     battery: { value: '12.4V', min: '12.1', tone: 'normal', action: '', detail: 'Stable' },
     bwu: { value: '4.8 Mbps', tx: '1.9', rx: '2.9' },
+    advisories: [],
     trip: '7 ms',
     pkts: '1',
     blockingText: '',
@@ -60,5 +61,23 @@ describe('TeamStatusCard', () => {
     );
 
     expect(screen.getAllByText('OUT')).toHaveLength(2);
+  });
+
+  it('renders accessible advisory badges with labels and icons in the header', () => {
+    render(
+      <TeamStatusCard
+        alliance="red"
+        row={createRow({
+          advisories: [
+            { key: 'newRadio', label: 'NEW RADIO', tone: 'warn', icon: 'radio' },
+            { key: 'newWpa', label: 'NEW WPA', tone: 'info', icon: 'key' },
+          ],
+        })}
+      />
+    );
+
+    expect(screen.getByText('NEW RADIO')).toBeInTheDocument();
+    expect(screen.getByText('NEW WPA')).toBeInTheDocument();
+    expect(screen.getAllByTestId('row-advisory-badge')).toHaveLength(2);
   });
 });
