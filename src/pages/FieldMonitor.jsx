@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import ConfettiCelebration from '../components/ConfettiCelebration';
 import TeamStatusCard from '../components/TeamStatusCard';
 import { useFieldMonitorLiveData } from '../lib/fieldMonitorLive';
 
@@ -61,7 +62,7 @@ export default function FieldMonitor() {
   const [viewportHeight, setViewportHeight] = useState(() =>
     typeof window === 'undefined' ? null : window.visualViewport?.height ?? window.innerHeight
   );
-  const { alliancePanels: distancePanels, matchStatus, scheduleStatus, cycleCadence, sourceMode, replay, error } =
+  const { alliancePanels: distancePanels, matchStatus, scheduleStatus, cycleCadence, sourceMode, replay, error, showMatchStartConfetti } =
     useFieldMonitorLiveData({
       mirrorLayout,
     });
@@ -306,6 +307,8 @@ export default function FieldMonitor() {
           </div>
         </div>
       ) : null}
+
+      <ConfettiCelebration show={showMatchStartConfetti} />
     </div>
   );
 }
