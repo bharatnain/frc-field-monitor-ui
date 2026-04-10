@@ -1,3 +1,237 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer utilities {
+  @keyframes fun-confetti-fall {
+    0% {
+      opacity: 0;
+      transform: translate3d(0, -10vh, 0) rotate(0deg);
+    }
+
+    10% {
+      opacity: 1;
+    }
+
+    100% {
+      opacity: 0;
+      transform: translate3d(var(--fun-confetti-drift, 24px), 110vh, 0) rotate(var(--fun-confetti-rotation, 240deg));
+    }
+  }
+
+  @keyframes fun-chef-walk {
+    0% {
+      opacity: 0;
+      transform: translate3d(0, 0, 0);
+    }
+
+    8% {
+      opacity: 1;
+    }
+
+    92% {
+      opacity: 1;
+    }
+
+    100% {
+      opacity: 0;
+      transform: translate3d(calc(100vw + 26rem), 0, 0);
+    }
+  }
+
+  @keyframes fun-ready-glow {
+    0% {
+      opacity: 0.58;
+    }
+
+    50% {
+      opacity: 0.92;
+    }
+
+    100% {
+      opacity: 0.58;
+    }
+  }
+
+  @keyframes fun-ready-rail-shimmer {
+    0% {
+      opacity: 0.38;
+      transform: translate3d(-12%, 0, 0);
+    }
+
+    50% {
+      opacity: 0.95;
+      transform: translate3d(0, 0, 0);
+    }
+
+    100% {
+      opacity: 0.38;
+      transform: translate3d(12%, 0, 0);
+    }
+  }
+
+  @keyframes fun-ready-corner-breathe {
+    0% {
+      opacity: 0.32;
+      transform: scale(0.98);
+    }
+
+    50% {
+      opacity: 0.8;
+      transform: scale(1.02);
+    }
+
+    100% {
+      opacity: 0.32;
+      transform: scale(0.98);
+    }
+  }
+
+  @keyframes fun-ready-center-pulse {
+    0% {
+      opacity: 0.2;
+      transform: translateX(-50%) scaleX(0.94);
+    }
+
+    50% {
+      opacity: 0.48;
+      transform: translateX(-50%) scaleX(1);
+    }
+
+    100% {
+      opacity: 0.2;
+      transform: translateX(-50%) scaleX(0.94);
+    }
+  }
+
+  @keyframes fun-ready-sweep {
+    0% {
+      opacity: 0;
+      transform: translate3d(0, 0, 0);
+    }
+
+    12% {
+      opacity: 1;
+    }
+
+    100% {
+      opacity: 0;
+      transform: translate3d(340%, 0, 0);
+    }
+  }
+
+  .fun-confetti-piece {
+    animation-name: fun-confetti-fall;
+    animation-fill-mode: forwards;
+    animation-timing-function: cubic-bezier(0.18, 0.7, 0.22, 1);
+    box-shadow:
+      0 0 28px rgb(255 255 255 / 0.58),
+      0 16px 28px rgb(24 24 27 / 0.24);
+    border: 2px solid rgb(255 255 255 / 0.4);
+  }
+
+  .fun-chef-walk {
+    animation: fun-chef-walk 3.6s linear forwards;
+    filter: drop-shadow(0 18px 30px rgb(24 24 27 / 0.3));
+  }
+
+  .fun-ready-glow {
+    animation: fun-ready-glow 2.8s ease-in-out infinite;
+    background:
+      radial-gradient(circle at 50% 50%, rgb(16 185 129 / 0.12), transparent 74%),
+      linear-gradient(180deg, rgb(255 255 255 / 0.12), rgb(255 255 255 / 0));
+    box-shadow:
+      inset 0 0 0 1px rgb(16 185 129 / 0.08),
+      0 12px 28px rgb(16 185 129 / 0.06);
+  }
+
+  .fun-ready-chevron-plate {
+    background:
+      linear-gradient(90deg, rgb(255 255 255 / 0.03), rgb(255 255 255 / 0.22), rgb(255 255 255 / 0.03)),
+      linear-gradient(135deg, rgb(16 185 129 / 0.16), rgb(34 211 238 / 0.1));
+    box-shadow:
+      inset 0 1px 0 rgb(255 255 255 / 0.4),
+      inset 0 -1px 0 rgb(16 185 129 / 0.12),
+      0 0 20px rgb(16 185 129 / 0.14);
+    opacity: 0.82;
+  }
+
+  .fun-ready-chevron-band {
+    background:
+      linear-gradient(
+        135deg,
+        rgb(255 255 255 / 0) 0%,
+        rgb(255 255 255 / 0) 8%,
+        rgb(110 231 183 / 0.92) 8%,
+        rgb(110 231 183 / 0.92) 13%,
+        rgb(255 255 255 / 0) 13%,
+        rgb(255 255 255 / 0) 21%,
+        rgb(110 231 183 / 0.92) 21%,
+        rgb(110 231 183 / 0.92) 26%,
+        rgb(255 255 255 / 0) 26%,
+        rgb(255 255 255 / 0) 34%,
+        rgb(110 231 183 / 0.92) 34%,
+        rgb(110 231 183 / 0.92) 39%,
+        rgb(255 255 255 / 0) 39%,
+        rgb(255 255 255 / 0) 47%,
+        rgb(110 231 183 / 0.92) 47%,
+        rgb(110 231 183 / 0.92) 52%,
+        rgb(255 255 255 / 0) 52%,
+        rgb(255 255 255 / 0) 60%,
+        rgb(110 231 183 / 0.92) 60%,
+        rgb(110 231 183 / 0.92) 65%,
+        rgb(255 255 255 / 0) 65%,
+        rgb(255 255 255 / 0) 73%,
+        rgb(110 231 183 / 0.92) 73%,
+        rgb(110 231 183 / 0.92) 78%,
+        rgb(255 255 255 / 0) 78%,
+        rgb(255 255 255 / 0) 100%
+      );
+    background-size: 220% 100%;
+    border: 1px solid rgb(16 185 129 / 0.2);
+    box-shadow:
+      inset 0 0 0 1px rgb(255 255 255 / 0.22),
+      0 0 24px rgb(16 185 129 / 0.22);
+    animation:
+      fun-ready-rail-shimmer 4s ease-in-out infinite,
+      fun-ready-glow 2.8s ease-in-out infinite;
+  }
+
+  .fun-ready-chevron-fade {
+    background: linear-gradient(90deg, rgb(255 255 255 / 0.95), rgb(255 255 255 / 0));
+    opacity: 0.9;
+  }
+
+  .fun-ready-sweep,
+  .fun-ready-sweep-line {
+    animation: fun-ready-sweep 1.9s cubic-bezier(0.2, 0.7, 0.18, 1) forwards;
+  }
+
+  .fun-ready-sweep {
+    background:
+      linear-gradient(
+        90deg,
+        rgb(255 255 255 / 0),
+        rgb(255 255 255 / 0.12) 8%,
+        rgb(110 231 183 / 0.78) 30%,
+        rgb(255 255 255 / 0.98) 54%,
+        rgb(34 211 238 / 0.32) 90%,
+        rgb(255 255 255 / 0)
+      );
+    filter: blur(7px);
+    mix-blend-mode: screen;
+  }
+
+  .fun-ready-sweep-line {
+    background:
+      linear-gradient(
+        90deg,
+        rgb(255 255 255 / 0),
+        rgb(255 255 255 / 0.98) 36%,
+        rgb(110 231 183 / 0.96) 66%,
+        rgb(255 255 255 / 0)
+      );
+    filter: blur(0.5px);
+    mix-blend-mode: screen;
+  }
+}

@@ -1,7 +1,23 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import chefBoyardeeWalkGif from '../assets/chef-boyardee-walk.gif';
 import TeamStatusCard from '../components/TeamStatusCard';
 import { useFieldMonitorLiveData } from '../lib/fieldMonitorLive';
+
+const CONFETTI_COLORS = ['#f97316', '#ef4444', '#facc15', '#22c55e', '#3b82f6', '#a855f7', '#ec4899', '#14b8a6'];
+const CONFETTI_PIECES = Array.from({ length: 120 }, (_, index) => ({
+  id: index,
+  color: CONFETTI_COLORS[index % CONFETTI_COLORS.length],
+  left: `${2 + ((index * 9) % 96)}%`,
+  delay: `${(index % 12) * 0.05}s`,
+  duration: `${2.8 + (index % 6) * 0.22}s`,
+  drift: `${(index % 2 === 0 ? 1 : -1) * (28 + ((index * 7) % 42))}px`,
+  rotation: `${(index % 2 === 0 ? 1 : -1) * (280 + index * 18)}deg`,
+}));
+
+const CONFETTI_DURATION_MS = 2400;
+const CHEF_WALK_DURATION_MS = 3600;
+const READY_BEACON_SWEEP_DURATION_MS = 1900;
 
 const panelTheme = (alliance) =>
   alliance === 'red'
@@ -35,6 +51,10 @@ const isEditableTarget = (target) => {
   return Boolean(editableRoot);
 };
 
+const normalizeScheduleStatus = (value) => (typeof value === 'string' ? value.trim().toLowerCase() : '');
+
+const isAheadScheduleStatus = (value) => normalizeScheduleStatus(value).startsWith('ahead');
+
 function TopBarStat({ label, value, align = 'left', className = '', valueClassName = '', wrapValue = false }) {
   const textAlignmentClass =
     align === 'center' ? 'text-center' : align === 'right' ? 'text-right items-end' : 'text-left items-start';
@@ -53,21 +73,126 @@ function TopBarStat({ label, value, align = 'left', className = '', valueClassNa
   );
 }
 
+function CenterStatusBeacon({ showGlow, showSweep }) {
+  if (!showGlow && !showSweep) {
+    return null;
+  }
+
+  return (
+    <div className="pointer-events-none absolute inset-x-[-999px] inset-y-[-0.45rem] overflow-hidden rounded-[22px]" aria-hidden="true">
+      {showGlow ? (
+        <>
+          <div
+            data-testid="fun-ready-glow"
+            className="fun-ready-glow absolute inset-0 rounded-[22px]"
+          />
+          <div className="fun-ready-chevron-plate absolute inset-x-[0.6%] inset-y-[8%] rounded-[20px]" />
+          <div className="fun-ready-chevron-band absolute inset-x-[1.2%] inset-y-[18%] rounded-[18px]" />
+          <div className="fun-ready-chevron-fade absolute inset-y-[12%] left-[0.4%] w-[10%]" />
+          <div className="fun-ready-chevron-fade absolute inset-y-[12%] right-[0.4%] w-[10%] scale-x-[-1]" />
+        </>
+      ) : null}
+
+      {showSweep ? (
+        <>
+          <div
+            data-testid="fun-ready-beacon"
+            className="fun-ready-sweep absolute inset-y-[10%] left-[-42%] w-[42%] rounded-full"
+          />
+          <div className="fun-ready-sweep-line absolute inset-y-[8%] left-[-18%] w-[18%] rounded-full" />
+        </>
+      ) : null}
+    </div>
+  );
+}
+
+function FunOverlayLayer({ showConfetti, showChefDisconnect }) {
+  return (
+    <>
+      {showConfetti ? (
+        <div
+          data-testid="fun-confetti-overlay"
+          className="pointer-events-none fixed inset-0 z-[60] overflow-hidden"
+          aria-hidden="true"
+        >
+          {CONFETTI_PIECES.map((piece) => (
+            <span
+              key={piece.id}
+              className="fun-confetti-piece absolute top-[-14vh] block rounded-[3px]"
+              style={{
+                left: piece.left,
+                width: `${16 + (piece.id % 4) * 4}px`,
+                height: `${28 + (piece.id % 3) * 6}px`,
+                backgroundColor: piece.color,
+                animationDelay: piece.delay,
+                animationDuration: piece.duration,
+                '--fun-confetti-drift': piece.drift,
+                '--fun-confetti-rotation': piece.rotation,
+              }}
+            />
+          ))}
+        </div>
+      ) : null}
+
+      {showChefDisconnect ? (
+        <div
+          data-testid="fun-disconnect-overlay"
+          className="pointer-events-none fixed inset-0 z-[65] overflow-hidden"
+          aria-hidden="true"
+        >
+          <div className="absolute inset-x-0 bottom-0 h-28 bg-gradient-to-t from-zinc-900/20 via-zinc-900/10 to-transparent" />
+          <img
+            src={chefBoyardeeWalkGif}
+            alt=""
+            className="fun-chef-walk absolute bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-[-18rem] w-56 max-w-none sm:w-64 lg:w-72"
+          />
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 export default function FieldMonitor() {
   const [searchParams] = useSearchParams();
   const mirrorLayout = searchParams.get('mirror') === 'true';
+  const funMode = searchParams.get('fun') === 'true';
   const replayFileInputRef = useRef(null);
   const [isReplayErrorDismissed, setIsReplayErrorDismissed] = useState(false);
   const [viewportHeight, setViewportHeight] = useState(() =>
     typeof window === 'undefined' ? null : window.visualViewport?.height ?? window.innerHeight
   );
-  const { alliancePanels: distancePanels, matchStatus, scheduleStatus, cycleCadence, sourceMode, replay, error } =
-    useFieldMonitorLiveData({
-      mirrorLayout,
-    });
+  const [showConfetti, setShowConfetti] = useState(false);
+  const [showChefDisconnect, setShowChefDisconnect] = useState(false);
+  const [showReadyBeaconSweep, setShowReadyBeaconSweep] = useState(false);
+  const overlayTimeoutsRef = useRef({
+    confetti: 0,
+    chefDisconnect: 0,
+    readyBeacon: 0,
+  });
+  const previousScheduleDirectionRef = useRef(null);
+  const previousConnectionRef = useRef(null);
+  const previousFieldReadyRef = useRef(null);
+  const {
+    alliancePanels: distancePanels,
+    matchStatus,
+    scheduleStatus,
+    cycleCadence,
+    sourceMode,
+    replay,
+    error,
+    aheadBehind,
+    isAheadBehindKnown,
+    isConnected,
+    isFieldReady,
+  } = useFieldMonitorLiveData({
+    mirrorLayout,
+  });
   const replayError = replay.error || (sourceMode === 'replay' ? error : '');
   const showReplayError = Boolean(replayError) && !isReplayErrorDismissed;
   const showReplayOverlay = sourceMode === 'replay' || showReplayError;
+  const scheduleTrendText = isAheadBehindKnown ? aheadBehind : scheduleStatus;
+  const isAhead = isAheadScheduleStatus(scheduleTrendText);
+  const showReadyBeaconGlow = funMode && isFieldReady;
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -106,6 +231,130 @@ export default function FieldMonitor() {
     };
   }, []);
 
+  useEffect(() => {
+    const overlayTimeouts = overlayTimeoutsRef.current;
+
+    return () => {
+      Object.values(overlayTimeouts).forEach((timeoutId) => {
+        if (timeoutId) {
+          window.clearTimeout(timeoutId);
+        }
+      });
+    };
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const overlayTimeouts = overlayTimeoutsRef.current;
+    const setOverlayVisibility = (key, setter, durationMs) => {
+      if (overlayTimeouts[key]) {
+        window.clearTimeout(overlayTimeouts[key]);
+      }
+
+      setter(true);
+      overlayTimeouts[key] = window.setTimeout(() => {
+        setter(false);
+        overlayTimeouts[key] = 0;
+      }, durationMs);
+    };
+
+    if (!funMode) {
+      if (overlayTimeouts.confetti) {
+        window.clearTimeout(overlayTimeouts.confetti);
+        overlayTimeouts.confetti = 0;
+      }
+      setShowConfetti(false);
+      previousScheduleDirectionRef.current = { isAhead };
+      return;
+    }
+
+    const previousDirection = previousScheduleDirectionRef.current;
+    if (previousDirection) {
+      if (!previousDirection.isAhead && isAhead) {
+        setOverlayVisibility('confetti', setShowConfetti, CONFETTI_DURATION_MS);
+      }
+    }
+
+    previousScheduleDirectionRef.current = { isAhead };
+  }, [funMode, isAhead]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const overlayTimeouts = overlayTimeoutsRef.current;
+    const previousFieldReady = previousFieldReadyRef.current;
+
+    if (!funMode) {
+      if (overlayTimeouts.readyBeacon) {
+        window.clearTimeout(overlayTimeouts.readyBeacon);
+        overlayTimeouts.readyBeacon = 0;
+      }
+      setShowReadyBeaconSweep(false);
+      previousFieldReadyRef.current = isFieldReady;
+      return;
+    }
+
+    if (!isFieldReady) {
+      if (overlayTimeouts.readyBeacon) {
+        window.clearTimeout(overlayTimeouts.readyBeacon);
+        overlayTimeouts.readyBeacon = 0;
+      }
+      setShowReadyBeaconSweep(false);
+      previousFieldReadyRef.current = false;
+      return;
+    }
+
+    if (previousFieldReady === false) {
+      if (overlayTimeouts.readyBeacon) {
+        window.clearTimeout(overlayTimeouts.readyBeacon);
+      }
+      setShowReadyBeaconSweep(true);
+      overlayTimeouts.readyBeacon = window.setTimeout(() => {
+        setShowReadyBeaconSweep(false);
+        overlayTimeouts.readyBeacon = 0;
+      }, READY_BEACON_SWEEP_DURATION_MS);
+    }
+
+    previousFieldReadyRef.current = true;
+  }, [funMode, isFieldReady]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    const overlayTimeouts = overlayTimeoutsRef.current;
+    const previousConnection = previousConnectionRef.current;
+
+    if (!funMode || sourceMode !== 'live') {
+      if (overlayTimeouts.chefDisconnect) {
+        window.clearTimeout(overlayTimeouts.chefDisconnect);
+        overlayTimeouts.chefDisconnect = 0;
+      }
+      setShowChefDisconnect(false);
+      previousConnectionRef.current = sourceMode === 'live' ? isConnected : null;
+      return;
+    }
+
+    if (previousConnection === true && !isConnected) {
+      if (overlayTimeouts.chefDisconnect) {
+        window.clearTimeout(overlayTimeouts.chefDisconnect);
+      }
+      setShowChefDisconnect(true);
+      overlayTimeouts.chefDisconnect = window.setTimeout(() => {
+        setShowChefDisconnect(false);
+        overlayTimeouts.chefDisconnect = 0;
+      }, CHEF_WALK_DURATION_MS);
+    }
+
+    previousConnectionRef.current = isConnected;
+  }, [funMode, isConnected, sourceMode]);
+
   return (
     <div
       className="relative flex min-h-screen flex-col bg-zinc-100 text-zinc-900"
@@ -136,47 +385,52 @@ export default function FieldMonitor() {
       <div className="shrink-0 px-3 pb-1 pt-2 lg:px-4 lg:pb-1.5 lg:pt-2.5 [@media(min-width:1024px)_and_(max-height:860px)]:px-2.5 [@media(min-width:1024px)_and_(max-height:860px)]:pt-1.5 [@media(min-width:1024px)_and_(max-height:720px)]:px-2 [@media(min-width:1024px)_and_(max-height:720px)]:pt-1">
         <div
           data-testid="field-monitor-topbar"
-          className="rounded-[22px] bg-white px-3 py-1.5 shadow-sm ring-1 ring-zinc-200 [@media(max-width:380px)]:px-2 [@media(max-width:380px)]:py-1.5 lg:px-4 lg:py-2 [@media(min-width:1024px)_and_(max-height:860px)]:px-2.5 [@media(min-width:1024px)_and_(max-height:860px)]:py-1 [@media(min-width:1024px)_and_(max-height:720px)]:px-2 [@media(min-width:1024px)_and_(max-height:720px)]:py-0.5"
+          className="relative overflow-hidden rounded-[22px] bg-white px-3 py-1.5 shadow-sm ring-1 ring-zinc-200 [@media(max-width:380px)]:px-2 [@media(max-width:380px)]:py-1.5 lg:px-4 lg:py-2 [@media(min-width:1024px)_and_(max-height:860px)]:px-2.5 [@media(min-width:1024px)_and_(max-height:860px)]:py-1 [@media(min-width:1024px)_and_(max-height:720px)]:px-2 [@media(min-width:1024px)_and_(max-height:720px)]:py-0.5"
         >
-          <div className="flex items-start justify-between gap-2.5 [@media(max-width:380px)]:gap-2 sm:grid sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.25fr)_minmax(0,0.85fr)] sm:items-end sm:gap-3">
-            <TopBarStat
-              label="Match Number"
-              value={matchStatus.matchNumber > 0 ? `M${matchStatus.matchNumber}` : 'No match yet'}
-              className="flex-1 sm:flex-none"
-            />
-            <TopBarStat
-              label="Match Status"
-              value={matchStatus.matchStateMessage}
-              align="right"
-              className="max-w-[56%] flex-1 sm:max-w-none sm:flex-none sm:items-center sm:text-center"
-              valueClassName="text-[11px] [@media(max-width:380px)]:text-[10px] sm:text-[14px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[12px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[10px]"
-              wrapValue
-            />
-            <div className="hidden min-w-0 sm:flex sm:min-w-0 sm:items-start sm:justify-end sm:gap-3">
+          <div className="relative z-10">
+            <div className="flex items-start justify-between gap-2.5 [@media(max-width:380px)]:gap-2 sm:grid sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.25fr)_minmax(0,0.85fr)] sm:items-end sm:gap-3">
+              <TopBarStat
+                label="Match Number"
+                value={matchStatus.matchNumber > 0 ? `M${matchStatus.matchNumber}` : 'No match yet'}
+                className="flex-1 sm:flex-none"
+              />
+              <div className="relative max-w-[56%] min-w-0 flex-1 sm:max-w-none sm:flex-none">
+                <CenterStatusBeacon showGlow={showReadyBeaconGlow} showSweep={showReadyBeaconSweep} />
+                <TopBarStat
+                  label="Match Status"
+                  value={matchStatus.matchStateMessage}
+                  align="right"
+                  className="relative z-10 min-w-0 sm:items-center sm:text-center"
+                  valueClassName="text-[11px] [@media(max-width:380px)]:text-[10px] sm:text-[14px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[12px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[10px]"
+                  wrapValue
+                />
+              </div>
+              <div className="hidden min-w-0 sm:flex sm:min-w-0 sm:items-start sm:justify-end sm:gap-3">
+                <TopBarStat
+                  label="Schedule Status"
+                  value={scheduleStatus}
+                  align="right"
+                  className="min-w-0 flex-1"
+                  valueClassName="text-[10px] [@media(max-width:380px)]:text-[9px] sm:text-[13px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[11px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[10px]"
+                />
+                <TopBarStat
+                  label="Cycle"
+                  value={cycleCadence.summary}
+                  align="right"
+                  className="min-w-0 flex-1"
+                  valueClassName="text-[9px] [@media(max-width:380px)]:text-[8px] sm:text-[12px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[11px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[9px]"
+                />
+              </div>
+            </div>
+            <div className="mt-1.5 border-t border-zinc-100 pt-1.5 sm:hidden">
               <TopBarStat
                 label="Schedule Status"
                 value={scheduleStatus}
-                align="right"
-                className="min-w-0 flex-1"
-                valueClassName="text-[10px] [@media(max-width:380px)]:text-[9px] sm:text-[13px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[11px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[10px]"
-              />
-              <TopBarStat
-                label="Cycle"
-                value={cycleCadence.summary}
-                align="right"
-                className="min-w-0 flex-1"
-                valueClassName="text-[9px] [@media(max-width:380px)]:text-[8px] sm:text-[12px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[11px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[9px]"
+                className="min-w-0"
+                valueClassName="text-[11px] [@media(max-width:380px)]:text-[10px] sm:text-[14px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[12px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[10px]"
+                wrapValue
               />
             </div>
-          </div>
-          <div className="mt-1.5 border-t border-zinc-100 pt-1.5 sm:hidden">
-            <TopBarStat
-              label="Schedule Status"
-              value={scheduleStatus}
-              className="min-w-0"
-              valueClassName="text-[11px] [@media(max-width:380px)]:text-[10px] sm:text-[14px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[12px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[10px]"
-              wrapValue
-            />
           </div>
         </div>
       </div>
@@ -305,6 +559,13 @@ export default function FieldMonitor() {
             </div>
           </div>
         </div>
+      ) : null}
+
+      {funMode ? (
+        <FunOverlayLayer
+          showConfetti={showConfetti}
+          showChefDisconnect={showChefDisconnect}
+        />
       ) : null}
     </div>
   );

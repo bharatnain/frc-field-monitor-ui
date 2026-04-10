@@ -1034,6 +1034,38 @@ export function buildPanels(stations, mirrorLayout, matchStatus) {
   }));
 }
 
+function isPrestartMatchState(matchState) {
+  return (
+    matchState === MatchStateType.WaitingForPrestart ||
+    matchState === MatchStateType.WaitingForPrestartTO ||
+    matchState === MatchStateType.Prestarting ||
+    matchState === MatchStateType.PrestartingTO
+  );
+}
+
+function isStationFieldReady(station) {
+  if (!station) {
+    return false;
+  }
+
+  if (station.isBypassed) {
+    return true;
+  }
+
+  return Boolean(station.connection && station.rioLink && (station.radioConnectedToAp || station.linkActive));
+}
+
+export function isFieldReadyState(stations, matchStatus) {
+  if (!isPrestartMatchState(matchStatus?.matchState)) {
+    return false;
+  }
+
+  return ALL_STATION_SLOTS.every(({ alliance, station }) => {
+    const slotStation = stations.find((candidate) => candidate.alliance === alliance && candidate.station === station);
+    return isStationFieldReady(slotStation);
+  });
+}
+
 function buildInitialStations() {
   return ALL_STATION_SLOTS.map(({ alliance, station }) => createEmptyStation(alliance, station));
 }
@@ -1787,6 +1819,7 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
     () => buildPanels(stations, mirrorLayout, matchStatus),
     [matchStatus, mirrorLayout, stations]
   );
+  const isFieldReady = useMemo(() => isFieldReadyState(stations, matchStatus), [matchStatus, stations]);
   const scheduleStatus = aheadBehind.isKnown ? aheadBehind.text || 'On schedule' : 'Unknown';
   const cycleCadence = useMemo(
     () =>
@@ -1811,6 +1844,7 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
     cycleCadence,
     error,
     isConnected: sourceMode === 'live' && isFieldHubConnected && isInfrastructureHubConnected,
+    isFieldReady,
     hasLiveData: stations.some((station) => station.teamNumber > 0),
     recorder: {
       isRecording: sourceMode === 'live' && recorderState.isRecording,

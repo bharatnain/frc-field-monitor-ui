@@ -60,6 +60,7 @@ function createHookState(overrides = {}) {
       { alliance: 'red', title: 'Red Alliance', rows: [createRow()] },
     ],
     matchStatus: {
+      matchState: 13,
       matchNumber: 42,
       matchStateMessage: 'Teleop',
     },
@@ -76,19 +77,27 @@ function createHookState(overrides = {}) {
       currentAnchorMatchNumber: 0,
       currentAnchorPlayNumber: 0,
     },
+    aheadBehind: '',
+    isAheadBehindKnown: false,
     sourceMode: 'live',
+    isConnected: true,
+    isFieldReady: false,
     error: '',
     ...overrides,
     replay: nextReplay,
   };
 }
 
-function renderFieldMonitor(initialEntry = '/') {
-  return render(
+function createFieldMonitorTree(initialEntry = '/') {
+  return (
     <MemoryRouter initialEntries={[initialEntry]}>
       <FieldMonitor />
     </MemoryRouter>
   );
+}
+
+function renderFieldMonitor(initialEntry = '/') {
+  return render(createFieldMonitorTree(initialEntry));
 }
 
 describe('FieldMonitor', () => {
@@ -118,6 +127,144 @@ describe('FieldMonitor', () => {
     expect(screen.getByText('254')).toBeInTheDocument();
     expect(screen.getByText('1114')).toBeInTheDocument();
     expect(mockUseFieldMonitorLiveData).toHaveBeenCalledWith({ mirrorLayout: true });
+  });
+
+  it('shows a one-shot confetti overlay when fun mode transitions into an ahead state', async () => {
+    let hookState = createHookState({
+      sourceMode: 'replay',
+      scheduleStatus: 'On schedule',
+      aheadBehind: 'On schedule',
+      isAheadBehindKnown: true,
+    });
+    mockUseFieldMonitorLiveData.mockImplementation(() => hookState);
+
+    const { rerender } = renderFieldMonitor('/?fun=true');
+
+    expect(screen.queryByTestId('fun-confetti-overlay')).not.toBeInTheDocument();
+
+    hookState = createHookState({
+      sourceMode: 'replay',
+      scheduleStatus: 'Ahead by 1',
+      aheadBehind: 'Ahead by 1',
+      isAheadBehindKnown: true,
+    });
+
+    rerender(createFieldMonitorTree('/?fun=true'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('fun-confetti-overlay')).toBeInTheDocument();
+    });
+  });
+
+  it('shows the Chef Boyardee overlay only when fun mode loses the live connection after being connected', async () => {
+    let hookState = createHookState({
+      isConnected: false,
+    });
+    mockUseFieldMonitorLiveData.mockImplementation(() => hookState);
+
+    const { rerender } = renderFieldMonitor('/?fun=true');
+
+    expect(screen.queryByTestId('fun-disconnect-overlay')).not.toBeInTheDocument();
+
+    hookState = createHookState({
+      isConnected: true,
+    });
+    rerender(createFieldMonitorTree('/?fun=true'));
+
+    expect(screen.queryByTestId('fun-disconnect-overlay')).not.toBeInTheDocument();
+
+    hookState = createHookState({
+      isConnected: false,
+    });
+    rerender(createFieldMonitorTree('/?fun=true'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('fun-disconnect-overlay')).toBeInTheDocument();
+    });
+  });
+
+  it('keeps the disconnect overlay disabled outside live mode', async () => {
+    let hookState = createHookState({
+      sourceMode: 'replay',
+      isConnected: true,
+    });
+    mockUseFieldMonitorLiveData.mockImplementation(() => hookState);
+
+    const { rerender } = renderFieldMonitor('/?fun=true');
+
+    hookState = createHookState({
+      sourceMode: 'replay',
+      isConnected: false,
+    });
+    rerender(createFieldMonitorTree('/?fun=true'));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('fun-disconnect-overlay')).not.toBeInTheDocument();
+    });
+  });
+
+  it('shows a ready beacon sweep and leaves an idle glow while fun mode stays field-ready', async () => {
+    let hookState = createHookState({
+      sourceMode: 'replay',
+      isFieldReady: false,
+      matchStatus: {
+        matchState: 4,
+        matchNumber: 42,
+        matchStateMessage: 'PRESTARTING',
+      },
+    });
+    mockUseFieldMonitorLiveData.mockImplementation(() => hookState);
+
+    const { rerender } = renderFieldMonitor('/?fun=true');
+
+    expect(screen.queryByTestId('fun-ready-beacon')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('fun-ready-glow')).not.toBeInTheDocument();
+
+    hookState = createHookState({
+      sourceMode: 'replay',
+      isFieldReady: true,
+      matchStatus: {
+        matchState: 4,
+        matchNumber: 42,
+        matchStateMessage: 'PRESTARTING',
+      },
+    });
+    rerender(createFieldMonitorTree('/?fun=true'));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('fun-ready-beacon')).toBeInTheDocument();
+      expect(screen.getByTestId('fun-ready-glow')).toBeInTheDocument();
+    });
+  });
+
+  it('does not render fun overlays when the fun query parameter is absent or false', async () => {
+    let hookState = createHookState({
+      scheduleStatus: 'On schedule',
+      aheadBehind: 'On schedule',
+      isAheadBehindKnown: true,
+      isConnected: true,
+      isFieldReady: true,
+    });
+    mockUseFieldMonitorLiveData.mockImplementation(() => hookState);
+
+    const { rerender } = renderFieldMonitor('/?fun=false');
+
+    hookState = createHookState({
+      scheduleStatus: 'Ahead by 1',
+      aheadBehind: 'Ahead by 1',
+      isAheadBehindKnown: true,
+      isConnected: false,
+      isFieldReady: true,
+    });
+
+    rerender(createFieldMonitorTree('/?fun=false'));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId('fun-confetti-overlay')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('fun-disconnect-overlay')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('fun-ready-beacon')).not.toBeInTheDocument();
+      expect(screen.queryByTestId('fun-ready-glow')).not.toBeInTheDocument();
+    });
   });
 
   it('sizes the shell to the visible viewport and updates when that viewport changes', () => {
@@ -280,6 +427,7 @@ describe('FieldMonitor', () => {
     const [mobileFooterSummary] = screen.getAllByTestId('mobile-footer-summary');
     const firstRowCard = container.querySelector('[data-testid="connection-layout"]')?.closest('.relative');
     const footerGrid = metricsGrid.parentElement;
+    const mobileTopBarRow = topBar.querySelector('.mt-1\\.5');
 
     expect(mobileConnectionLayout).toHaveClass(
       'grid-cols-[minmax(0,1fr)_10px_minmax(0,1fr)_10px_minmax(0,1fr)]',
@@ -293,7 +441,7 @@ describe('FieldMonitor', () => {
       'grid-cols-[minmax(0,1fr)_22px_minmax(0,1fr)_22px_minmax(0,1fr)]'
     );
     expect(topBar).toHaveClass('px-3', 'py-1.5', '[@media(max-width:380px)]:px-2', '[@media(max-width:380px)]:py-1.5');
-    expect(topBar.lastElementChild).toHaveClass('mt-1.5', 'border-t', 'border-zinc-100', 'pt-1.5', 'sm:hidden');
+    expect(mobileTopBarRow).toHaveClass('mt-1.5', 'border-t', 'border-zinc-100', 'pt-1.5', 'sm:hidden');
     expect(rowHeader).toHaveClass('flex-nowrap', 'sm:flex-wrap');
     expect(rowHeaderPrimary).toHaveClass('flex-1', 'flex-nowrap', 'sm:flex-wrap');
     expect(firstRowCard).toHaveClass(

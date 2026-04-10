@@ -5,6 +5,7 @@ import {
   createRecordingFilename,
   fieldMonitorTypes,
   getReplayDurationMs,
+  isFieldReadyState,
   normalizeMatchStatus,
   normalizeStation,
   parseReplayRecording,
@@ -49,6 +50,53 @@ function createHealthyRow(overrides = {}, matchStatusOverrides = {}) {
   });
 
   return buildPanels([station], true, matchStatus)[0].rows[0];
+}
+
+function createReadyStations(overridesBySlot = {}) {
+  return [
+    createStation(AllianceType.Blue, StationType.Station1, {
+      connection: true,
+      rioLink: true,
+      linkActive: true,
+      radioConnectedToAp: true,
+      ...overridesBySlot.blue1,
+    }),
+    createStation(AllianceType.Blue, StationType.Station2, {
+      connection: true,
+      rioLink: true,
+      linkActive: true,
+      radioConnectedToAp: true,
+      ...overridesBySlot.blue2,
+    }),
+    createStation(AllianceType.Blue, StationType.Station3, {
+      connection: true,
+      rioLink: true,
+      linkActive: true,
+      radioConnectedToAp: true,
+      ...overridesBySlot.blue3,
+    }),
+    createStation(AllianceType.Red, StationType.Station1, {
+      connection: true,
+      rioLink: true,
+      linkActive: true,
+      radioConnectedToAp: true,
+      ...overridesBySlot.red1,
+    }),
+    createStation(AllianceType.Red, StationType.Station2, {
+      connection: true,
+      rioLink: true,
+      linkActive: true,
+      radioConnectedToAp: true,
+      ...overridesBySlot.red2,
+    }),
+    createStation(AllianceType.Red, StationType.Station3, {
+      connection: true,
+      rioLink: true,
+      linkActive: true,
+      radioConnectedToAp: true,
+      ...overridesBySlot.red3,
+    }),
+  ];
 }
 
 afterEach(() => {
@@ -147,6 +195,47 @@ describe('fieldMonitorLive helpers', () => {
     const mirroredPanels = buildPanels(stations, true, matchStatus);
     expect(mirroredPanels.map((panel) => panel.alliance)).toEqual(['red', 'blue']);
     expect(mirroredPanels[0].rows.map((row) => row.station)).toEqual(['Stn 1', 'Stn 2', 'Stn 3']);
+  });
+
+  it('marks the field ready only during prestart when all six stations are connected or bypassed', () => {
+    const prestartStatus = normalizeMatchStatus({
+      MatchState: MatchStateType.Prestarting,
+    });
+
+    expect(
+      isFieldReadyState(
+        createReadyStations({
+          red3: {
+            isBypassed: true,
+            connection: false,
+            rioLink: false,
+            linkActive: false,
+            radioConnectedToAp: false,
+          },
+        }),
+        prestartStatus
+      )
+    ).toBe(true);
+
+    expect(
+      isFieldReadyState(
+        createReadyStations({
+          blue2: {
+            connection: false,
+          },
+        }),
+        prestartStatus
+      )
+    ).toBe(false);
+
+    expect(
+      isFieldReadyState(
+        createReadyStations(),
+        normalizeMatchStatus({
+          MatchState: MatchStateType.MatchTeleop,
+        })
+      )
+    ).toBe(false);
   });
 
   it('parses replay recordings and derives duration from metadata or the last event', () => {
