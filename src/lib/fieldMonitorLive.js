@@ -279,7 +279,7 @@ function getMatchStateMessage(matchState) {
     case MatchStateType.WaitingForMatchReady:
       return 'WAITING FOR MATCH READY';
     case MatchStateType.WaitingForMatchStart:
-      return 'READY FOR MATCH START';
+      return '👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻 READY FOR MATCH START 👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻';
     case MatchStateType.GameSpecificData:
       return 'GAME SPECIFIC DATA';
     case MatchStateType.MatchAuto:

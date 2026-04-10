@@ -313,6 +313,14 @@ describe('fieldMonitorLive helpers', () => {
     ).toBe('WAITING FOR MATCH READY');
   });
 
+  it('uses the celebratory banner when the match is ready to start', () => {
+    expect(
+      normalizeMatchStatus({
+        MatchState: MatchStateType.WaitingForMatchStart,
+      }).matchStateMessage
+    ).toBe('👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻 READY FOR MATCH START 👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻');
+  });
+
   it('supports both short and long station payload keys', () => {
     const minBatteryMap = new Map();
     const brownoutLatchMap = new Map();
