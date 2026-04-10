@@ -354,6 +354,14 @@ function coerceAheadBehindSnapshot(rawValue, rawKnown) {
   return createUnknownAheadBehindState();
 }
 
+function isScheduleAhead(aheadBehindState) {
+  if (!aheadBehindState?.isKnown || !aheadBehindState.text) {
+    return false;
+  }
+
+  return aheadBehindState.text.toLowerCase().startsWith('ahead');
+}
+
 function createUnknownCycleCadenceState() {
   return {
     lastCycleMs: null,
@@ -1063,6 +1071,9 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
   const [stations, setStations] = useState(buildInitialStations);
   const [matchStatus, setMatchStatus] = useState(normalizeMatchStatus());
   const [aheadBehind, setAheadBehind] = useState(createUnknownAheadBehindState);
+  const aheadBehindRef = useRef(aheadBehind);
+  const [showMatchStartConfetti, setShowMatchStartConfetti] = useState(false);
+  const confettiTimeoutRef = useRef(null);
   const cycleCadenceStateRef = useRef(createUnknownCycleCadenceState());
   const [cycleCadenceState, setCycleCadenceState] = useState(createUnknownCycleCadenceState);
   const [cycleClockMs, setCycleClockMs] = useState(null);
@@ -1099,6 +1110,18 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
   useEffect(() => {
     sourceModeRef.current = sourceMode;
   }, [sourceMode]);
+
+  useEffect(() => {
+    aheadBehindRef.current = aheadBehind;
+  }, [aheadBehind]);
+
+  useEffect(() => {
+    return () => {
+      if (confettiTimeoutRef.current) {
+        window.clearTimeout(confettiTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(
     () => () => {
@@ -1197,6 +1220,21 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
       ) {
         minBatteryRef.current.clear();
         brownoutLatchRef.current.clear();
+      }
+
+      // Trigger confetti when match starts (transitions to MatchAuto) and schedule is ahead
+      const isMatchStartTransition =
+        previousStatus.matchState !== MatchStateType.MatchAuto &&
+        nextStatus.matchState === MatchStateType.MatchAuto;
+      if (isMatchStartTransition && isScheduleAhead(aheadBehindRef.current)) {
+        if (confettiTimeoutRef.current) {
+          window.clearTimeout(confettiTimeoutRef.current);
+        }
+        setShowMatchStartConfetti(true);
+        confettiTimeoutRef.current = window.setTimeout(() => {
+          setShowMatchStartConfetti(false);
+          confettiTimeoutRef.current = null;
+        }, 3000);
       }
 
       matchStatusRef.current = nextStatus;
@@ -1809,6 +1847,7 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
     isAheadBehindKnown: aheadBehind.isKnown,
     scheduleStatus,
     cycleCadence,
+    showMatchStartConfetti,
     error,
     isConnected: sourceMode === 'live' && isFieldHubConnected && isInfrastructureHubConnected,
     hasLiveData: stations.some((station) => station.teamNumber > 0),

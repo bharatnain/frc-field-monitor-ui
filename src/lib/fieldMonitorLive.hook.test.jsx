@@ -683,4 +683,114 @@ describe('useFieldMonitorLiveData', () => {
     expect(result.current.replay.error).toBe('Replay file is missing an events array.');
     expect(result.current.error).toBe('Replay file is missing an events array.');
   });
+
+  it('shows confetti when match starts and schedule is ahead', async () => {
+    const hubFactory = createFakeHubFactory();
+    const { result } = renderHook(() =>
+      useFieldMonitorLiveData({
+        hubConnectionFactory: hubFactory.factory,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.isConnected).toBe(true);
+    });
+
+    vi.useFakeTimers();
+
+    const infrastructureHub = hubFactory.getHubByName('infrastructureHub');
+
+    // Set schedule as ahead
+    act(() => {
+      infrastructureHub.emit('ScheduleAheadBehindChanged', 'Ahead by 2');
+    });
+
+    expect(result.current.scheduleStatus).toBe('Ahead by 2');
+    expect(result.current.showMatchStartConfetti).toBe(false);
+
+    // Transition to MatchAuto (match start)
+    act(() => {
+      infrastructureHub.emit('matchStatusInfoChanged', {
+        MatchState: MatchStateType.MatchAuto,
+        MatchNumber: 10,
+        PlayNumber: 1,
+        TournamentLevel: 'Qualification',
+      });
+    });
+
+    expect(result.current.showMatchStartConfetti).toBe(true);
+
+    // Confetti should auto-dismiss after 3 seconds
+    act(() => {
+      vi.advanceTimersByTime(3000);
+    });
+
+    expect(result.current.showMatchStartConfetti).toBe(false);
+  });
+
+  it('does not show confetti when match starts but schedule is behind', async () => {
+    const hubFactory = createFakeHubFactory();
+    const { result } = renderHook(() =>
+      useFieldMonitorLiveData({
+        hubConnectionFactory: hubFactory.factory,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.isConnected).toBe(true);
+    });
+
+    const infrastructureHub = hubFactory.getHubByName('infrastructureHub');
+
+    // Set schedule as behind
+    act(() => {
+      infrastructureHub.emit('ScheduleAheadBehindChanged', 'Behind by 1');
+    });
+
+    expect(result.current.scheduleStatus).toBe('Behind by 1');
+
+    // Transition to MatchAuto (match start)
+    act(() => {
+      infrastructureHub.emit('matchStatusInfoChanged', {
+        MatchState: MatchStateType.MatchAuto,
+        MatchNumber: 10,
+        PlayNumber: 1,
+        TournamentLevel: 'Qualification',
+      });
+    });
+
+    expect(result.current.showMatchStartConfetti).toBe(false);
+  });
+
+  it('does not show confetti when not transitioning to MatchAuto', async () => {
+    const hubFactory = createFakeHubFactory();
+    const { result } = renderHook(() =>
+      useFieldMonitorLiveData({
+        hubConnectionFactory: hubFactory.factory,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.isConnected).toBe(true);
+    });
+
+    const infrastructureHub = hubFactory.getHubByName('infrastructureHub');
+
+    // Set schedule as ahead
+    act(() => {
+      infrastructureHub.emit('ScheduleAheadBehindChanged', 'Ahead by 1');
+    });
+
+    // Transition to Teleop (not a match start)
+    act(() => {
+      infrastructureHub.emit('matchStatusInfoChanged', {
+        MatchState: MatchStateType.MatchTeleop,
+        MatchNumber: 10,
+        PlayNumber: 1,
+        TournamentLevel: 'Qualification',
+      });
+    });
+
+    expect(result.current.showMatchStartConfetti).toBe(false);
+  });
 });
