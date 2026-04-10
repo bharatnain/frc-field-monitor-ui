@@ -155,7 +155,6 @@ function FunOverlayLayer({ showConfetti, showChefDisconnect }) {
 export default function FieldMonitor() {
   const [searchParams] = useSearchParams();
   const mirrorLayout = searchParams.get('mirror') === 'true';
-  const funMode = searchParams.get('fun') === 'true';
   const replayFileInputRef = useRef(null);
   const [isReplayErrorDismissed, setIsReplayErrorDismissed] = useState(false);
   const [viewportHeight, setViewportHeight] = useState(() =>
@@ -192,7 +191,7 @@ export default function FieldMonitor() {
   const showReplayOverlay = sourceMode === 'replay' || showReplayError;
   const scheduleTrendText = isAheadBehindKnown ? aheadBehind : scheduleStatus;
   const isAhead = isAheadScheduleStatus(scheduleTrendText);
-  const showReadyBeaconGlow = funMode && isFieldReady;
+  const showReadyBeaconGlow = isFieldReady;
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -261,16 +260,6 @@ export default function FieldMonitor() {
       }, durationMs);
     };
 
-    if (!funMode) {
-      if (overlayTimeouts.confetti) {
-        window.clearTimeout(overlayTimeouts.confetti);
-        overlayTimeouts.confetti = 0;
-      }
-      setShowConfetti(false);
-      previousScheduleDirectionRef.current = { isAhead };
-      return;
-    }
-
     const previousDirection = previousScheduleDirectionRef.current;
     if (previousDirection) {
       if (!previousDirection.isAhead && isAhead) {
@@ -279,7 +268,7 @@ export default function FieldMonitor() {
     }
 
     previousScheduleDirectionRef.current = { isAhead };
-  }, [funMode, isAhead]);
+  }, [isAhead]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -288,16 +277,6 @@ export default function FieldMonitor() {
 
     const overlayTimeouts = overlayTimeoutsRef.current;
     const previousFieldReady = previousFieldReadyRef.current;
-
-    if (!funMode) {
-      if (overlayTimeouts.readyBeacon) {
-        window.clearTimeout(overlayTimeouts.readyBeacon);
-        overlayTimeouts.readyBeacon = 0;
-      }
-      setShowReadyBeaconSweep(false);
-      previousFieldReadyRef.current = isFieldReady;
-      return;
-    }
 
     if (!isFieldReady) {
       if (overlayTimeouts.readyBeacon) {
@@ -321,7 +300,7 @@ export default function FieldMonitor() {
     }
 
     previousFieldReadyRef.current = true;
-  }, [funMode, isFieldReady]);
+  }, [isFieldReady]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -331,7 +310,7 @@ export default function FieldMonitor() {
     const overlayTimeouts = overlayTimeoutsRef.current;
     const previousConnection = previousConnectionRef.current;
 
-    if (!funMode || sourceMode !== 'live') {
+    if (sourceMode !== 'live') {
       if (overlayTimeouts.chefDisconnect) {
         window.clearTimeout(overlayTimeouts.chefDisconnect);
         overlayTimeouts.chefDisconnect = 0;
@@ -353,7 +332,7 @@ export default function FieldMonitor() {
     }
 
     previousConnectionRef.current = isConnected;
-  }, [funMode, isConnected, sourceMode]);
+  }, [isConnected, sourceMode]);
 
   return (
     <div
@@ -561,12 +540,10 @@ export default function FieldMonitor() {
         </div>
       ) : null}
 
-      {funMode ? (
-        <FunOverlayLayer
-          showConfetti={showConfetti}
-          showChefDisconnect={showChefDisconnect}
-        />
-      ) : null}
+      <FunOverlayLayer
+        showConfetti={showConfetti}
+        showChefDisconnect={showChefDisconnect}
+      />
     </div>
   );
 }

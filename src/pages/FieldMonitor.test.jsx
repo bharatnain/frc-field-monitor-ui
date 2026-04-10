@@ -129,7 +129,7 @@ describe('FieldMonitor', () => {
     expect(mockUseFieldMonitorLiveData).toHaveBeenCalledWith({ mirrorLayout: true });
   });
 
-  it('shows a one-shot confetti overlay when fun mode transitions into an ahead state', async () => {
+  it('shows a one-shot confetti overlay when the schedule transitions into an ahead state', async () => {
     let hookState = createHookState({
       sourceMode: 'replay',
       scheduleStatus: 'On schedule',
@@ -138,7 +138,7 @@ describe('FieldMonitor', () => {
     });
     mockUseFieldMonitorLiveData.mockImplementation(() => hookState);
 
-    const { rerender } = renderFieldMonitor('/?fun=true');
+    const { rerender } = renderFieldMonitor('/');
 
     expect(screen.queryByTestId('fun-confetti-overlay')).not.toBeInTheDocument();
 
@@ -149,34 +149,34 @@ describe('FieldMonitor', () => {
       isAheadBehindKnown: true,
     });
 
-    rerender(createFieldMonitorTree('/?fun=true'));
+    rerender(createFieldMonitorTree('/'));
 
     await waitFor(() => {
       expect(screen.getByTestId('fun-confetti-overlay')).toBeInTheDocument();
     });
   });
 
-  it('shows the Chef Boyardee overlay only when fun mode loses the live connection after being connected', async () => {
+  it('shows the Chef Boyardee overlay only when live connection is lost after being connected', async () => {
     let hookState = createHookState({
       isConnected: false,
     });
     mockUseFieldMonitorLiveData.mockImplementation(() => hookState);
 
-    const { rerender } = renderFieldMonitor('/?fun=true');
+    const { rerender } = renderFieldMonitor('/');
 
     expect(screen.queryByTestId('fun-disconnect-overlay')).not.toBeInTheDocument();
 
     hookState = createHookState({
       isConnected: true,
     });
-    rerender(createFieldMonitorTree('/?fun=true'));
+    rerender(createFieldMonitorTree('/'));
 
     expect(screen.queryByTestId('fun-disconnect-overlay')).not.toBeInTheDocument();
 
     hookState = createHookState({
       isConnected: false,
     });
-    rerender(createFieldMonitorTree('/?fun=true'));
+    rerender(createFieldMonitorTree('/'));
 
     await waitFor(() => {
       expect(screen.getByTestId('fun-disconnect-overlay')).toBeInTheDocument();
@@ -190,20 +190,20 @@ describe('FieldMonitor', () => {
     });
     mockUseFieldMonitorLiveData.mockImplementation(() => hookState);
 
-    const { rerender } = renderFieldMonitor('/?fun=true');
+    const { rerender } = renderFieldMonitor('/');
 
     hookState = createHookState({
       sourceMode: 'replay',
       isConnected: false,
     });
-    rerender(createFieldMonitorTree('/?fun=true'));
+    rerender(createFieldMonitorTree('/'));
 
     await waitFor(() => {
       expect(screen.queryByTestId('fun-disconnect-overlay')).not.toBeInTheDocument();
     });
   });
 
-  it('shows a ready beacon sweep and leaves an idle glow while fun mode stays field-ready', async () => {
+  it('shows a ready beacon sweep and leaves an idle glow while the field stays ready', async () => {
     let hookState = createHookState({
       sourceMode: 'replay',
       isFieldReady: false,
@@ -215,7 +215,7 @@ describe('FieldMonitor', () => {
     });
     mockUseFieldMonitorLiveData.mockImplementation(() => hookState);
 
-    const { rerender } = renderFieldMonitor('/?fun=true');
+    const { rerender } = renderFieldMonitor('/');
 
     expect(screen.queryByTestId('fun-ready-beacon')).not.toBeInTheDocument();
     expect(screen.queryByTestId('fun-ready-glow')).not.toBeInTheDocument();
@@ -229,7 +229,7 @@ describe('FieldMonitor', () => {
         matchStateMessage: 'PRESTARTING',
       },
     });
-    rerender(createFieldMonitorTree('/?fun=true'));
+    rerender(createFieldMonitorTree('/'));
 
     await waitFor(() => {
       expect(screen.getByTestId('fun-ready-beacon')).toBeInTheDocument();
@@ -237,27 +237,18 @@ describe('FieldMonitor', () => {
     });
   });
 
-  it('does not render fun overlays when the fun query parameter is absent or false', async () => {
-    let hookState = createHookState({
-      scheduleStatus: 'On schedule',
-      aheadBehind: 'On schedule',
-      isAheadBehindKnown: true,
-      isConnected: true,
-      isFieldReady: true,
-    });
-    mockUseFieldMonitorLiveData.mockImplementation(() => hookState);
+  it('keeps overlays hidden until their triggers occur', async () => {
+    mockUseFieldMonitorLiveData.mockReturnValue(
+      createHookState({
+        scheduleStatus: 'On schedule',
+        aheadBehind: 'On schedule',
+        isAheadBehindKnown: true,
+        isConnected: true,
+        isFieldReady: false,
+      })
+    );
 
-    const { rerender } = renderFieldMonitor('/?fun=false');
-
-    hookState = createHookState({
-      scheduleStatus: 'Ahead by 1',
-      aheadBehind: 'Ahead by 1',
-      isAheadBehindKnown: true,
-      isConnected: false,
-      isFieldReady: true,
-    });
-
-    rerender(createFieldMonitorTree('/?fun=false'));
+    renderFieldMonitor('/');
 
     await waitFor(() => {
       expect(screen.queryByTestId('fun-confetti-overlay')).not.toBeInTheDocument();
