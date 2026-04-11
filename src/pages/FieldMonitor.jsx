@@ -19,7 +19,6 @@ const CONFETTI_PIECES = Array.from({ length: 120 }, (_, index) => ({
 
 const CONFETTI_DURATION_MS = 2400;
 const CHEF_WALK_DURATION_MS = 3600;
-const READY_BEACON_SWEEP_DURATION_MS = 1900;
 const { MatchStateType } = fieldMonitorTypes;
 const READY_STATUS_ICON_TRAIL = [
   { icon: faThumbsUp, className: 'text-emerald-600' },
@@ -98,39 +97,6 @@ function TopBarStat({ label, value, align = 'left', className = '', valueClassNa
   );
 }
 
-function CenterStatusBeacon({ showGlow, showSweep }) {
-  if (!showGlow && !showSweep) {
-    return null;
-  }
-
-  return (
-    <div className="pointer-events-none absolute inset-x-[-999px] inset-y-[-0.45rem] overflow-hidden rounded-[22px]" aria-hidden="true">
-      {showGlow ? (
-        <>
-          <div
-            data-testid="fun-ready-glow"
-            className="fun-ready-glow absolute inset-0 rounded-[22px]"
-          />
-          <div className="fun-ready-chevron-plate absolute inset-x-[0.6%] inset-y-[8%] rounded-[20px]" />
-          <div className="fun-ready-chevron-band absolute inset-x-[1.2%] inset-y-[18%] rounded-[18px]" />
-          <div className="fun-ready-chevron-fade absolute inset-y-[12%] left-[0.4%] w-[10%]" />
-          <div className="fun-ready-chevron-fade absolute inset-y-[12%] right-[0.4%] w-[10%] scale-x-[-1]" />
-        </>
-      ) : null}
-
-      {showSweep ? (
-        <>
-          <div
-            data-testid="fun-ready-beacon"
-            className="fun-ready-sweep absolute inset-y-[10%] left-[-42%] w-[42%] rounded-full"
-          />
-          <div className="fun-ready-sweep-line absolute inset-y-[8%] left-[-18%] w-[18%] rounded-full" />
-        </>
-      ) : null}
-    </div>
-  );
-}
-
 function renderReadyStatusIcon({ icon, className }, key) {
   return (
     <FontAwesomeIcon
@@ -149,10 +115,7 @@ function getMatchStatusValue(matchStatus) {
   }
 
   return (
-    <span
-      data-testid="feral-ready-status"
-      className="inline-flex max-w-full flex-wrap items-center justify-end gap-x-1 gap-y-0.5 sm:justify-center"
-    >
+    <span data-testid="feral-ready-status" className="inline-flex max-w-full flex-nowrap items-center justify-center gap-x-1 overflow-hidden">
       {READY_STATUS_ICON_TRAIL.map((Icon, index) => renderReadyStatusIcon(Icon, `lead-${index}`))}
       <span className="whitespace-nowrap">{matchStatus.matchStateMessage}</span>
       {READY_STATUS_ICON_LEAD.map((Icon, index) => renderReadyStatusIcon(Icon, `trail-${index}`))}
@@ -216,15 +179,12 @@ export default function FieldMonitor() {
   );
   const [showConfetti, setShowConfetti] = useState(false);
   const [showChefDisconnect, setShowChefDisconnect] = useState(false);
-  const [showReadyBeaconSweep, setShowReadyBeaconSweep] = useState(false);
   const overlayTimeoutsRef = useRef({
     confetti: 0,
     chefDisconnect: 0,
-    readyBeacon: 0,
   });
   const previousScheduleDirectionRef = useRef(null);
   const previousConnectionRef = useRef(null);
-  const previousFieldReadyRef = useRef(null);
   const {
     alliancePanels: distancePanels,
     matchStatus,
@@ -236,7 +196,6 @@ export default function FieldMonitor() {
     aheadBehind,
     isAheadBehindKnown,
     isConnected,
-    isFieldReady,
   } = useFieldMonitorLiveData({
     mirrorLayout,
   });
@@ -245,7 +204,6 @@ export default function FieldMonitor() {
   const showReplayOverlay = sourceMode === 'replay' || showReplayError;
   const scheduleTrendText = isAheadBehindKnown ? aheadBehind : scheduleStatus;
   const isAhead = isAheadScheduleStatus(scheduleTrendText);
-  const showReadyBeaconGlow = isFieldReady;
 
   useEffect(() => {
     const handleKeyDown = (event) => {
@@ -330,38 +288,6 @@ export default function FieldMonitor() {
     }
 
     const overlayTimeouts = overlayTimeoutsRef.current;
-    const previousFieldReady = previousFieldReadyRef.current;
-
-    if (!isFieldReady) {
-      if (overlayTimeouts.readyBeacon) {
-        window.clearTimeout(overlayTimeouts.readyBeacon);
-        overlayTimeouts.readyBeacon = 0;
-      }
-      setShowReadyBeaconSweep(false);
-      previousFieldReadyRef.current = false;
-      return;
-    }
-
-    if (previousFieldReady === false) {
-      if (overlayTimeouts.readyBeacon) {
-        window.clearTimeout(overlayTimeouts.readyBeacon);
-      }
-      setShowReadyBeaconSweep(true);
-      overlayTimeouts.readyBeacon = window.setTimeout(() => {
-        setShowReadyBeaconSweep(false);
-        overlayTimeouts.readyBeacon = 0;
-      }, READY_BEACON_SWEEP_DURATION_MS);
-    }
-
-    previousFieldReadyRef.current = true;
-  }, [isFieldReady]);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    const overlayTimeouts = overlayTimeoutsRef.current;
     const previousConnection = previousConnectionRef.current;
 
     if (sourceMode !== 'live') {
@@ -422,19 +348,20 @@ export default function FieldMonitor() {
         >
           <div className="relative z-10">
             <div className="flex items-start justify-between gap-2.5 [@media(max-width:380px)]:gap-2 sm:grid sm:grid-cols-[minmax(0,0.9fr)_minmax(0,1.25fr)_minmax(0,0.85fr)] sm:items-end sm:gap-3">
-              <TopBarStat
-                label="Match Number"
-                value={matchStatus.matchNumber > 0 ? `M${matchStatus.matchNumber}` : 'No match yet'}
-                className="flex-1 sm:flex-none"
-              />
+              <div className="flex-1 sm:flex-none">
+                <TopBarStat
+                  label="Match Number"
+                  value={matchStatus.matchNumber > 0 ? `M${matchStatus.matchNumber}` : 'No match yet'}
+                  className="flex-1 sm:flex-none"
+                />
+              </div>
               <div className="relative max-w-[56%] min-w-0 flex-1 sm:max-w-none sm:flex-none">
-                <CenterStatusBeacon showGlow={showReadyBeaconGlow} showSweep={showReadyBeaconSweep} />
                 <TopBarStat
                   label="Match Status"
                   value={getMatchStatusValue(matchStatus)}
                   align="right"
                   className="relative z-10 min-w-0 sm:items-center sm:text-center"
-                  valueClassName="text-[11px] [@media(max-width:380px)]:text-[10px] sm:text-[14px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[12px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[10px]"
+                  valueClassName="self-stretch overflow-hidden text-[11px] [@media(max-width:380px)]:text-[10px] sm:text-[14px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[12px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[10px]"
                   wrapValue
                 />
               </div>

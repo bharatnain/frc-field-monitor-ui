@@ -61,4 +61,49 @@ describe('TeamStatusCard', () => {
 
     expect(screen.getAllByText('OUT')).toHaveLength(2);
   });
+
+  it('keeps bypass affordances emphasized while muting the connection and footer sections', () => {
+    render(
+      <TeamStatusCard
+        alliance="red"
+        row={createRow({
+          mode: 'bypassed',
+          status: { label: 'BYPASSED', shortLabel: 'BYPASS', tone: 'danger' },
+        })}
+      />
+    );
+
+    expect(screen.queryByTestId('issue-band')).not.toBeInTheDocument();
+    expect(screen.getAllByText('BYPASS')).toHaveLength(1);
+    expect(screen.queryByText('BYPASSED')).not.toBeInTheDocument();
+    expect(screen.getByTestId('row-header-primary')).not.toHaveClass('opacity-60');
+
+    const contentSection = screen.getByTestId('mobile-connection-layout').parentElement;
+    const footerSection = screen.getByTestId('mobile-footer-summary').parentElement;
+
+    expect(contentSection).toHaveClass('opacity-60');
+    expect(footerSection).toHaveClass('opacity-70');
+  });
+
+  it('keeps e-stop affordances visible while muting the connection and footer sections', () => {
+    render(
+      <TeamStatusCard
+        alliance="red"
+        row={createRow({
+          mode: 'estopped',
+          status: { label: 'E-STOPPED', shortLabel: 'E-STOP', tone: 'danger' },
+        })}
+      />
+    );
+
+    expect(screen.queryByTestId('issue-band')).not.toBeInTheDocument();
+    expect(screen.getAllByText('E-STOP')).toHaveLength(2);
+    expect(screen.getByTestId('row-header-primary')).not.toHaveClass('opacity-60');
+
+    const contentSection = screen.getByTestId('mobile-connection-layout').parentElement;
+    const footerSection = screen.getByTestId('mobile-footer-summary').parentElement;
+
+    expect(contentSection).toHaveClass('opacity-60');
+    expect(footerSection).toHaveClass('opacity-70');
+  });
 });

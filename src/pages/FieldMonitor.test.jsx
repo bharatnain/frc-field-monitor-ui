@@ -233,38 +233,23 @@ describe('FieldMonitor', () => {
     });
   });
 
-  it('shows a ready beacon sweep and leaves an idle glow while the field stays ready', async () => {
-    let hookState = createHookState({
-      sourceMode: 'replay',
-      isFieldReady: false,
-      matchStatus: {
-        matchState: 4,
-        matchNumber: 42,
-        matchStateMessage: 'PRESTARTING',
-      },
-    });
-    mockUseFieldMonitorLiveData.mockImplementation(() => hookState);
+  it('keeps the top header free of the ready animation even when the field is ready', () => {
+    mockUseFieldMonitorLiveData.mockReturnValue(
+      createHookState({
+        sourceMode: 'replay',
+        isFieldReady: true,
+        matchStatus: {
+          matchState: 4,
+          matchNumber: 42,
+          matchStateMessage: 'PRESTARTING',
+        },
+      })
+    );
 
-    const { rerender } = renderFieldMonitor('/');
+    renderFieldMonitor('/');
 
     expect(screen.queryByTestId('fun-ready-beacon')).not.toBeInTheDocument();
     expect(screen.queryByTestId('fun-ready-glow')).not.toBeInTheDocument();
-
-    hookState = createHookState({
-      sourceMode: 'replay',
-      isFieldReady: true,
-      matchStatus: {
-        matchState: 4,
-        matchNumber: 42,
-        matchStateMessage: 'PRESTARTING',
-      },
-    });
-    rerender(createFieldMonitorTree('/'));
-
-    await waitFor(() => {
-      expect(screen.getByTestId('fun-ready-beacon')).toBeInTheDocument();
-      expect(screen.getByTestId('fun-ready-glow')).toBeInTheDocument();
-    });
   });
 
   it('keeps overlays hidden until their triggers occur', async () => {

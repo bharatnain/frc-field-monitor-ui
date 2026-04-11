@@ -486,7 +486,10 @@ export default function TeamStatusCard({ alliance, row }) {
   const isBlocking = row.mode === 'blocking';
   const isAStop = isAStopMode(row.mode);
   const isBypassed = row.mode === 'bypassed';
+  const isEmergencyStop = isEmergencyStopMode(row.mode);
   const isPostMatchMuted = Boolean(row.isPostMatchMuted);
+  const isContentMuted = isPostMatchMuted || isEmergencyStop;
+  const isStatusPillMuted = isPostMatchMuted;
   const isNormal = row.mode === 'normal';
 
   return (
@@ -500,7 +503,7 @@ export default function TeamStatusCard({ alliance, row }) {
       <div
         className={`pointer-events-none absolute inset-[2px] rounded-[14px] border [@media(max-width:380px)]:rounded-[12px] sm:inset-[3px] sm:rounded-[15px] ${rowInsetClass(row.mode, theme)}`}
       />
-      {row.mode !== 'normal' && (
+      {row.mode !== 'normal' && !isEmergencyStop && (
         <div
           data-testid="issue-band"
           className={`absolute inset-x-0 top-0 h-1 rounded-t-[16px] [@media(max-width:380px)]:rounded-t-[16px] sm:h-1.5 sm:rounded-t-[18px] ${issueBandClass(row.mode)}`}
@@ -526,7 +529,7 @@ export default function TeamStatusCard({ alliance, row }) {
         {!isBlocking && !isBypassed && (
           <div
             className={`inline-flex shrink-0 self-center items-center justify-center rounded-md px-1 py-0.5 text-[8px] font-extrabold uppercase leading-[1.1] tracking-[0.03em] ring-1 [@media(max-width:380px)]:px-0.5 [@media(max-width:380px)]:py-px [@media(max-width:380px)]:text-[7px] sm:px-3 sm:py-1 sm:text-[13px] sm:tracking-wide lg:text-[14px] [@media(min-width:1024px)_and_(max-height:860px)]:px-1.5 [@media(min-width:1024px)_and_(max-height:860px)]:py-0.5 [@media(min-width:1024px)_and_(max-height:860px)]:text-[10px] [@media(min-width:1024px)_and_(max-height:720px)]:px-1 [@media(min-width:1024px)_and_(max-height:720px)]:text-[9px] ${
-              isPostMatchMuted ? 'opacity-70' : ''
+              isStatusPillMuted ? 'opacity-70' : ''
             } ${stateTone(row.status, theme)}`}
           >
             {stateLabel(row.status)}
@@ -538,7 +541,7 @@ export default function TeamStatusCard({ alliance, row }) {
         className={`min-h-0 px-3 pt-0.5 [@media(max-width:380px)]:px-2.5 [@media(max-width:380px)]:pt-px sm:px-5 sm:pt-1 ${isBlocking ? 'pb-1.5' : 'pb-0'} ${
           isNormal && !isBlocking ? 'min-[381px]:max-sm:pb-0 [@media(max-width:380px)]:pb-0' : ''
         } ${
-          isPostMatchMuted ? 'opacity-60' : ''
+          isContentMuted ? 'opacity-60' : ''
         } [@media(min-width:1024px)_and_(max-height:860px)]:px-3 [@media(min-width:1024px)_and_(max-height:860px)]:pt-0.5 [@media(min-width:1024px)_and_(max-height:860px)]:pb-0 [@media(min-width:1024px)_and_(max-height:720px)]:px-2.5 [@media(min-width:1024px)_and_(max-height:720px)]:pt-px`}
       >
         {isBlocking ? (
@@ -606,7 +609,7 @@ export default function TeamStatusCard({ alliance, row }) {
         <div
           className={`px-3 pb-1.5 [@media(max-width:380px)]:px-2.5 [@media(max-width:380px)]:pb-1 sm:px-5 sm:pb-2.5 ${
             isNormal ? 'min-[381px]:max-sm:pb-0.5 [@media(max-width:380px)]:pb-0' : ''
-          } ${isPostMatchMuted ? 'opacity-70' : ''} [@media(min-width:1024px)_and_(max-height:860px)]:px-3 [@media(min-width:1024px)_and_(max-height:860px)]:pb-1 [@media(min-width:1024px)_and_(max-height:720px)]:px-2.5 [@media(min-width:1024px)_and_(max-height:720px)]:pb-0.5`}
+          } ${isContentMuted ? 'opacity-70' : ''} [@media(min-width:1024px)_and_(max-height:860px)]:px-3 [@media(min-width:1024px)_and_(max-height:860px)]:pb-1 [@media(min-width:1024px)_and_(max-height:720px)]:px-2.5 [@media(min-width:1024px)_and_(max-height:720px)]:pb-0.5`}
         >
           <>
             <div
