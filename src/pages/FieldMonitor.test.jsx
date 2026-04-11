@@ -7,6 +7,11 @@ import { useFieldMonitorLiveData } from '../lib/fieldMonitorLive';
 
 vi.mock('../lib/fieldMonitorLive', () => ({
   useFieldMonitorLiveData: vi.fn(),
+  fieldMonitorTypes: {
+    MatchStateType: {
+      WaitingForMatchStart: 9,
+    },
+  },
 }));
 
 const mockUseFieldMonitorLiveData = vi.mocked(useFieldMonitorLiveData);
@@ -127,6 +132,31 @@ describe('FieldMonitor', () => {
     expect(screen.getByText('254')).toBeInTheDocument();
     expect(screen.getByText('1114')).toBeInTheDocument();
     expect(mockUseFieldMonitorLiveData).toHaveBeenCalledWith({ mirrorLayout: true });
+  });
+
+  it('renders the feral Lucide status cluster only when the match is ready to start', () => {
+    mockUseFieldMonitorLiveData.mockReturnValue(
+      createHookState({
+        matchStatus: {
+          matchState: 9,
+          matchNumber: 42,
+          matchStateMessage: 'READY FOR MATCH START',
+        },
+      })
+    );
+
+    renderFieldMonitor('/');
+
+    expect(screen.getByTestId('feral-ready-status')).toHaveTextContent('READY FOR MATCH START');
+    expect(screen.getAllByTestId('feral-ready-icon')).toHaveLength(18);
+  });
+
+  it('keeps non-ready match states free of the feral Lucide status cluster', () => {
+    renderFieldMonitor('/');
+
+    expect(screen.queryByTestId('feral-ready-status')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('feral-ready-icon')).not.toBeInTheDocument();
+    expect(screen.getByText('Teleop')).toBeInTheDocument();
   });
 
   it('shows a one-shot confetti overlay when the schedule transitions into an ahead state', async () => {

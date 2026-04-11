@@ -313,12 +313,12 @@ describe('fieldMonitorLive helpers', () => {
     ).toBe('WAITING FOR MATCH READY');
   });
 
-  it('uses the celebratory banner when the match is ready to start', () => {
+  it('keeps the ready-to-start status message semantic', () => {
     expect(
       normalizeMatchStatus({
         MatchState: MatchStateType.WaitingForMatchStart,
       }).matchStateMessage
-    ).toBe('👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻 READY FOR MATCH START 👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻👍🏻');
+    ).toBe('READY FOR MATCH START');
   });
 
   it('supports both short and long station payload keys', () => {

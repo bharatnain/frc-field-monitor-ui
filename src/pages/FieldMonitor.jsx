@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faBolt, faRocket, faStar, faThumbsUp } from '@fortawesome/free-solid-svg-icons';
 import { useSearchParams } from 'react-router-dom';
 import chefBoyardeeWalkGif from '../assets/chef-boyardee-walk.gif';
 import TeamStatusCard from '../components/TeamStatusCard';
-import { useFieldMonitorLiveData } from '../lib/fieldMonitorLive';
+import { fieldMonitorTypes, useFieldMonitorLiveData } from '../lib/fieldMonitorLive';
 
 const CONFETTI_COLORS = ['#f97316', '#ef4444', '#facc15', '#22c55e', '#3b82f6', '#a855f7', '#ec4899', '#14b8a6'];
 const CONFETTI_PIECES = Array.from({ length: 120 }, (_, index) => ({
@@ -18,6 +20,29 @@ const CONFETTI_PIECES = Array.from({ length: 120 }, (_, index) => ({
 const CONFETTI_DURATION_MS = 2400;
 const CHEF_WALK_DURATION_MS = 3600;
 const READY_BEACON_SWEEP_DURATION_MS = 1900;
+const { MatchStateType } = fieldMonitorTypes;
+const READY_STATUS_ICON_TRAIL = [
+  { icon: faThumbsUp, className: 'text-emerald-600' },
+  { icon: faThumbsUp, className: 'text-lime-500' },
+  { icon: faBolt, className: 'text-yellow-400' },
+  { icon: faThumbsUp, className: 'text-green-500' },
+  { icon: faStar, className: 'text-fuchsia-500' },
+  { icon: faRocket, className: 'text-orange-500' },
+  { icon: faThumbsUp, className: 'text-emerald-500' },
+  { icon: faBolt, className: 'text-amber-400' },
+  { icon: faThumbsUp, className: 'text-lime-600' },
+];
+const READY_STATUS_ICON_LEAD = [
+  { icon: faThumbsUp, className: 'text-green-600' },
+  { icon: faBolt, className: 'text-yellow-500' },
+  { icon: faThumbsUp, className: 'text-lime-500' },
+  { icon: faRocket, className: 'text-orange-500' },
+  { icon: faStar, className: 'text-fuchsia-500' },
+  { icon: faThumbsUp, className: 'text-emerald-500' },
+  { icon: faBolt, className: 'text-amber-400' },
+  { icon: faThumbsUp, className: 'text-lime-600' },
+  { icon: faThumbsUp, className: 'text-green-500' },
+];
 
 const panelTheme = (alliance) =>
   alliance === 'red'
@@ -103,6 +128,35 @@ function CenterStatusBeacon({ showGlow, showSweep }) {
         </>
       ) : null}
     </div>
+  );
+}
+
+function renderReadyStatusIcon({ icon, className }, key) {
+  return (
+    <FontAwesomeIcon
+      key={key}
+      icon={icon}
+      data-testid="feral-ready-icon"
+      aria-hidden="true"
+      className={`h-[1.08em] w-[1.08em] shrink-0 drop-shadow-[0_0_6px_rgba(250,204,21,0.7)] ${className}`}
+    />
+  );
+}
+
+function getMatchStatusValue(matchStatus) {
+  if (matchStatus.matchState !== MatchStateType.WaitingForMatchStart) {
+    return matchStatus.matchStateMessage;
+  }
+
+  return (
+    <span
+      data-testid="feral-ready-status"
+      className="inline-flex max-w-full flex-wrap items-center justify-end gap-x-1 gap-y-0.5 sm:justify-center"
+    >
+      {READY_STATUS_ICON_TRAIL.map((Icon, index) => renderReadyStatusIcon(Icon, `lead-${index}`))}
+      <span className="whitespace-nowrap">{matchStatus.matchStateMessage}</span>
+      {READY_STATUS_ICON_LEAD.map((Icon, index) => renderReadyStatusIcon(Icon, `trail-${index}`))}
+    </span>
   );
 }
 
@@ -377,7 +431,7 @@ export default function FieldMonitor() {
                 <CenterStatusBeacon showGlow={showReadyBeaconGlow} showSweep={showReadyBeaconSweep} />
                 <TopBarStat
                   label="Match Status"
-                  value={matchStatus.matchStateMessage}
+                  value={getMatchStatusValue(matchStatus)}
                   align="right"
                   className="relative z-10 min-w-0 sm:items-center sm:text-center"
                   valueClassName="text-[11px] [@media(max-width:380px)]:text-[10px] sm:text-[14px] [@media(min-width:1024px)_and_(max-height:860px)]:text-[12px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[10px]"
