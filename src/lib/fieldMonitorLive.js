@@ -987,12 +987,13 @@ function getRowMode(station, matchStatus) {
   return 'normal';
 }
 
-function toRow(station, matchStatus) {
+function toRow(station, matchStatus, metricHistory) {
   const blockingText = getBlockingText(station);
   const status = getStatusInfo(station);
   const battery = getBatteryInfo(station);
   const mode = getRowMode(station, matchStatus);
   const isPostMatchMuted = shouldMutePostMatchDisconnects(station, matchStatus);
+  const hist = metricHistory?.get(slotKey(station.alliance, station.station));
 
   return {
     team: station.teamNumber > 0 ? String(station.teamNumber) : '----',
@@ -1012,6 +1013,11 @@ function toRow(station, matchStatus) {
     trip: `${Math.round(station.averageTripTime)} ms`,
     pkts: String(Math.round(station.lostPackets)),
     blockingText: mode === 'blocking' ? blockingText : '',
+    history: {
+      battery: hist?.battery?.slice() ?? [],
+      bandwidth: hist?.bandwidth?.slice() ?? [],
+      trip: hist?.trip?.slice() ?? [],
+    },
   };
 }
 
@@ -1160,6 +1166,7 @@ function toDiagnosticsRow(station, matchStatus, metricHistory) {
       history: {
         trip: metricHistory?.get(slotKey(station.alliance, station.station))?.trip ?? [],
         snr: metricHistory?.get(slotKey(station.alliance, station.station))?.snr ?? [],
+        bandwidth: metricHistory?.get(slotKey(station.alliance, station.station))?.bandwidth ?? [],
       },
     },
     health: {
@@ -1185,13 +1192,13 @@ function toDiagnosticsRow(station, matchStatus, metricHistory) {
   };
 }
 
-export function buildPanels(stations, mirrorLayout, matchStatus) {
+export function buildPanels(stations, mirrorLayout, matchStatus, metricHistory) {
   const { grouped, orderedKeys } = orderAlliancePanels(stations, mirrorLayout);
 
   return orderedKeys.map((alliance) => ({
     alliance,
     title: alliance === 'red' ? 'Red Alliance' : 'Blue Alliance',
-    rows: grouped[alliance].map((station) => toRow(station, matchStatus)),
+    rows: grouped[alliance].map((station) => toRow(station, matchStatus, metricHistory)),
   }));
 }
 
@@ -1382,13 +1389,17 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
         const key = slotKey(station.alliance, station.station);
         let hist = metricHistoryRef.current.get(key);
         if (!hist) {
-          hist = { trip: [], snr: [] };
+          hist = { trip: [], snr: [], battery: [], bandwidth: [] };
           metricHistoryRef.current.set(key, hist);
         }
         hist.trip.push(station.averageTripTime);
         if (hist.trip.length > METRIC_HISTORY_SIZE) hist.trip.shift();
         hist.snr.push(station.snr);
         if (hist.snr.length > METRIC_HISTORY_SIZE) hist.snr.shift();
+        hist.battery.push(station.battery);
+        if (hist.battery.length > METRIC_HISTORY_SIZE) hist.battery.shift();
+        hist.bandwidth.push(station.dataRateTotal);
+        if (hist.bandwidth.length > METRIC_HISTORY_SIZE) hist.bandwidth.shift();
       });
 
       setStations(ALL_STATION_SLOTS.map((slot) => stationMap.get(slotKey(slot.alliance, slot.station))));
@@ -1996,7 +2007,7 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
   ]);
 
   const alliancePanels = useMemo(
-    () => buildPanels(stations, mirrorLayout, matchStatus),
+    () => buildPanels(stations, mirrorLayout, matchStatus, metricHistoryRef.current),
     [matchStatus, mirrorLayout, stations]
   );
   const diagnosticsPanels = useMemo(

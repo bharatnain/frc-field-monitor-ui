@@ -1,6 +1,10 @@
 import { Link } from 'react-router-dom';
 import TeamStatusCard from '../components/TeamStatusCard';
 
+function generateSampleHistory(base, variance, length = 30) {
+  return Array.from({ length }, () => base + (Math.random() - 0.5) * variance);
+}
+
 function createRow(overrides = {}) {
   return {
     team: '254',
@@ -16,6 +20,11 @@ function createRow(overrides = {}) {
     trip: '7 ms',
     pkts: '1',
     blockingText: '',
+    history: {
+      battery: generateSampleHistory(12.4, 0.6),
+      bandwidth: generateSampleHistory(4.8, 2.0),
+      trip: generateSampleHistory(7, 5),
+    },
     ...overrides,
   };
 }

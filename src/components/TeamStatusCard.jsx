@@ -4,11 +4,9 @@ import {
   faGamepad,
   faTowerBroadcast,
   faMicrochip,
-  faBatteryHalf,
-  faRightLeft,
-  faRoute,
   faXmark,
 } from '@fortawesome/free-solid-svg-icons';
+import MiniSparkline from './MiniSparkline';
 
 const panelTheme = (alliance) =>
   alliance === 'red'
@@ -448,24 +446,6 @@ function MobileChainSeparator({ state = 'good' }) {
   );
 }
 
-function MobileSummaryStat({ label, value, strong = false }) {
-  return (
-    <div className="flex min-w-0 items-baseline gap-0.5 tabular-nums">
-      <div className="text-[6px] font-bold uppercase tracking-[0.05em] text-zinc-500 [@media(max-width:380px)]:text-[5px]">
-        {label}
-      </div>
-      <div
-        className={`truncate leading-none ${
-          strong
-            ? 'text-[7px] font-semibold text-zinc-700 [@media(max-width:380px)]:text-[6px]'
-            : 'text-[7px] font-semibold text-zinc-700 [@media(max-width:380px)]:text-[6px]'
-        }`}
-      >
-        {value}
-      </div>
-    </div>
-  );
-}
 
 const stationNumberText = (stationLabel) => stationLabel.match(/\d+/)?.[0] || '--';
 
@@ -614,113 +594,48 @@ export default function TeamStatusCard({ alliance, row }) {
           <>
             <div
               data-testid="mobile-footer-summary"
-              className={`grid grid-cols-[minmax(0,1fr)_10px_minmax(0,1fr)_10px_minmax(0,1fr)] gap-0.5 rounded-lg bg-zinc-50/70 py-1 [@media(max-width:380px)]:grid-cols-[minmax(0,1fr)_8px_minmax(0,1fr)_8px_minmax(0,1fr)] [@media(max-width:380px)]:gap-px [@media(max-width:380px)]:py-0.5 lg:hidden ${
+              className={`grid grid-cols-3 gap-0.5 rounded-lg bg-zinc-50/70 px-0.5 py-0.5 [@media(max-width:380px)]:gap-px [@media(max-width:380px)]:px-px lg:hidden ${
                 isNormal ? 'min-[381px]:max-sm:gap-px min-[381px]:max-sm:py-px' : 'py-px'
               }`}
             >
-              <div
-                className={`rounded-lg px-1.5 py-1 [@media(max-width:380px)]:px-1 [@media(max-width:380px)]:py-0.5 ${batteryToneClass(row.battery, isAStop)}`}
-              >
-                <div className="flex items-center justify-between gap-1 text-[8px] font-bold uppercase text-zinc-500 [@media(max-width:380px)]:text-[7px]">
-                  <div className="flex items-center gap-1">
-                    <FontAwesomeIcon icon={faBatteryHalf} className="h-3 w-3" /> Battery
-                  </div>
-                  {row.battery?.action ? (
-                    <div className={`rounded-full px-1 py-px text-[6px] font-black uppercase leading-[1.15] tracking-[0.08em] ${batteryActionClass(row.battery)}`}>
+              <div className={`rounded-md px-1 py-0.5 [@media(max-width:380px)]:px-0.5 ${batteryToneClass(row.battery, isAStop)}`}>
+                {row.battery?.action ? (
+                  <div className="flex justify-end">
+                    <div className={`rounded-full px-0.5 py-px text-[5px] font-black uppercase leading-[1.1] tracking-[0.06em] ${batteryActionClass(row.battery)}`}>
                       {row.battery.action}
                     </div>
-                  ) : null}
-                </div>
-                <div className="mt-px flex items-baseline gap-1 tabular-nums">
-                  <div className="text-[14px] font-bold leading-none text-zinc-900 [@media(max-width:380px)]:text-[13px]">
-                    {row.battery?.value}
                   </div>
-                  <div className="text-[7px] font-semibold leading-none text-zinc-500 [@media(max-width:380px)]:text-[6px]">
-                    Min {row.battery?.min}
-                  </div>
-                </div>
+                ) : null}
+                <MiniSparkline label="Battery" data={row.history?.battery ?? []} unit="V" color="#d97706" decimals={1} />
               </div>
 
-              <div
-                data-testid="mobile-row-summary"
-                className="col-[3/6] rounded-lg bg-white/65 px-1 py-1 [@media(max-width:380px)]:px-0.5 [@media(max-width:380px)]:py-0.5"
-              >
-                <div className="flex items-baseline justify-between gap-1">
-                  <div className="flex items-center gap-0.5 text-[7px] font-bold uppercase text-zinc-500 [@media(max-width:380px)]:text-[6px]">
-                    <FontAwesomeIcon icon={faRightLeft} className="h-3 w-3" /> BW
-                  </div>
-                  <div className="text-[10px] font-bold leading-none tabular-nums text-zinc-900 [@media(max-width:380px)]:text-[9px]">
-                    {row.bwu?.value}
-                  </div>
-                </div>
-                <div className="mt-px flex flex-wrap items-baseline gap-x-1.5 gap-y-px [@media(max-width:380px)]:gap-x-1">
-                  <MobileSummaryStat label="Tx" value={row.bwu?.tx} />
-                  <MobileSummaryStat label="Rx" value={row.bwu?.rx} />
-                  <MobileSummaryStat label="Trip" value={row.trip} />
-                  <MobileSummaryStat label="Loss" value={row.pkts} strong />
-                </div>
+              <div className="rounded-md bg-white/65 px-1 py-0.5 [@media(max-width:380px)]:px-0.5">
+                <MiniSparkline label="BW" data={row.history?.bandwidth ?? []} unit="Mbps" color="#6366f1" decimals={1} />
+              </div>
+
+              <div className="rounded-md bg-white/65 px-1 py-0.5 [@media(max-width:380px)]:px-0.5">
+                <MiniSparkline label="Trip" data={row.history?.trip ?? []} unit="ms" color="#8b5cf6" />
               </div>
             </div>
 
-            <div className="hidden lg:grid lg:grid-cols-[minmax(0,1fr)_22px_minmax(0,1fr)_22px_minmax(0,1fr)] lg:gap-2 lg:rounded-xl lg:bg-zinc-50/70 lg:py-1.5 [@media(min-width:1024px)_and_(max-height:860px)]:gap-1 [@media(min-width:1024px)_and_(max-height:860px)]:py-0.5 [@media(min-width:1024px)_and_(max-height:860px)]:lg:min-h-[48px] [@media(min-width:1024px)_and_(max-height:720px)]:gap-0.5 [@media(min-width:1024px)_and_(max-height:720px)]:lg:min-h-[40px] lg:min-h-[64px]">
-              <div
-                className={`rounded-xl px-2 py-1 [@media(min-width:1024px)_and_(max-height:860px)]:px-2 [@media(min-width:1024px)_and_(max-height:860px)]:py-1 [@media(min-width:1024px)_and_(max-height:720px)]:px-1.5 [@media(min-width:1024px)_and_(max-height:720px)]:py-0.5 ${batteryToneClass(row.battery, isAStop)}`}
-              >
-                <div className="flex items-center justify-between gap-1.5 text-[9px] font-bold uppercase text-zinc-500 [@media(min-width:1024px)_and_(max-height:860px)]:text-[9px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[8px]">
-                  <div className="flex items-center gap-1 [@media(min-width:1024px)_and_(max-height:720px)]:gap-0.5">
-                    <FontAwesomeIcon icon={faBatteryHalf} className="h-3 w-3" /> Battery
-                  </div>
-                  {row.battery?.action ? (
-                    <div
-                      className={`rounded-full px-2 py-0.5 text-[9px] font-black uppercase tracking-[0.16em] [@media(min-width:1024px)_and_(max-height:860px)]:px-1.5 [@media(min-width:1024px)_and_(max-height:860px)]:text-[8px] [@media(min-width:1024px)_and_(max-height:720px)]:px-1 [@media(min-width:1024px)_and_(max-height:720px)]:text-[7px] ${batteryActionClass(row.battery)}`}
-                    >
+            <div className="hidden lg:grid lg:grid-cols-3 lg:gap-1.5 lg:rounded-xl lg:bg-zinc-50/70 lg:py-1 lg:px-1 [@media(min-width:1024px)_and_(max-height:860px)]:gap-1 [@media(min-width:1024px)_and_(max-height:860px)]:py-0.5 [@media(min-width:1024px)_and_(max-height:720px)]:gap-0.5">
+              <div className={`rounded-xl px-2 py-1 [@media(min-width:1024px)_and_(max-height:860px)]:px-1.5 [@media(min-width:1024px)_and_(max-height:860px)]:py-0.5 [@media(min-width:1024px)_and_(max-height:720px)]:px-1 [@media(min-width:1024px)_and_(max-height:720px)]:py-0.5 ${batteryToneClass(row.battery, isAStop)}`}>
+                {row.battery?.action ? (
+                  <div className="flex justify-end">
+                    <div className={`rounded-full px-1.5 py-px text-[7px] font-black uppercase tracking-[0.1em] [@media(min-width:1024px)_and_(max-height:860px)]:text-[7px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[6px] ${batteryActionClass(row.battery)}`}>
                       {row.battery.action}
                     </div>
-                  ) : null}
-                </div>
-                <div className="mt-0.5 flex items-end gap-1 [@media(min-width:1024px)_and_(max-height:860px)]:mt-0.5 [@media(min-width:1024px)_and_(max-height:860px)]:gap-1 [@media(min-width:1024px)_and_(max-height:720px)]:mt-0 [@media(min-width:1024px)_and_(max-height:720px)]:gap-0.5">
-                  <div className="text-[17px] font-bold leading-none text-zinc-900 [@media(min-width:1024px)_and_(max-height:860px)]:text-[17px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[14px]">
-                    {row.battery?.value}
                   </div>
-                  <div className="text-[9px] font-semibold leading-none text-zinc-500 [@media(min-width:1024px)_and_(max-height:860px)]:text-[9px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[8px]">
-                    Min {row.battery?.min}
-                  </div>
-                </div>
+                ) : null}
+                <MiniSparkline label="Battery" data={row.history?.battery ?? []} unit="V" color="#d97706" decimals={1} />
               </div>
 
-              <div
-                data-testid="row-metrics-grid"
-                className="grid grid-cols-2 items-center gap-x-1 gap-y-0.5 rounded-xl bg-white/65 px-1.5 py-1 lg:col-[3/6] [@media(min-width:440px)]:grid-cols-3 [@media(min-width:1024px)_and_(max-height:860px)]:px-1.5 [@media(min-width:1024px)_and_(max-height:860px)]:py-1 [@media(min-width:1024px)_and_(max-height:720px)]:px-1 [@media(min-width:1024px)_and_(max-height:720px)]:py-0.5"
-              >
-                <div className="min-w-0 col-span-2 [@media(min-width:440px)]:col-span-1">
-                  <div className="flex items-center gap-1 text-[8px] font-bold uppercase text-zinc-500 [@media(min-width:1024px)_and_(max-height:860px)]:text-[8px] [@media(min-width:1024px)_and_(max-height:720px)]:gap-0.5 [@media(min-width:1024px)_and_(max-height:720px)]:text-[7px]">
-                    <FontAwesomeIcon icon={faRightLeft} className="h-3 w-3" /> BW
-                  </div>
-                  <div className="mt-0.5 text-[12px] font-bold leading-none text-zinc-900 [@media(min-width:1024px)_and_(max-height:860px)]:text-[11px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[10px]">
-                    {row.bwu?.value}
-                  </div>
-                  <div className="mt-0.5 truncate text-[7px] font-semibold leading-none text-zinc-500 [@media(min-width:1024px)_and_(max-height:860px)]:text-[7px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[6px]">
-                    Tx {row.bwu?.tx} / Rx {row.bwu?.rx}
-                  </div>
-                </div>
+              <div className="rounded-xl bg-white/65 px-2 py-1 [@media(min-width:1024px)_and_(max-height:860px)]:px-1.5 [@media(min-width:1024px)_and_(max-height:860px)]:py-0.5 [@media(min-width:1024px)_and_(max-height:720px)]:px-1 [@media(min-width:1024px)_and_(max-height:720px)]:py-0.5">
+                <MiniSparkline label="BW" data={row.history?.bandwidth ?? []} unit="Mbps" color="#6366f1" decimals={1} />
+              </div>
 
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-1 text-[8px] font-bold uppercase text-zinc-500 [@media(min-width:1024px)_and_(max-height:860px)]:text-[8px] [@media(min-width:1024px)_and_(max-height:720px)]:gap-0.5 [@media(min-width:1024px)_and_(max-height:720px)]:text-[7px]">
-                    <FontAwesomeIcon icon={faRoute} className="h-3 w-3" /> Trip
-                  </div>
-                  <div className="mt-0.5 text-[11px] font-bold leading-none text-zinc-900 [@media(min-width:1024px)_and_(max-height:860px)]:text-[11px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[10px]">
-                    {row.trip}
-                  </div>
-                </div>
-
-                <div className="text-center">
-                  <div className="flex items-center justify-center gap-1 text-[8px] font-bold uppercase text-zinc-500 [@media(min-width:1024px)_and_(max-height:860px)]:text-[8px] [@media(min-width:1024px)_and_(max-height:720px)]:gap-0.5 [@media(min-width:1024px)_and_(max-height:720px)]:text-[7px]">
-                    <FontAwesomeIcon icon={faXmark} className="h-3 w-3" /> Loss
-                  </div>
-                  <div className="mt-0.5 text-[11px] font-bold leading-none text-zinc-900 [@media(min-width:1024px)_and_(max-height:860px)]:text-[11px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[10px]">
-                    {row.pkts}
-                  </div>
-                </div>
+              <div className="rounded-xl bg-white/65 px-2 py-1 [@media(min-width:1024px)_and_(max-height:860px)]:px-1.5 [@media(min-width:1024px)_and_(max-height:860px)]:py-0.5 [@media(min-width:1024px)_and_(max-height:720px)]:px-1 [@media(min-width:1024px)_and_(max-height:720px)]:py-0.5">
+                <MiniSparkline label="Trip" data={row.history?.trip ?? []} unit="ms" color="#8b5cf6" />
               </div>
             </div>
           </>

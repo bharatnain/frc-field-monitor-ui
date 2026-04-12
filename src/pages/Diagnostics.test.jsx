@@ -56,7 +56,7 @@ function createDiagnosticsRow(overrides = {}) {
       rxMcsBandwidth: '80',
       rxVht: 'Yes',
       rxVhtNss: '2',
-      history: { trip: [], snr: [] },
+      history: { trip: [], snr: [], bandwidth: [] },
     },
     health: {
       battery: { value: '12.4V', min: '12.1', action: '', tone: 'normal' },

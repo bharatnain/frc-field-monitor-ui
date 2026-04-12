@@ -17,6 +17,7 @@ function createRow(overrides = {}) {
     trip: '7 ms',
     pkts: '1',
     blockingText: '',
+    history: { battery: [], bandwidth: [], trip: [] },
     ...overrides,
   };
 }

@@ -7,7 +7,7 @@ import {
   faSignal,
   faWifi,
 } from '@fortawesome/free-solid-svg-icons';
-import { LineChart, Line, ResponsiveContainer, YAxis, CartesianGrid, ReferenceLine } from 'recharts';
+import MiniSparkline from './MiniSparkline';
 
 const panelTheme = (alliance) =>
   alliance === 'red'
@@ -166,54 +166,13 @@ function DetailGrid({ items, columns = 2 }) {
   );
 }
 
-function MiniSparkline({ label, data, unit, color }) {
-  const current = data.length ? data[data.length - 1] : null;
-  const max = data.length ? Math.max(...data) : 0;
-  const pad = max * 0.15 || 1;
-  const domainMax = Math.ceil(max + pad);
-  const avg = data.length ? data.reduce((a, b) => a + b, 0) / data.length : 0;
-
-  return (
-    <div className="flex-1 min-w-0">
-      <div className="flex items-baseline justify-between">
-        <div className="text-[9px] font-bold uppercase tracking-[0.1em] text-zinc-400">{label}</div>
-        {current !== null && (
-          <div className="text-[10px] font-semibold tabular-nums" style={{ color }}>
-            {Math.round(current)} {unit}
-          </div>
-        )}
-      </div>
-      <ResponsiveContainer width="100%" height={56}>
-        <LineChart data={data.map((v, i) => ({ i, v }))} margin={{ top: 2, right: 2, bottom: 2, left: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#e4e4e7" vertical={false} />
-          <YAxis
-            domain={[0, domainMax]}
-            width={28}
-            tick={{ fontSize: 9, fill: '#52525b', fontWeight: 600 }}
-            axisLine={false}
-            tickLine={false}
-            tickCount={3}
-          />
-          <ReferenceLine y={Math.round(avg)} stroke="#d4d4d8" strokeDasharray="4 2" />
-          <Line type="monotone" dataKey="v" stroke={color} dot={false} strokeWidth={1.5} isAnimationActive={false} />
-        </LineChart>
-      </ResponsiveContainer>
-      {data.length > 1 && (
-        <div className="flex justify-between text-[8px] tabular-nums text-zinc-400">
-          <span>{Math.round(data.length / 2)}s ago</span>
-          <span>now</span>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SparklinePair({ tripData, snrData }) {
-  if (!tripData.length && !snrData.length) return null;
+function SparklineRow({ tripData, snrData, bandwidthData }) {
+  if (!tripData.length && !snrData.length && !bandwidthData.length) return null;
   return (
     <div className="flex gap-3">
       <MiniSparkline label="Avg Trip" data={tripData} unit="ms" color="#6366f1" />
       <MiniSparkline label="SNR" data={snrData} unit="dB" color="#10b981" />
+      <MiniSparkline label="Data Rate" data={bandwidthData} unit="Mbps" color="#f59e0b" decimals={1} />
     </div>
   );
 }
@@ -325,9 +284,10 @@ export default function DetailedTeamStatusCard({ alliance, row, collapseSignal }
         </Section>
 
         <Section title="Network" icon={faSignal}>
-          <SparklinePair
+          <SparklineRow
             tripData={row.network.history.trip}
             snrData={row.network.history.snr}
+            bandwidthData={row.network.history.bandwidth}
           />
           <DetailGrid
             columns={4}
