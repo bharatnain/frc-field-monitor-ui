@@ -165,9 +165,18 @@ export function createEmptyStation(alliance, station) {
     monitorStatus: MonitorStatusType.Unknown,
     averageTripTime: 0,
     lostPackets: 0,
+    signal: 0,
+    noise: 0,
+    snr: 0,
+    inactivity: 0,
+    macAddress: '',
     dataRateTotal: 0,
     dataRateToRobot: 0,
     dataRateFromRobot: 0,
+    rxMcsBandwidth: 0,
+    rxVht: false,
+    rxVhtNss: 0,
+    rxPackets: 0,
     bwUtilization: BWUtilizationType.Low,
     stationStatus: StationStatusType.Unknown,
     moveToStation: '',
@@ -222,9 +231,18 @@ export function normalizeStation(raw, minBatteryMap, brownoutLatchMap) {
     monitorStatus: Number(getValue(raw, 'pf', 'MonitorStatus', MonitorStatusType.Unknown)) || 0,
     averageTripTime: Number(getValue(raw, 'pg', 'AverageTripTime', 0)) || 0,
     lostPackets: Number(getValue(raw, 'ph', 'LostPackets', 0)) || 0,
+    signal: Number(getValue(raw, 'pi', 'Signal', 0)) || 0,
+    noise: Number(getValue(raw, 'pj', 'Noise', 0)) || 0,
+    snr: Number(getValue(raw, 'pk', 'SNR', 0)) || 0,
+    inactivity: Number(getValue(raw, 'pl', 'Inactivity', 0)) || 0,
+    macAddress: getValue(raw, 'pm', 'MACAddress', '') || '',
     dataRateTotal: Number(getValue(raw, 'pz', 'DataRateTotal', 0)) || 0,
     dataRateToRobot: getDirectionalRate(raw, 'paa', 'DataRateToRobot', 'pn'),
     dataRateFromRobot: getDirectionalRate(raw, 'pbb', 'DataRateFromRobot', 'pt'),
+    rxMcsBandwidth: Number(getValue(raw, 'pv', 'RxMCSBandwidth', 0)) || 0,
+    rxVht: Boolean(getValue(raw, 'pw', 'RxVHT', false)),
+    rxVhtNss: Number(getValue(raw, 'px', 'RxVHTNSS', 0)) || 0,
+    rxPackets: Number(getValue(raw, 'py', 'RxPackets', 0)) || 0,
     bwUtilization: Number(getValue(raw, 'pcc', 'BWUtilization', BWUtilizationType.Low)) || 0,
     stationStatus: Number(getValue(raw, 'pff', 'StationStatus', StationStatusType.Unknown)) || 0,
     brownout,
@@ -1005,7 +1023,7 @@ function toRow(station, matchStatus) {
   };
 }
 
-export function buildPanels(stations, mirrorLayout, matchStatus) {
+function orderAlliancePanels(stations, mirrorLayout) {
   const grouped = {
     red: [],
     blue: [],
@@ -1025,12 +1043,171 @@ export function buildPanels(stations, mirrorLayout, matchStatus) {
     grouped.red.reverse();
   }
 
-  const orderedKeys = mirrorLayout ? ['red', 'blue'] : ['blue', 'red'];
+  return {
+    grouped,
+    orderedKeys: mirrorLayout ? ['red', 'blue'] : ['blue', 'red'],
+  };
+}
+
+function getStationStatusLabel(stationStatus) {
+  switch (stationStatus) {
+    case StationStatusType.Good:
+      return 'OK';
+    case StationStatusType.WrongStation:
+      return 'Wrong Station';
+    case StationStatusType.WrongMatch:
+      return 'Wrong Match';
+    default:
+      return 'Unknown';
+  }
+}
+
+function getMonitorStatusLabel(monitorStatus) {
+  switch (monitorStatus) {
+    case MonitorStatusType.EStopped:
+      return 'E-Stop';
+    case MonitorStatusType.AStopped:
+      return 'A-Stop';
+    case MonitorStatusType.DisabledAuto:
+      return 'Auto Disabled';
+    case MonitorStatusType.DisabledTeleop:
+      return 'Teleop Disabled';
+    case MonitorStatusType.EnabledAuto:
+      return 'Auto Enabled';
+    case MonitorStatusType.EnabledTeleop:
+      return 'Teleop Enabled';
+    default:
+      return 'Unknown';
+  }
+}
+
+function boolTone(value) {
+  return value ? 'good' : 'bad';
+}
+
+function flagEntry(label, value, trueLabel = 'On', falseLabel = 'Off') {
+  return {
+    label,
+    value: value ? trueLabel : falseLabel,
+    tone: boolTone(value),
+  };
+}
+
+function toDiagnosticsRow(station, matchStatus) {
+  const blockingText = getBlockingText(station);
+  const status = getStatusInfo(station);
+  const battery = getBatteryInfo(station);
+  const mode = getRowMode(station, matchStatus);
+  const isPostMatchMuted = shouldMutePostMatchDisconnects(station, matchStatus);
+  const ds = getDsSignal(station);
+  const radio = getRadioSignal(station);
+  const rio = getRioSignal(station);
+  const stopKind = getStopKind(station);
+
+  return {
+    team: station.teamNumber > 0 ? String(station.teamNumber) : '----',
+    station: formatStationLabel(station.station),
+    mode,
+    status,
+    isPostMatchMuted,
+    blockingText: mode === 'blocking' ? blockingText : '',
+    robotState: {
+      enabled: station.isEnabled,
+      enabledLabel: station.isEnabled ? 'Enabled' : 'Disabled',
+      phase: station.isAuto ? 'Auto' : 'Teleop',
+      phaseLabel: station.isAuto ? 'Auto' : 'Teleop',
+      stopKind,
+      stopLabel:
+        stopKind === 'estopped'
+          ? 'E-Stop'
+          : stopKind === 'astopped'
+            ? 'A-Stop'
+            : stopKind === 'bypassed'
+              ? 'Bypass'
+              : 'Normal',
+    },
+    control: {
+      ds,
+      radio,
+      rio,
+      flags: [
+        flagEntry('Conn', station.connection, 'Up', 'Down'),
+        flagEntry('DS Link', station.dsLinkActive, 'Up', 'Down'),
+        flagEntry('Live Link', station.linkActive, 'Up', 'Down'),
+        flagEntry('Radio Link', station.radioLink, 'Up', 'Down'),
+        flagEntry('RIO Link', station.rioLink, 'Up', 'Down'),
+        flagEntry('AP', station.radioConnectedToAp, 'On AP', 'Off AP'),
+      ],
+    },
+    network: {
+      quality: {
+        value: radio.detail,
+        label:
+          station.radioConnectionQuality >= RadioConnectionQuality.Excellent
+            ? 'Excellent'
+            : station.radioConnectionQuality >= RadioConnectionQuality.Good
+              ? 'Good'
+              : station.radioConnectionQuality >= RadioConnectionQuality.Caution
+                ? 'Caution'
+                : 'Warning',
+        tone: radio.state,
+      },
+      bandwidth: formatRate(station.dataRateTotal),
+      tx: formatDirectionalTraffic(station.dataRateToRobot),
+      rx: formatDirectionalTraffic(station.dataRateFromRobot),
+      trip: `${Math.round(station.averageTripTime)} ms`,
+      loss: String(Math.round(station.lostPackets)),
+      signal: String(Math.round(station.signal)),
+      noise: String(Math.round(station.noise)),
+      snr: String(Math.round(station.snr)),
+      inactivity: `${Math.round(station.inactivity)} ms`,
+      rxPackets: String(Math.round(station.rxPackets)),
+      rxMcsBandwidth: String(Math.round(station.rxMcsBandwidth)),
+      rxVht: station.rxVht ? 'Yes' : 'No',
+      rxVhtNss: String(Math.round(station.rxVhtNss)),
+    },
+    health: {
+      battery,
+      brownout: station.brownout,
+      brownoutLatched: station.brownoutLatched,
+      flags: [
+        flagEntry('Brownout', station.brownout, 'Now', 'No'),
+        flagEntry('Latch', station.brownoutLatched, 'Latched', 'Clear'),
+      ],
+    },
+    evidence: {
+      monitorStatus: getMonitorStatusLabel(station.monitorStatus),
+      stationStatus: getStationStatusLabel(station.stationStatus),
+      moveToStation: station.moveToStation || '--',
+      macAddress: station.macAddress || '--',
+      flags: [
+        flagEntry('Enabled', station.isEnabled, 'Yes', 'No'),
+        flagEntry('Auto', station.isAuto, 'Yes', 'No'),
+        flagEntry('Bypass', station.isBypassed, 'Yes', 'No'),
+        flagEntry('E-Stop', station.isEStopped, 'Yes', 'No'),
+        flagEntry('A-Stop', station.isAStopped, 'Yes', 'No'),
+      ],
+    },
+  };
+}
+
+export function buildPanels(stations, mirrorLayout, matchStatus) {
+  const { grouped, orderedKeys } = orderAlliancePanels(stations, mirrorLayout);
 
   return orderedKeys.map((alliance) => ({
     alliance,
     title: alliance === 'red' ? 'Red Alliance' : 'Blue Alliance',
     rows: grouped[alliance].map((station) => toRow(station, matchStatus)),
+  }));
+}
+
+export function buildDiagnosticsPanels(stations, mirrorLayout, matchStatus) {
+  const { grouped, orderedKeys } = orderAlliancePanels(stations, mirrorLayout);
+
+  return orderedKeys.map((alliance) => ({
+    alliance,
+    title: alliance === 'red' ? 'Red Alliance' : 'Blue Alliance',
+    rows: grouped[alliance].map((station) => toDiagnosticsRow(station, matchStatus)),
   }));
 }
 
@@ -1819,6 +1996,10 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
     () => buildPanels(stations, mirrorLayout, matchStatus),
     [matchStatus, mirrorLayout, stations]
   );
+  const diagnosticsPanels = useMemo(
+    () => buildDiagnosticsPanels(stations, mirrorLayout, matchStatus),
+    [matchStatus, mirrorLayout, stations]
+  );
   const isFieldReady = useMemo(() => isFieldReadyState(stations, matchStatus), [matchStatus, stations]);
   const scheduleStatus = aheadBehind.isKnown ? aheadBehind.text || 'On schedule' : 'Unknown';
   const cycleCadence = useMemo(
@@ -1837,6 +2018,7 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
   return {
     sourceMode,
     alliancePanels,
+    diagnosticsPanels,
     matchStatus,
     aheadBehind: aheadBehind.text,
     isAheadBehindKnown: aheadBehind.isKnown,

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  buildDiagnosticsPanels,
   buildPanels,
   createEmptyStation,
   createRecordingFilename,
@@ -36,9 +37,18 @@ function createHealthyRow(overrides = {}, matchStatusOverrides = {}) {
     minBattery: 12.1,
     averageTripTime: 7,
     lostPackets: 1,
+    signal: -58,
+    noise: -94,
+    snr: 36,
+    inactivity: 0,
+    macAddress: '00:80:2f:37:31:01',
     dataRateTotal: 4.8,
     dataRateToRobot: 1.9,
     dataRateFromRobot: 2.9,
+    rxMcsBandwidth: 80,
+    rxVht: true,
+    rxVhtNss: 2,
+    rxPackets: 128,
     ...overrides,
   });
   const matchStatus = normalizeMatchStatus({
@@ -50,6 +60,44 @@ function createHealthyRow(overrides = {}, matchStatusOverrides = {}) {
   });
 
   return buildPanels([station], true, matchStatus)[0].rows[0];
+}
+
+function createHealthyDiagnosticsRow(overrides = {}, matchStatusOverrides = {}) {
+  const station = createStation(AllianceType.Red, StationType.Station1, {
+    connection: true,
+    dsLinkActive: true,
+    radioLink: true,
+    linkActive: true,
+    rioLink: true,
+    radioConnectedToAp: true,
+    radioConnectionQuality: RadioConnectionQuality.Excellent,
+    battery: 12.4,
+    minBattery: 12.1,
+    averageTripTime: 7,
+    lostPackets: 1,
+    signal: -58,
+    noise: -94,
+    snr: 36,
+    inactivity: 0,
+    macAddress: '00:80:2f:37:31:01',
+    dataRateTotal: 4.8,
+    dataRateToRobot: 1.9,
+    dataRateFromRobot: 2.9,
+    rxMcsBandwidth: 80,
+    rxVht: true,
+    rxVhtNss: 2,
+    rxPackets: 128,
+    ...overrides,
+  });
+  const matchStatus = normalizeMatchStatus({
+    MatchState: MatchStateType.MatchTeleop,
+    MatchNumber: 1,
+    PlayNumber: 1,
+    TournamentLevel: 'Qualification',
+    ...matchStatusOverrides,
+  });
+
+  return buildDiagnosticsPanels([station], true, matchStatus)[0].rows[0];
 }
 
 function createReadyStations(overridesBySlot = {}) {
@@ -413,5 +461,82 @@ describe('fieldMonitorLive helpers', () => {
     const row = createHealthyRow();
 
     expect(row).not.toHaveProperty('secondaryText');
+  });
+
+  it('builds diagnostics rows with grouped always-visible supporting data', () => {
+    const row = createHealthyDiagnosticsRow({
+      linkActive: false,
+      radioConnectedToAp: true,
+      radioConnectionQuality: RadioConnectionQuality.Caution,
+      brownout: true,
+      isEnabled: false,
+      isAuto: true,
+    });
+
+    expect(row.control.radio).toMatchObject({
+      state: 'warn',
+      detail: '2 bars',
+      bars: 2,
+    });
+    expect(row.control.flags).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: 'Live Link', value: 'Down', tone: 'bad' }),
+        expect.objectContaining({ label: 'AP', value: 'On AP', tone: 'good' }),
+      ])
+    );
+    expect(row.network).toMatchObject({
+      bandwidth: '4.8 Mbps',
+      tx: '1.9',
+      rx: '2.9',
+      trip: '7 ms',
+      loss: '1',
+      signal: '-58',
+      noise: '-94',
+      snr: '36',
+      inactivity: '0 ms',
+      rxPackets: '128',
+      rxMcsBandwidth: '80',
+      rxVht: 'Yes',
+      rxVhtNss: '2',
+    });
+    expect(row.health.battery).toMatchObject({
+      value: '12.4V',
+      min: '12.1',
+      action: 'BROWNOUT',
+      tone: 'critical',
+    });
+    expect(row.evidence.flags).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ label: 'Enabled', value: 'No', tone: 'bad' }),
+        expect.objectContaining({ label: 'Auto', value: 'Yes', tone: 'good' }),
+      ])
+    );
+    expect(row.evidence.macAddress).toBe('00:80:2f:37:31:01');
+  });
+
+  it('mirrors diagnostics alliance ordering the same way as the main panels', () => {
+    const stations = [
+      createStation(AllianceType.Red, StationType.Station2, { teamNumber: 222 }),
+      createStation(AllianceType.Blue, StationType.Station3, { teamNumber: 333 }),
+      createStation(AllianceType.Red, StationType.Station1, { teamNumber: 111 }),
+      createStation(AllianceType.Blue, StationType.Station1, { teamNumber: 444 }),
+      createStation(AllianceType.Red, StationType.Station3, { teamNumber: 555 }),
+      createStation(AllianceType.Blue, StationType.Station2, { teamNumber: 666 }),
+    ];
+
+    const matchStatus = normalizeMatchStatus({
+      MatchState: MatchStateType.MatchTeleop,
+      MatchNumber: 42,
+      PlayNumber: 1,
+      TournamentLevel: 'Qualification',
+    });
+
+    const defaultPanels = buildDiagnosticsPanels(stations, false, matchStatus);
+    expect(defaultPanels.map((panel) => panel.alliance)).toEqual(['blue', 'red']);
+    expect(defaultPanels[1].rows.map((row) => row.station)).toEqual(['Stn 3', 'Stn 2', 'Stn 1']);
+
+    const mirroredPanels = buildDiagnosticsPanels(stations, true, matchStatus);
+    expect(mirroredPanels.map((panel) => panel.alliance)).toEqual(['red', 'blue']);
+    expect(mirroredPanels[0].rows.map((row) => row.station)).toEqual(['Stn 1', 'Stn 2', 'Stn 3']);
   });
 });

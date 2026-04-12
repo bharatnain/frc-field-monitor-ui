@@ -9,6 +9,10 @@ vi.mock('./pages/config', () => ({
   default: () => <div>Mock Config Page</div>,
 }));
 
+vi.mock('./pages/Diagnostics', () => ({
+  default: () => <div>Mock Diagnostics Page</div>,
+}));
+
 vi.mock('./pages/LandingPage', () => ({
   default: () => <div>Mock Landing Page</div>,
 }));
@@ -43,6 +47,13 @@ describe('App routing', () => {
     render(<App />);
 
     expect(screen.getByText('Mock Config Page')).toBeInTheDocument();
+  });
+
+  it('renders the diagnostics page at the diagnostics route', () => {
+    window.history.pushState({}, '', '/diagnostics');
+    render(<App />);
+
+    expect(screen.getByText('Mock Diagnostics Page')).toBeInTheDocument();
   });
 
   it('renders the landing page at the welcome route', () => {
