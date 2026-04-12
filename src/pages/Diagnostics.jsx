@@ -1,20 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
+import { faChevronDown, faChevronRight } from '@fortawesome/free-solid-svg-icons';
 import DetailedTeamStatusCard from '../components/DetailedTeamStatusCard';
 import { useFieldMonitorLiveData } from '../lib/fieldMonitorLive';
 
 const panelTheme = (alliance) =>
   alliance === 'red'
-    ? {
-        frame: 'ring-red-300 shadow-red-950/10',
-        heading: 'text-red-800',
-        badge: 'bg-red-50 text-red-900 ring-red-200',
-      }
-    : {
-        frame: 'ring-blue-300 shadow-blue-950/10',
-        heading: 'text-blue-800',
-        badge: 'bg-blue-50 text-blue-900 ring-blue-200',
-      };
+    ? { frame: 'ring-red-300 shadow-red-950/10' }
+    : { frame: 'ring-blue-300 shadow-blue-950/10' };
 
 const formatReplayClock = (ms = 0) => {
   const totalTenths = Math.max(0, Math.round(ms / 100));
@@ -57,6 +51,7 @@ export default function Diagnostics() {
   const mirrorLayout = searchParams.get('mirror') === 'true';
   const replayFileInputRef = useRef(null);
   const [isReplayErrorDismissed, setIsReplayErrorDismissed] = useState(false);
+  const [collapseSignal, setCollapseSignal] = useState({ target: true, version: 1 });
   const {
     diagnosticsPanels,
     matchStatus,
@@ -120,11 +115,26 @@ export default function Diagnostics() {
           data-testid="diagnostics-topbar"
           className="rounded-[22px] bg-white px-3 py-3 shadow-sm ring-1 ring-zinc-200 lg:px-4"
         >
-          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-            <TopBarStat label="Match Number" value={matchStatus.matchNumber > 0 ? `M${matchStatus.matchNumber}` : 'No match yet'} />
-            <TopBarStat label="Match State" value={matchStatus.matchStateMessage || 'Waiting for data'} />
-            <TopBarStat label="Schedule" value={scheduleTrendText || 'Unknown'} valueClassName={scheduleTone} />
-            <TopBarStat label="Cycle" value={cycleCadence.summary || 'Waiting for data'} />
+          <div className="flex items-start gap-2">
+            <div className="grid min-w-0 flex-1 gap-2 sm:grid-cols-2 xl:grid-cols-4">
+              <TopBarStat label="Match Number" value={matchStatus.matchNumber > 0 ? `M${matchStatus.matchNumber}` : 'No match yet'} />
+              <TopBarStat label="Match State" value={matchStatus.matchStateMessage || 'Waiting for data'} />
+              <TopBarStat label="Schedule" value={scheduleTrendText || 'Unknown'} valueClassName={scheduleTone} />
+              <TopBarStat label="Cycle" value={cycleCadence.summary || 'Waiting for data'} />
+            </div>
+            <button
+              type="button"
+              data-testid="diagnostics-collapse-toggle"
+              className="flex shrink-0 items-center gap-1.5 self-center rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.1em] text-zinc-600 transition-colors hover:bg-zinc-100"
+              onClick={() => setCollapseSignal((prev) => ({ target: !prev.target, version: prev.version + 1 }))}
+              aria-label={collapseSignal.target ? 'Expand all sections' : 'Collapse all sections'}
+            >
+              <FontAwesomeIcon
+                icon={collapseSignal.target ? faChevronRight : faChevronDown}
+                className="h-2.5 w-2.5"
+              />
+              {collapseSignal.target ? 'Expand' : 'Collapse'}
+            </button>
           </div>
         </div>
       </div>
@@ -143,14 +153,6 @@ export default function Diagnostics() {
               className="relative flex w-full min-w-0 flex-none p-[3px] lg:flex-1"
             >
               <section className={`relative flex min-h-0 flex-1 flex-col rounded-[24px] bg-white p-3 shadow-sm ring-2 ${theme.frame}`}>
-                <div className="mb-3 flex items-center justify-between gap-2">
-                  <div className={`inline-flex rounded-full px-3 py-1 text-xs font-black uppercase tracking-[0.14em] ring-1 ${theme.badge}`}>
-                    {panel.title}
-                  </div>
-                  <div className={`text-[11px] font-bold uppercase tracking-[0.12em] ${theme.heading}`}>
-                    {panel.rows.length} stations
-                  </div>
-                </div>
                 <div
                   className="grid min-h-0 flex-1 auto-rows-min gap-3 content-start"
                   data-testid="diagnostics-panel-grid"
@@ -160,6 +162,7 @@ export default function Diagnostics() {
                       key={`diagnostics-${panel.alliance}-${row.team}-${row.station}`}
                       alliance={panel.alliance}
                       row={row}
+                      collapseSignal={collapseSignal}
                     />
                   ))}
                 </div>

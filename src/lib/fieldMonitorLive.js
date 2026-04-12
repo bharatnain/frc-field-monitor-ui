@@ -3,10 +3,9 @@ import { HubConnectionBuilder, LogLevel } from '@microsoft/signalr';
 import { MessagePackHubProtocol } from '@microsoft/signalr-protocol-msgpack';
 
 const RECORDING_FILE_VERSION = 1;
+const METRIC_HISTORY_SIZE = 120;
 const DEFAULT_REPLAY_SPEED = 1;
 const REPLAY_SPEED_OPTIONS = [0.5, 1, 2, 4];
-const BROWNOUT_LATCH_TICKS = 6;
-
 let activeReplayRecording = null;
 let activeReplayFileName = '';
 
@@ -183,7 +182,6 @@ export function createEmptyStation(alliance, station) {
     radioConnectionQuality: RadioConnectionQuality.Warning,
     radioConnectedToAp: false,
     brownout: false,
-    brownoutLatched: false,
   };
 }
 
@@ -197,7 +195,7 @@ function getDirectionalRate(raw, primaryShortKey, primaryLongKey, fallbackShortK
   return fallbackValue > 0 ? fallbackValue : 0;
 }
 
-export function normalizeStation(raw, minBatteryMap, brownoutLatchMap) {
+export function normalizeStation(raw, minBatteryMap) {
   const alliance = getValue(raw, 'p1', 'Alliance', AllianceType.None);
   const station = getValue(raw, 'p2', 'Station', StationType.None);
   const key = slotKey(alliance, station);
@@ -207,10 +205,6 @@ export function normalizeStation(raw, minBatteryMap, brownoutLatchMap) {
   const previousMin = minBatteryMap.get(key) ?? 0;
   const nextMin = battery > 0 && (previousMin === 0 || battery < previousMin) ? battery : previousMin;
   minBatteryMap.set(key, nextMin);
-
-  const previousBrownoutTicks = brownoutLatchMap.get(key) ?? 0;
-  const nextBrownoutTicks = brownout ? BROWNOUT_LATCH_TICKS : Math.max(previousBrownoutTicks - 1, 0);
-  brownoutLatchMap.set(key, nextBrownoutTicks);
 
   return {
     alliance,
@@ -246,7 +240,6 @@ export function normalizeStation(raw, minBatteryMap, brownoutLatchMap) {
     bwUtilization: Number(getValue(raw, 'pcc', 'BWUtilization', BWUtilizationType.Low)) || 0,
     stationStatus: Number(getValue(raw, 'pff', 'StationStatus', StationStatusType.Unknown)) || 0,
     brownout,
-    brownoutLatched: nextBrownoutTicks > 0,
     moveToStation: getValue(raw, 'pjk', 'MoveToStation', '') || '',
     radioConnectionQuality:
       Number(getValue(raw, 'pll', 'RadioConnectionQuality', RadioConnectionQuality.Warning)) || 0,
@@ -635,7 +628,6 @@ function coerceStationSnapshot(station) {
       bwUtilization: Number(station.bwUtilization) || BWUtilizationType.Low,
       stationStatus: Number(station.stationStatus) || StationStatusType.Unknown,
       radioConnectionQuality: Number(station.radioConnectionQuality) || RadioConnectionQuality.Warning,
-      brownoutLatched: Boolean(station.brownoutLatched),
     };
   }
 
@@ -885,7 +877,7 @@ function shouldMutePostMatchDisconnects(station, matchStatus) {
     return false;
   }
 
-  if (station.brownout || station.brownoutLatched || station.isEnabled || getStopKind(station) || getBlockingText(station)) {
+  if (station.brownout || station.isEnabled || getStopKind(station) || getBlockingText(station)) {
     return false;
   }
 
@@ -1093,7 +1085,7 @@ function flagEntry(label, value, trueLabel = 'On', falseLabel = 'Off') {
   };
 }
 
-function toDiagnosticsRow(station, matchStatus) {
+function toDiagnosticsRow(station, matchStatus, metricHistory) {
   const blockingText = getBlockingText(station);
   const status = getStatusInfo(station);
   const battery = getBatteryInfo(station);
@@ -1165,14 +1157,16 @@ function toDiagnosticsRow(station, matchStatus) {
       rxMcsBandwidth: String(Math.round(station.rxMcsBandwidth)),
       rxVht: station.rxVht ? 'Yes' : 'No',
       rxVhtNss: String(Math.round(station.rxVhtNss)),
+      history: {
+        trip: metricHistory?.get(slotKey(station.alliance, station.station))?.trip ?? [],
+        snr: metricHistory?.get(slotKey(station.alliance, station.station))?.snr ?? [],
+      },
     },
     health: {
       battery,
       brownout: station.brownout,
-      brownoutLatched: station.brownoutLatched,
       flags: [
         flagEntry('Brownout', station.brownout, 'Now', 'No'),
-        flagEntry('Latch', station.brownoutLatched, 'Latched', 'Clear'),
       ],
     },
     evidence: {
@@ -1201,13 +1195,13 @@ export function buildPanels(stations, mirrorLayout, matchStatus) {
   }));
 }
 
-export function buildDiagnosticsPanels(stations, mirrorLayout, matchStatus) {
+export function buildDiagnosticsPanels(stations, mirrorLayout, matchStatus, metricHistory) {
   const { grouped, orderedKeys } = orderAlliancePanels(stations, mirrorLayout);
 
   return orderedKeys.map((alliance) => ({
     alliance,
     title: alliance === 'red' ? 'Red Alliance' : 'Blue Alliance',
-    rows: grouped[alliance].map((station) => toDiagnosticsRow(station, matchStatus)),
+    rows: grouped[alliance].map((station) => toDiagnosticsRow(station, matchStatus, metricHistory)),
   }));
 }
 
@@ -1250,7 +1244,7 @@ function buildInitialStations() {
 export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFactory = createHubConnection } = {}) {
   const baseUrl = getBaseUrl();
   const minBatteryRef = useRef(new Map());
-  const brownoutLatchRef = useRef(new Map());
+  const metricHistoryRef = useRef(new Map());
   const currentMatchRef = useRef(null);
   const isMountedRef = useRef(true);
   const matchStatusRef = useRef(normalizeMatchStatus());
@@ -1337,7 +1331,7 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
     const snapshotStations = buildStationsFromSnapshot(recording?.initialState?.stations);
     const snapshotMatchStatus = coerceMatchStatusSnapshot(recording?.initialState?.matchStatus);
     minBatteryRef.current = createMinBatteryMap(snapshotStations);
-    brownoutLatchRef.current = new Map();
+    metricHistoryRef.current.clear();
     currentMatchRef.current = recording?.initialState?.currentMatch ?? null;
     matchStatusRef.current = snapshotMatchStatus;
     cycleCadenceStateRef.current = createUnknownCycleCadenceState();
@@ -1382,8 +1376,19 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
       );
 
       (dataArray || []).forEach((item) => {
-        const station = normalizeStation(item, minBatteryRef.current, brownoutLatchRef.current);
+        const station = normalizeStation(item, minBatteryRef.current);
         stationMap.set(slotKey(station.alliance, station.station), station);
+
+        const key = slotKey(station.alliance, station.station);
+        let hist = metricHistoryRef.current.get(key);
+        if (!hist) {
+          hist = { trip: [], snr: [] };
+          metricHistoryRef.current.set(key, hist);
+        }
+        hist.trip.push(station.averageTripTime);
+        if (hist.trip.length > METRIC_HISTORY_SIZE) hist.trip.shift();
+        hist.snr.push(station.snr);
+        if (hist.snr.length > METRIC_HISTORY_SIZE) hist.snr.shift();
       });
 
       setStations(ALL_STATION_SLOTS.map((slot) => stationMap.get(slotKey(slot.alliance, slot.station))));
@@ -1400,12 +1405,9 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
       const previousStatus = matchStatusRef.current;
       const nextStatus = normalizeMatchStatus(data);
       const nextObservedAtMs = Number.isFinite(observedAtMs) ? observedAtMs : Date.now();
-      if (
-        nextStatus.matchState === MatchStateType.WaitingForPrestart ||
-        nextStatus.matchState === MatchStateType.MatchAuto
-      ) {
+      if (nextStatus.matchState === MatchStateType.WaitingForPrestart) {
         minBatteryRef.current.clear();
-        brownoutLatchRef.current.clear();
+        metricHistoryRef.current.clear();
       }
 
       matchStatusRef.current = nextStatus;
@@ -1777,6 +1779,7 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
       speed: DEFAULT_REPLAY_SPEED,
     };
     minBatteryRef.current.clear();
+    metricHistoryRef.current.clear();
     currentMatchRef.current = null;
     matchStatusRef.current = normalizeMatchStatus();
     cycleCadenceStateRef.current = createUnknownCycleCadenceState();
@@ -1997,7 +2000,7 @@ export function useFieldMonitorLiveData({ mirrorLayout = false, hubConnectionFac
     [matchStatus, mirrorLayout, stations]
   );
   const diagnosticsPanels = useMemo(
-    () => buildDiagnosticsPanels(stations, mirrorLayout, matchStatus),
+    () => buildDiagnosticsPanels(stations, mirrorLayout, matchStatus, metricHistoryRef.current),
     [matchStatus, mirrorLayout, stations]
   );
   const isFieldReady = useMemo(() => isFieldReadyState(stations, matchStatus), [matchStatus, stations]);

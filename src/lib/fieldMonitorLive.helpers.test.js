@@ -152,9 +152,8 @@ afterEach(() => {
 });
 
 describe('fieldMonitorLive helpers', () => {
-  it('tracks minimum battery and brownout latch while normalizing station updates', () => {
+  it('tracks minimum battery while normalizing station updates', () => {
     const minBatteryMap = new Map();
-    const brownoutLatchMap = new Map();
 
     const first = normalizeStation(
       {
@@ -164,12 +163,10 @@ describe('fieldMonitorLive helpers', () => {
         Battery: 11.8,
         Brownout: false,
       },
-      minBatteryMap,
-      brownoutLatchMap
+      minBatteryMap
     );
 
     expect(first.minBattery).toBe(11.8);
-    expect(first.brownoutLatched).toBe(false);
 
     const second = normalizeStation(
       {
@@ -179,44 +176,11 @@ describe('fieldMonitorLive helpers', () => {
         Battery: 12.4,
         Brownout: true,
       },
-      minBatteryMap,
-      brownoutLatchMap
+      minBatteryMap
     );
 
     expect(second.minBattery).toBe(11.8);
     expect(second.brownout).toBe(true);
-    expect(second.brownoutLatched).toBe(true);
-
-    let latest = second;
-    for (let index = 0; index < 5; index += 1) {
-      latest = normalizeStation(
-        {
-          Alliance: AllianceType.Red,
-          Station: StationType.Station1,
-          TeamNumber: 254,
-          Battery: 12.1,
-          Brownout: false,
-        },
-        minBatteryMap,
-        brownoutLatchMap
-      );
-    }
-
-    expect(latest.brownoutLatched).toBe(true);
-
-    latest = normalizeStation(
-      {
-        Alliance: AllianceType.Red,
-        Station: StationType.Station1,
-        TeamNumber: 254,
-        Battery: 12.1,
-        Brownout: false,
-      },
-      minBatteryMap,
-      brownoutLatchMap
-    );
-
-    expect(latest.brownoutLatched).toBe(false);
   });
 
   it('swaps the default alliance sides and lets mirror restore the opposite layout', () => {
@@ -371,7 +335,6 @@ describe('fieldMonitorLive helpers', () => {
 
   it('supports both short and long station payload keys', () => {
     const minBatteryMap = new Map();
-    const brownoutLatchMap = new Map();
 
     const station = normalizeStation(
       {
@@ -394,8 +357,7 @@ describe('fieldMonitorLive helpers', () => {
         pll: RadioConnectionQuality.Excellent,
         pmm: true,
       },
-      minBatteryMap,
-      brownoutLatchMap
+      minBatteryMap
     );
 
     expect(station).toMatchObject({

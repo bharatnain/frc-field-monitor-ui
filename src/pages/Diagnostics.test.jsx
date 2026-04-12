@@ -56,14 +56,13 @@ function createDiagnosticsRow(overrides = {}) {
       rxMcsBandwidth: '80',
       rxVht: 'Yes',
       rxVhtNss: '2',
+      history: { trip: [], snr: [] },
     },
     health: {
       battery: { value: '12.4V', min: '12.1', action: '', tone: 'normal' },
       brownout: false,
-      brownoutLatched: false,
       flags: [
         { label: 'Brownout', value: 'No', tone: 'good' },
-        { label: 'Latch', value: 'Clear', tone: 'good' },
       ],
     },
     evidence: {
@@ -145,8 +144,6 @@ describe('Diagnostics', () => {
     expect(within(topbar).getByText('Teleop')).toBeInTheDocument();
     expect(within(topbar).getByText('On schedule')).toBeInTheDocument();
     expect(within(topbar).getByText('Waiting for next start')).toBeInTheDocument();
-    expect(screen.getByText('Blue Alliance')).toBeInTheDocument();
-    expect(screen.getByText('Red Alliance')).toBeInTheDocument();
     expect(screen.getAllByTestId('diagnostics-card')).toHaveLength(2);
     expect(screen.getAllByTestId('diagnostics-team-number')).toHaveLength(2);
     expect(screen.getByText('1114')).toBeInTheDocument();
@@ -157,14 +154,13 @@ describe('Diagnostics', () => {
   it('renders readable one-column team cards with grouped diagnostics sections', () => {
     renderDiagnostics();
 
-    expect(screen.getAllByText('Identity / Robot State').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Connection Path').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Robot State').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Status').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Network').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Health').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Evidence').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Enabled · Teleop · Stop Normal').length).toBeGreaterThan(0);
     expect(screen.getAllByTestId('diagnostics-ds-tile')[0]).toHaveTextContent('Connected');
     expect(screen.getAllByTestId('diagnostics-radio-tile')[0]).toHaveTextContent('2 BARS');
-    expect(screen.getAllByTestId('diagnostics-bandwidth-tile')[0]).toHaveTextContent('Tx 1.9 / Rx 2.9');
+    expect(screen.getAllByTestId('diagnostics-bandwidth-tile')[0]).toHaveTextContent('4.8 Mbps');
     expect(screen.getAllByTestId('diagnostics-battery-tile')[0]).toHaveTextContent('Min 12.1');
     expect(screen.getAllByText('Signal').length).toBeGreaterThan(0);
     expect(screen.getAllByText('00:80:2f:37:31:01').length).toBeGreaterThan(0);
