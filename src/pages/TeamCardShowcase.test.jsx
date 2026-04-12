@@ -12,6 +12,12 @@ function renderShowcase() {
 }
 
 describe('TeamCardShowcase', () => {
+  it('sets the document title for the showcase page', () => {
+    renderShowcase();
+
+    expect(document.title).toBe('Team Card Showcase - FIRST Field Monitor');
+  });
+
   it('renders the static showcase title and navigation links', () => {
     renderShowcase();
 

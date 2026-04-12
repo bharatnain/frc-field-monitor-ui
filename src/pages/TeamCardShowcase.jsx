@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import TeamStatusCard from '../components/TeamStatusCard';
+import usePageTitle from '../lib/usePageTitle';
 
 function generateSampleHistory(base, variance, length = 30) {
   return Array.from({ length }, () => base + (Math.random() - 0.5) * variance);
@@ -145,7 +146,7 @@ const showcaseSections = [
       },
       {
         title: 'Autonomous Stop',
-        subtitle: 'Expected autonomous disable with warning treatment and battery highlight.',
+        subtitle: 'Expected autonomous disable with warning treatment while keeping the battery tile neutral.',
         alliance: 'blue',
         row: createRow({
           team: '1323',
@@ -226,6 +227,8 @@ function ExampleCard({ title, subtitle, alliance, row }) {
 }
 
 export default function TeamCardShowcase() {
+  usePageTitle('Team Card Showcase');
+
   return (
     <div className="min-h-screen bg-zinc-100 text-zinc-900">
       <div className="mx-auto max-w-[1800px] px-4 py-6 sm:px-6 lg:px-8">

@@ -5,6 +5,7 @@ import { useSearchParams } from 'react-router-dom';
 import chefBoyardeeWalkGif from '../assets/chef-boyardee-walk.gif';
 import TeamStatusCard from '../components/TeamStatusCard';
 import { fieldMonitorTypes, useFieldMonitorLiveData } from '../lib/fieldMonitorLive';
+import usePageTitle from '../lib/usePageTitle';
 
 const CONFETTI_COLORS = ['#f97316', '#ef4444', '#facc15', '#22c55e', '#3b82f6', '#a855f7', '#ec4899', '#14b8a6'];
 const CONFETTI_PIECES = Array.from({ length: 120 }, (_, index) => ({
@@ -170,6 +171,8 @@ function FunOverlayLayer({ showConfetti, showChefDisconnect }) {
 }
 
 export default function FieldMonitor() {
+  usePageTitle('Live Monitor');
+
   const [searchParams] = useSearchParams();
   const mirrorLayout = searchParams.get('mirror') === 'true';
   const replayFileInputRef = useRef(null);

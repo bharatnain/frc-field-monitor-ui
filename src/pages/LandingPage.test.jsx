@@ -12,6 +12,12 @@ function renderLandingPage() {
 }
 
 describe('LandingPage', () => {
+  it('sets the document title for the welcome page', () => {
+    renderLandingPage();
+
+    expect(document.title).toBe('Welcome - FIRST Field Monitor');
+  });
+
   it('renders the core marketing message and product-led proof', () => {
     renderLandingPage();
 

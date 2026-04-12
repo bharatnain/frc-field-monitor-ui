@@ -107,4 +107,22 @@ describe('TeamStatusCard', () => {
     expect(contentSection).toHaveClass('opacity-60');
     expect(footerSection).toHaveClass('opacity-70');
   });
+
+  it('does not highlight the battery tile for a-stop rows unless the battery itself is warned', () => {
+    render(
+      <TeamStatusCard
+        alliance="blue"
+        row={createRow({
+          mode: 'astopped',
+          status: { label: 'A-STOPPED', shortLabel: 'A-STOP', tone: 'warn' },
+          battery: { value: '12.4V', min: '12.1', tone: 'normal', action: '', detail: 'Stable' },
+        })}
+      />
+    );
+
+    const batteryTile = screen.getByTestId('mobile-footer-summary').firstElementChild;
+
+    expect(batteryTile).toHaveClass('bg-white/80');
+    expect(batteryTile).not.toHaveClass('ring-2', 'ring-amber-300', 'ring-amber-400');
+  });
 });

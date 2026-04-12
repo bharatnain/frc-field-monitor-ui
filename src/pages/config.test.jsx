@@ -86,6 +86,12 @@ describe('Config', () => {
     vi.clearAllMocks();
   });
 
+  it('sets the document title for the config page', () => {
+    renderConfig('/config');
+
+    expect(document.title).toBe('Config - FIRST Field Monitor');
+  });
+
   it('passes mirrorLayout to the hook and preserves it in the field monitor link', () => {
     renderConfig('/config?mirror=true');
 

@@ -1,8 +1,11 @@
 import React from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { useFieldMonitorLiveData } from '../lib/fieldMonitorLive';
+import usePageTitle from '../lib/usePageTitle';
 
 export default function Config() {
+  usePageTitle('Config');
+
   const [searchParams] = useSearchParams();
   const [recordingLabel, setRecordingLabel] = React.useState('');
   const mirrorLayout = searchParams.get('mirror') === 'true';

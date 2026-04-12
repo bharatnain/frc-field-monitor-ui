@@ -292,17 +292,10 @@ export default function DetailedTeamStatusCard({ alliance, row, collapseSignal }
           <DetailGrid
             columns={4}
             items={[
-              {
-                label: 'Data Rate',
-                value: `${row.network.bandwidth}`,
-                testId: 'diagnostics-bandwidth-tile',
-              },
               { label: 'Tx / Rx (Field AP)', value: `${row.network.tx} / ${row.network.rx}` },
-              { label: 'Avg Trip Time', value: row.network.trip },
               { label: 'Lost Packets', value: row.network.loss },
               { label: 'Signal', value: row.network.signal },
               { label: 'Noise', value: row.network.noise },
-              { label: 'SNR', value: row.network.snr },
               { label: 'Inactivity', value: row.network.inactivity },
               { label: 'Rx Packets', value: row.network.rxPackets },
               { label: 'Rx MCS Bandwidth', value: row.network.rxMcsBandwidth },

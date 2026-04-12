@@ -4,6 +4,7 @@ import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faChevronDown, faChevronRight } from '@fortawesome/free-solid-svg-icons';
 import DetailedTeamStatusCard from '../components/DetailedTeamStatusCard';
 import { useFieldMonitorLiveData } from '../lib/fieldMonitorLive';
+import usePageTitle from '../lib/usePageTitle';
 
 const panelTheme = (alliance) =>
   alliance === 'red'
@@ -47,6 +48,8 @@ function TopBarStat({ label, value, className = '', valueClassName = '' }) {
 }
 
 export default function Diagnostics() {
+  usePageTitle('Diagnostics');
+
   const [searchParams] = useSearchParams();
   const mirrorLayout = searchParams.get('mirror') === 'true';
   const replayFileInputRef = useRef(null);

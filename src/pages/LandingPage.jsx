@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import TeamStatusCard from '../components/TeamStatusCard';
+import usePageTitle from '../lib/usePageTitle';
 
 function createRow(overrides = {}) {
   return {
@@ -113,6 +114,8 @@ function SectionHeading({ eyebrow, title, body, align = 'left' }) {
 }
 
 export default function LandingPage() {
+  usePageTitle('Welcome');
+
   return (
     <div className="min-h-screen bg-zinc-100 text-zinc-900">
       <section className="overflow-hidden bg-zinc-950 text-white">

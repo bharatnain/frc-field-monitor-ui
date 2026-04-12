@@ -50,12 +50,12 @@ const stateTone = (status, theme) => {
   return theme.stateTele;
 };
 
-const batteryToneClass = (battery, isAStop) => {
+const batteryToneClass = (battery) => {
   if (battery?.tone === 'critical') {
     return 'bg-amber-50 ring-2 ring-amber-400';
   }
 
-  if (battery?.tone === 'warn' || isAStop) {
+  if (battery?.tone === 'warn') {
     return 'bg-amber-50 ring-2 ring-amber-300';
   }
 
@@ -464,7 +464,6 @@ function StationBadge({ station, theme }) {
 export default function TeamStatusCard({ alliance, row }) {
   const theme = panelTheme(alliance);
   const isBlocking = row.mode === 'blocking';
-  const isAStop = isAStopMode(row.mode);
   const isBypassed = row.mode === 'bypassed';
   const isEmergencyStop = isEmergencyStopMode(row.mode);
   const isPostMatchMuted = Boolean(row.isPostMatchMuted);
@@ -598,7 +597,7 @@ export default function TeamStatusCard({ alliance, row }) {
                 isNormal ? 'min-[381px]:max-sm:gap-px min-[381px]:max-sm:py-px' : 'py-px'
               }`}
             >
-              <div className={`rounded-md px-1 py-0.5 [@media(max-width:380px)]:px-0.5 ${batteryToneClass(row.battery, isAStop)}`}>
+              <div className={`rounded-md px-1 py-0.5 [@media(max-width:380px)]:px-0.5 ${batteryToneClass(row.battery)}`}>
                 {row.battery?.action ? (
                   <div className="flex justify-end">
                     <div className={`rounded-full px-0.5 py-px text-[5px] font-black uppercase leading-[1.1] tracking-[0.06em] ${batteryActionClass(row.battery)}`}>
@@ -619,7 +618,7 @@ export default function TeamStatusCard({ alliance, row }) {
             </div>
 
             <div className="hidden lg:grid lg:grid-cols-3 lg:gap-1.5 lg:rounded-xl lg:bg-zinc-50/70 lg:py-1 lg:px-1 [@media(min-width:1024px)_and_(max-height:860px)]:gap-1 [@media(min-width:1024px)_and_(max-height:860px)]:py-0.5 [@media(min-width:1024px)_and_(max-height:720px)]:gap-0.5">
-              <div className={`rounded-xl px-2 py-1 [@media(min-width:1024px)_and_(max-height:860px)]:px-1.5 [@media(min-width:1024px)_and_(max-height:860px)]:py-0.5 [@media(min-width:1024px)_and_(max-height:720px)]:px-1 [@media(min-width:1024px)_and_(max-height:720px)]:py-0.5 ${batteryToneClass(row.battery, isAStop)}`}>
+              <div className={`rounded-xl px-2 py-1 [@media(min-width:1024px)_and_(max-height:860px)]:px-1.5 [@media(min-width:1024px)_and_(max-height:860px)]:py-0.5 [@media(min-width:1024px)_and_(max-height:720px)]:px-1 [@media(min-width:1024px)_and_(max-height:720px)]:py-0.5 ${batteryToneClass(row.battery)}`}>
                 {row.battery?.action ? (
                   <div className="flex justify-end">
                     <div className={`rounded-full px-1.5 py-px text-[7px] font-black uppercase tracking-[0.1em] [@media(min-width:1024px)_and_(max-height:860px)]:text-[7px] [@media(min-width:1024px)_and_(max-height:720px)]:text-[6px] ${batteryActionClass(row.battery)}`}>

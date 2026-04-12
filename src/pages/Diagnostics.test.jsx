@@ -1,5 +1,5 @@
 import { MemoryRouter } from 'react-router-dom';
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import Diagnostics from './Diagnostics';
 import { useFieldMonitorLiveData } from '../lib/fieldMonitorLive';
@@ -132,6 +132,12 @@ describe('Diagnostics', () => {
     mockUseFieldMonitorLiveData.mockReturnValue(createHookState());
   });
 
+  it('sets the document title for the diagnostics page', () => {
+    renderDiagnostics();
+
+    expect(document.title).toBe('Diagnostics - FIRST Field Monitor');
+  });
+
   it('renders the simplified diagnostics top bar and forwards mirrorLayout from the query string', () => {
     renderDiagnostics('/diagnostics?mirror=true');
     const topbar = screen.getByTestId('diagnostics-topbar');
@@ -153,14 +159,14 @@ describe('Diagnostics', () => {
 
   it('renders readable one-column team cards with grouped diagnostics sections', () => {
     renderDiagnostics();
+    fireEvent.click(screen.getByTestId('diagnostics-collapse-toggle'));
 
     expect(screen.getAllByText('Robot State').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Status').length).toBeGreaterThan(0);
     expect(screen.getAllByText('Network').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Enabled · Teleop · Stop Normal').length).toBeGreaterThan(0);
     expect(screen.getAllByTestId('diagnostics-ds-tile')[0]).toHaveTextContent('Connected');
     expect(screen.getAllByTestId('diagnostics-radio-tile')[0]).toHaveTextContent('2 BARS');
-    expect(screen.getAllByTestId('diagnostics-bandwidth-tile')[0]).toHaveTextContent('4.8 Mbps');
+    expect(screen.queryByTestId('diagnostics-bandwidth-tile')).not.toBeInTheDocument();
     expect(screen.getAllByTestId('diagnostics-battery-tile')[0]).toHaveTextContent('Min 12.1');
     expect(screen.getAllByText('Signal').length).toBeGreaterThan(0);
     expect(screen.getAllByText('00:80:2f:37:31:01').length).toBeGreaterThan(0);

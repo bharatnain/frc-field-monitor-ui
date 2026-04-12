@@ -122,6 +122,12 @@ describe('FieldMonitor', () => {
     });
   });
 
+  it('sets the document title for the live monitor page', () => {
+    renderFieldMonitor('/');
+
+    expect(document.title).toBe('Live Monitor - FIRST Field Monitor');
+  });
+
   it('renders the main top bar and forwards mirrorLayout from the query string', () => {
     renderFieldMonitor('/?mirror=true');
 
