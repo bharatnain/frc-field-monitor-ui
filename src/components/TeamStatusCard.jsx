@@ -1,11 +1,5 @@
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
-import {
-  faTriangleExclamation,
-  faGamepad,
-  faTowerBroadcast,
-  faMicrochip,
-  faXmark,
-} from '@fortawesome/free-solid-svg-icons';
+import { faTriangleExclamation, faGamepad, faTowerBroadcast, faMicrochip, faXmark } from '@fortawesome/free-solid-svg-icons';
 import MiniSparkline from './MiniSparkline';
 
 const panelTheme = (alliance) =>
@@ -119,14 +113,6 @@ const connectionTheme = (state) => {
   };
 };
 
-const deviceStatusText = (kind, state) => {
-  if (state === 'bad') return 'OUT';
-  if (state === 'warn') return kind === 'radio' ? 'LOW' : 'WARN';
-  if (kind === 'ds') return 'LINK';
-  if (kind === 'rio') return 'ONLINE';
-  return 'GOOD';
-};
-
 const deviceStatusIcon = (state) => {
   if (state === 'bad') return faXmark;
   if (state === 'warn') return faTriangleExclamation;
@@ -163,19 +149,6 @@ const mobileChipTone = (state) => {
 function SignalBars({ bars = 0, state = 'good', hero = false }) {
   const count = clampRadioBars(bars);
   const theme = connectionTheme(state);
-  if (count === 0) {
-    return (
-      <span
-        className={`font-extrabold tracking-wide ${
-          hero
-            ? 'text-[20px] sm:text-[30px] [@media(min-width:1024px)]:text-[32px]'
-            : 'text-[18px] sm:text-[26px] [@media(min-width:1024px)]:text-[28px]'
-        }`}
-      >
-        OUT
-      </span>
-    );
-  }
   const heights = hero ? ['32%', '54%', '76%', '100%'] : ['25%', '50%', '75%', '100%'];
   return (
     <span
@@ -197,25 +170,6 @@ function SignalBars({ bars = 0, state = 'good', hero = false }) {
         />
       ))}
     </span>
-  );
-}
-
-function DeviceStatusBadge({ state, text }) {
-  const icon = deviceStatusIcon(state);
-  const badgeClass =
-    state === 'bad'
-      ? 'bg-amber-600 text-white ring-2 ring-amber-700'
-      : state === 'warn'
-        ? 'bg-amber-100 text-amber-950 ring-2 ring-amber-500'
-        : 'bg-emerald-50 text-emerald-900 ring-2 ring-emerald-200';
-
-  return (
-    <div
-      className={`inline-flex items-center justify-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-black uppercase tracking-[0.12em] [@media(max-width:380px)]:text-[9px] sm:px-2.5 sm:py-1 sm:text-[11px] [@media(min-width:1024px)]:text-[12px] [@media(min-width:1024px)_and_(max-height:860px)]:px-1.5 [@media(min-width:1024px)_and_(max-height:860px)]:py-0.5 [@media(min-width:1024px)_and_(max-height:860px)]:text-[10px] [@media(min-width:1024px)_and_(max-height:720px)]:px-1 [@media(min-width:1024px)_and_(max-height:720px)]:text-[9px] ${badgeClass}`}
-    >
-      {icon && <FontAwesomeIcon icon={icon} className="h-2.5 w-2.5 sm:h-3.5 sm:w-3.5" />}
-      <span>{text}</span>
-    </div>
   );
 }
 
@@ -326,7 +280,6 @@ function ConnectionTile({ kind, state, label, bars = 0 }) {
   const theme = connectionTheme(state);
   const isRadio = kind === 'radio';
   const isDS = kind === 'ds';
-  const status = deviceStatusText(kind, state);
   const footerClass =
     'mt-0.5 flex min-h-[14px] items-end justify-center sm:mt-1 sm:min-h-[20px] [@media(min-width:1024px)_and_(max-height:860px)]:mt-0 [@media(min-width:1024px)_and_(max-height:860px)]:min-h-[16px] [@media(min-width:1024px)_and_(max-height:720px)]:min-h-[14px]';
 
@@ -360,7 +313,7 @@ function ConnectionTile({ kind, state, label, bars = 0 }) {
       )}
 
       <div className={footerClass}>
-        {isRadio ? <div aria-hidden="true" className="invisible h-0" /> : <DeviceStatusBadge state={state} text={status} />}
+        <div aria-hidden="true" className="invisible h-0" />
       </div>
     </div>
   );
@@ -384,10 +337,6 @@ function MobileSignalBars({ bars = 0, state = 'good' }) {
   const count = clampRadioBars(bars);
   const theme = connectionTheme(state);
 
-  if (count === 0) {
-    return <span className="text-[9px] font-black leading-none tracking-wide [@media(max-width:380px)]:text-[8px]">OUT</span>;
-  }
-
   return (
     <span className="inline-flex h-2.5 items-end gap-px [@media(max-width:380px)]:h-2">
       {['33%', '58%', '82%', '100%'].map((height, index) => (
@@ -404,7 +353,6 @@ function MobileSignalBars({ bars = 0, state = 'good' }) {
 function MobileConnectionChip({ kind, label, state, bars = 0 }) {
   const tone = mobileChipTone(state);
   const isRadio = kind === 'radio';
-  const status = deviceStatusText(kind, state);
   const icon = deviceStatusIcon(state);
 
   return (
@@ -416,14 +364,11 @@ function MobileConnectionChip({ kind, label, state, bars = 0 }) {
         <div className={`text-[6px] font-black uppercase leading-[1.15] tracking-[0.04em] [@media(max-width:380px)]:text-[5px] ${tone.label}`}>
           {label}
         </div>
-        <div className={`flex items-center gap-0.5 text-[9px] font-black leading-[1.08] [@media(max-width:380px)]:text-[8px] ${tone.value}`}>
+        <div className={`flex min-h-[10px] items-center gap-0.5 text-[9px] font-black leading-[1.08] [@media(max-width:380px)]:min-h-[8px] [@media(max-width:380px)]:text-[8px] ${tone.value}`}>
           {isRadio ? (
             <MobileSignalBars bars={bars} state={state} />
           ) : (
-            <>
-              {icon ? <FontAwesomeIcon icon={icon} className="h-2.5 w-2.5 shrink-0" /> : null}
-              <span className="truncate">{status}</span>
-            </>
+            icon ? <FontAwesomeIcon icon={icon} className="h-2.5 w-2.5 shrink-0" aria-hidden="true" /> : null
           )}
         </div>
       </div>

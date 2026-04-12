@@ -41,9 +41,10 @@ describe('TeamStatusCard', () => {
     );
 
     expect(screen.queryByText('OUT')).not.toBeInTheDocument();
+    expect(screen.queryByText('LINK')).not.toBeInTheDocument();
   });
 
-  it('shows OUT when the explicit radio bar count is zero even if the detail string is stale', () => {
+  it('keeps connection tiles label-free when the explicit radio bar count is zero', () => {
     render(
       <TeamStatusCard
         alliance="blue"
@@ -60,7 +61,8 @@ describe('TeamStatusCard', () => {
       />
     );
 
-    expect(screen.getAllByText('OUT')).toHaveLength(2);
+    expect(screen.queryByText('OUT')).not.toBeInTheDocument();
+    expect(screen.queryByText('LINK')).not.toBeInTheDocument();
   });
 
   it('keeps bypass affordances emphasized while muting the connection and footer sections', () => {
