@@ -79,6 +79,10 @@ const isEditableTarget = (target) => {
 const normalizeScheduleStatus = (value) => (typeof value === 'string' ? value.trim().toLowerCase() : '');
 
 const isAheadScheduleStatus = (value) => normalizeScheduleStatus(value).startsWith('ahead');
+const isLiveMatchState = (matchState) =>
+  matchState === MatchStateType.MatchAuto ||
+  matchState === MatchStateType.MatchTransition ||
+  matchState === MatchStateType.MatchTeleop;
 
 function TopBarStat({ label, value, align = 'left', className = '', valueClassName = '', wrapValue = false }) {
   const textAlignmentClass =
@@ -186,7 +190,7 @@ export default function FieldMonitor() {
     confetti: 0,
     chefDisconnect: 0,
   });
-  const previousScheduleDirectionRef = useRef(null);
+  const previousMatchStateRef = useRef(null);
   const previousConnectionRef = useRef(null);
   const {
     alliancePanels: distancePanels,
@@ -275,15 +279,13 @@ export default function FieldMonitor() {
       }, durationMs);
     };
 
-    const previousDirection = previousScheduleDirectionRef.current;
-    if (previousDirection) {
-      if (!previousDirection.isAhead && isAhead) {
-        setOverlayVisibility('confetti', setShowConfetti, CONFETTI_DURATION_MS);
-      }
+    const previousMatchState = previousMatchStateRef.current;
+    if (previousMatchState !== null && !isLiveMatchState(previousMatchState) && isLiveMatchState(matchStatus.matchState) && isAhead) {
+      setOverlayVisibility('confetti', setShowConfetti, CONFETTI_DURATION_MS);
     }
 
-    previousScheduleDirectionRef.current = { isAhead };
-  }, [isAhead]);
+    previousMatchStateRef.current = matchStatus.matchState;
+  }, [isAhead, matchStatus.matchState]);
 
   useEffect(() => {
     if (typeof window === 'undefined') {

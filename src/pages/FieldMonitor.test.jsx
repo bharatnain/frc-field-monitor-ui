@@ -1,5 +1,5 @@
 import { MemoryRouter } from 'react-router-dom';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import FieldMonitor from './FieldMonitor';
@@ -10,6 +10,9 @@ vi.mock('../lib/fieldMonitorLive', () => ({
   fieldMonitorTypes: {
     MatchStateType: {
       WaitingForMatchStart: 9,
+      MatchAuto: 11,
+      MatchTransition: 12,
+      MatchTeleop: 13,
     },
   },
 }));
@@ -166,16 +169,22 @@ describe('FieldMonitor', () => {
     expect(screen.getByText('Teleop')).toBeInTheDocument();
   });
 
-  it('shows a one-shot confetti overlay when the schedule transitions into an ahead state', async () => {
+  it('shows a one-shot confetti overlay when a match starts while the field is ahead of schedule', async () => {
     let hookState = createHookState({
       sourceMode: 'replay',
-      scheduleStatus: 'On schedule',
-      aheadBehind: 'On schedule',
+      scheduleStatus: 'Ahead by 1',
+      aheadBehind: 'Ahead by 1',
       isAheadBehindKnown: true,
+      matchStatus: {
+        matchState: 9,
+        matchNumber: 42,
+        matchStateMessage: 'READY FOR MATCH START',
+      },
     });
     mockUseFieldMonitorLiveData.mockImplementation(() => hookState);
 
     const { rerender } = renderFieldMonitor('/');
+    await act(async () => {});
 
     expect(screen.queryByTestId('fun-confetti-overlay')).not.toBeInTheDocument();
 
@@ -184,6 +193,11 @@ describe('FieldMonitor', () => {
       scheduleStatus: 'Ahead by 1',
       aheadBehind: 'Ahead by 1',
       isAheadBehindKnown: true,
+      matchStatus: {
+        matchState: 11,
+        matchNumber: 42,
+        matchStateMessage: 'AUTO',
+      },
     });
 
     rerender(createFieldMonitorTree('/'));
@@ -191,6 +205,79 @@ describe('FieldMonitor', () => {
     await waitFor(() => {
       expect(screen.getByTestId('fun-confetti-overlay')).toBeInTheDocument();
     });
+  });
+
+  it('re-triggers confetti on each ahead-of-schedule match start', async () => {
+    vi.useFakeTimers();
+    try {
+      let hookState = createHookState({
+        sourceMode: 'replay',
+        scheduleStatus: 'Ahead by 1',
+        aheadBehind: 'Ahead by 1',
+        isAheadBehindKnown: true,
+        matchStatus: {
+          matchState: 9,
+          matchNumber: 42,
+          matchStateMessage: 'READY FOR MATCH START',
+        },
+      });
+      mockUseFieldMonitorLiveData.mockImplementation(() => hookState);
+
+      const { rerender } = renderFieldMonitor('/');
+      await act(async () => {});
+
+      hookState = createHookState({
+        sourceMode: 'replay',
+        scheduleStatus: 'Ahead by 1',
+        aheadBehind: 'Ahead by 1',
+        isAheadBehindKnown: true,
+        matchStatus: {
+          matchState: 11,
+          matchNumber: 42,
+          matchStateMessage: 'AUTO',
+        },
+      });
+      rerender(createFieldMonitorTree('/'));
+
+      expect(screen.getByTestId('fun-confetti-overlay')).toBeInTheDocument();
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2400);
+      });
+
+      expect(screen.queryByTestId('fun-confetti-overlay')).not.toBeInTheDocument();
+
+      hookState = createHookState({
+        sourceMode: 'replay',
+        scheduleStatus: 'Ahead by 1',
+        aheadBehind: 'Ahead by 1',
+        isAheadBehindKnown: true,
+        matchStatus: {
+          matchState: 9,
+          matchNumber: 43,
+          matchStateMessage: 'READY FOR MATCH START',
+        },
+      });
+      rerender(createFieldMonitorTree('/'));
+      await act(async () => {});
+
+      hookState = createHookState({
+        sourceMode: 'replay',
+        scheduleStatus: 'Ahead by 1',
+        aheadBehind: 'Ahead by 1',
+        isAheadBehindKnown: true,
+        matchStatus: {
+          matchState: 11,
+          matchNumber: 43,
+          matchStateMessage: 'AUTO',
+        },
+      });
+      rerender(createFieldMonitorTree('/'));
+
+      expect(screen.getByTestId('fun-confetti-overlay')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('shows the Chef Boyardee overlay only when live connection is lost after being connected', async () => {
